@@ -86,6 +86,24 @@ try{
 
  await p.locator('#nav-records').click();
  await p.locator('#records-list button.item').first().click();
+ // A stale tab must not export an out-of-date record as if it were complete.
+ const b=await ctx.newPage();
+ await b.goto(BASE,{waitUntil:'domcontentloaded'});
+ await b.locator('#nav-records').click();
+ await b.locator('#records-list button.item').first().click();
+ await b.locator('#detail-edit').click();
+ await b.locator('#memo').fill('다른 탭 B의 선행 수정 (합성)');
+ await b.locator('#save-btn').click();
+ await b.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:20000});
+ await p.locator('#v226-export-history').click();
+ await p.waitForFunction(()=>document.querySelector('#v226-export-status')?.textContent?.includes('내보내기 중단'),null,{timeout:15000});
+ assert.match(await p.locator('#v226-export-status').innerText(),/다른 탭에서 기록이 바뀌었습니다/);
+ assert.equal((await records()).length,1);
+ pass('다른 탭 선행 수정 시 오래된 내보내기 차단');
+ await b.close();
+ await p.reload({waitUntil:'domcontentloaded'});
+ await p.locator('#nav-records').click();
+ await p.locator('#records-list button.item').first().click();
  await p.locator('#v226-continue').click();
  assert.equal(await p.locator('#problem').inputValue(),'1/4+2/4=?');
  assert.equal(await p.locator('#student-answer').inputValue(),'');
