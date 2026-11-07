@@ -33,14 +33,14 @@ try{
  pass('같은 분모 문항 자동 연결', '원본 1/4+2/4, 학생 답 3/8');
 
  const conceptStage=panel.locator('details.v27-stage').filter({has:page.locator('summary:text("② 작은 개념 지도")')});
- await conceptStage.locator('summary').click();
+ await conceptStage.locator(':scope > summary').click();
  assert.equal(await conceptStage.locator('.v25-map button').count(),5);
  await conceptStage.locator('.v25-map button').first().click();
  assert.match(await conceptStage.locator('.v25-node-note').innerText(),/같은 분모/);
  pass('같은 분모 개념 5개 지도 탐색');
 
  const drawStage=panel.locator('details.v27-stage').filter({has:page.locator('summary:text("③ 막대를 직접")')});
- await drawStage.locator('summary').click();
+ await drawStage.locator(':scope > summary').click();
  const bars=drawStage.locator('.v27-paint-row');
  assert.equal(await bars.count(),2);
  assert.equal(await bars.nth(0).locator('button.v27-paint-cell').count(),4);
@@ -51,12 +51,12 @@ try{
  await drawStage.locator('button').filter({hasText:'색칠 확인'}).click();
  assert.match(await drawStage.locator('.v25-status').first().innerText(),/예시와 같아요/);
  const solution=drawStage.locator('details.v26-solution');
- await solution.locator('summary').click();
+ await solution.locator(':scope > summary').click();
  assert.match(await solution.innerText(),/분모 4는 그대로/);
  pass('조작형 4칸 막대·원리 설명', '분자 1+2, 분모 4 유지');
 
  const checkStage=panel.locator('details.v27-stage').filter({has:page.locator('summary:text("④ 두 개의 짧은 확인")')});
- await checkStage.locator('summary').click();
+ await checkStage.locator(':scope > summary').click();
  const inputs=checkStage.locator('input.control');
  assert.equal(await inputs.count(),2);
  await inputs.nth(0).fill('1');
@@ -66,7 +66,7 @@ try{
  pass('같은 단위 개수·전체 조각 확인 질문');
 
  const finalStage=panel.locator('details.v27-stage').filter({has:page.locator('summary:text("⑤ 재풀이와 새 문제")')});
- await finalStage.locator('summary').click();
+ await finalStage.locator(':scope > summary').click();
  const transfer=finalStage.locator('.v222-transfer');
  const text=await transfer.locator('.v222-newproblem').innerText();
  assert.match(text,/(\d+)\/(\d+)\+(\d+)\/\2/,'새 문제도 같은 분모여야 함');
