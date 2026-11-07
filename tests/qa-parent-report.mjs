@@ -95,6 +95,7 @@ async function readRows(p=page){
 }
 try{
  await page.goto(BASE,{waitUntil:'domcontentloaded'});
+ await page.locator('#v227-metrics .v29-stat').first().waitFor({timeout:20000});
  assert.equal(await page.locator('#v227-parent-report').isVisible(),true);
  assert.equal(await page.locator('#v227-metrics .v29-stat').count(),6);
  await page.locator('#nav-add').click();
@@ -133,6 +134,7 @@ try{
  },{name:DB,id:saved.id});
  assert.equal(put,true);
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('#v227-metrics .v29-stat').first().waitFor({timeout:20000});
  assert.equal(await page.locator('#v227-metrics .v29-stat').count(),6);
  const labels=await page.locator('#v227-metrics .v29-stat strong').allInnerTexts();
  assert.deepEqual(labels,['1','2','1/2','1/1','1/2','1']);
