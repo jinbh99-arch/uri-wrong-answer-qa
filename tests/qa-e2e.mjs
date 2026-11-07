@@ -100,6 +100,23 @@ try {
   pass('SHA-256 변경 백업 복원 사전 차단','기존 문항과 사진의 바이트 보존');
 
 
+  // Confirm that the child mode keeps the learning path while hiding management controls.
+  await a.locator('#v218-child-mode').click();
+  assert.equal(await a.locator('#nav-add').isVisible(),false);
+  assert.equal(await a.locator('#nav-settings').isVisible(),false);
+  await openRecord(a,'QA 합성 분수문항');
+  assert.equal(await a.locator('#detail-delete').isVisible(),false);
+  assert.equal(await a.locator('#detail-edit').isVisible(),false);
+  await a.locator('#detail-concept').click();
+  await a.locator('#tree-toggle').click();
+  assert.equal(await a.locator('#tree-section').isVisible(),true);
+  const linked = await a.locator('#tree-list').locator('*').count();
+  assert.ok(linked>0,'개념 연결 지도 노드가 표시되지 않음');
+  await a.locator('#v218-parent-mode').click();
+  assert.equal(await a.locator('#nav-add').isVisible(),true);
+  assert.equal(await a.locator('#nav-settings').isVisible(),true);
+  pass('아동/부모 화면 전환과 개념 연결 경로', '관리 버튼 숨김·연결 지도 '+linked+' DOM 요소 확인');
+
   await openRecord(a,'QA 합성 분수문항');
   await a.locator('#detail-edit').click();
   await a.locator('#memo').fill('A가 덮어쓰려는 과거 메모');
