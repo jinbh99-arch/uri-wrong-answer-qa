@@ -69,6 +69,6 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - 별도 동의가 필요한 기존 OCR 기능에 **원래 방향 / 시계 90° / 반시계 90°**, **원본 색상 / 회색 대비 강화** 조작을 추가했습니다. 보정된 임시 이미지만 글자 인식 엔진에 전달하며 저장되는 사진에는 적용하지 않습니다.
 - 보정 설정이 바뀌면 **이전 OCR 결과와 부모 확인 표시를 초기화**합니다. 앞서 작성한 문제 문장은 자동 삭제하지 않으며, 변경 이후 확인 없이 저장한 OCR 결과를 검증 완료로 취급하지 않습니다.
 - 합성 사진 기반 QA8 브라우저 검사는 회전된 입력 크기, 회색 픽셀, 원본 보존, 자동저장 방지, OCR 실패 후 수동 입력을 검사합니다. **실제 물리적 스마트폰 카메라·Tesseract 인식 정확도·외부 실행 코드의 보안은 아직 검증하지 않았습니다.**
-- [QA8 통합 CI 검사](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions) · tests/qa-ocr-preprocess.mjs (합성 이미지 전용).
+- [QA8 전체 자동검증 통과: 53/53 브라우저 시나리오·수학 계산 1,142건](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/42388848868) · [Pages 배포 작업 성공](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/42388848525) · [QA8 상세보고](QA8_v2.28_OCR임시사진보정_검증보고_20261108.md) · [G01~G16 변경표](QA8_G01-G16_변경항목_20261108.md) · tests/qa-ocr-preprocess.mjs (합성 이미지 전용).
 
 이 저장소는 합성 자료만을 위한 격리 시험본입니다. **실제 아이 사진이나 개인정보를 입력하지 마세요.** 운영 Netlify와 기존 JSON 백업 규격·IndexedDB 구조는 변경하지 않았습니다. G01~G16 최종 승인 0개 유지.
