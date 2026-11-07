@@ -8,6 +8,7 @@ on:
       - 'index.html'
       - 'check.html'
       - 'tests/qa-e2e.mjs'
+      - 'tests/qa-mobile-ocr.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -35,10 +36,14 @@ jobs:
           curl --fail http://127.0.0.1:4173/ > /dev/null
       - name: Real Chromium backup/restore and two-tab UI scenarios
         run: node tests/qa-e2e.mjs
+      - name: Synthetic mobile camera and OCR UI scenarios
+        run: node tests/qa-mobile-ocr.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: isolated-qa-browser-failure
-          path: qa-e2e-failure.png
+          path: |
+            qa-e2e-failure.png
+            qa-mobile-failure.png
           if-no-files-found: ignore
