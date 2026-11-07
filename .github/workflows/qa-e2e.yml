@@ -14,6 +14,7 @@ on:
       - 'tests/qa-same-denominator.mjs'
       - 'tests/qa-history-continuation.mjs'
       - 'tests/qa-parent-report.mjs'
+      - 'tests/qa-ocr-preprocess.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -53,6 +54,8 @@ jobs:
         run: node tests/qa-history-continuation.mjs
       - name: Parent evidence report, privacy CSV and stale-tab checks
         run: node tests/qa-parent-report.mjs
+      - name: QA8 temporary OCR image rotation/contrast and manual fallback
+        run: node tests/qa-ocr-preprocess.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -65,4 +68,5 @@ jobs:
             qa-same-den-failure.png
             qa-archive-failure.png
             qa-parent-report-failure.png
+            qa-ocr-preprocess-failure.png
           if-no-files-found: ignore
