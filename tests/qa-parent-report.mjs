@@ -61,6 +61,19 @@ assert.equal(whole.missingDates,2);
 assert.throws(()=>v227ReportModel(sample,'13',now));
 pass('전체 기간·날짜 오류·잘못된 기간 거부');
 
+const middle=[{id:'test-mid',problemText:'15일 전 기록',createdAt:when(24*15),
+ practiceHistory:[{kind:'v211-equal-groups-pilot',at:when(24*15),matchesExample:true}],
+ checkHistory:[],followupHistory:[]}];
+const month=v227ReportModel(middle,'30',now);
+const weekOutside=v227ReportModel(middle,'7',now);
+assert.equal(month.created,1);
+assert.equal(month.attempted,1);
+assert.equal(month.answerKnown,1);
+assert.equal(weekOutside.created,0);
+assert.equal(weekOutside.attempted,0);
+pass('30일 필터가 15일 전 기록을 포함, 7일 필터에서는 제외');
+
+
 const csv=v227ReportCsv(weekly,'7');
 assert.ok(csv.startsWith('\ufeff'));
 assert.match(csv,/재풀이 비교 미확인/);
