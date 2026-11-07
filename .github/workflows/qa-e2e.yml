@@ -9,6 +9,7 @@ on:
       - 'check.html'
       - 'tests/qa-e2e.mjs'
       - 'tests/qa-mobile-ocr.mjs'
+      - 'tests/qa-content.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -34,6 +35,8 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/qa-http.log 2>&1 &
           sleep 2
           curl --fail http://127.0.0.1:4173/ > /dev/null
+      - name: Mathematics pilot and graph-data consistency checks
+        run: node tests/qa-content.mjs
       - name: Real Chromium backup/restore and two-tab UI scenarios
         run: node tests/qa-e2e.mjs
       - name: Synthetic mobile camera and OCR UI scenarios
