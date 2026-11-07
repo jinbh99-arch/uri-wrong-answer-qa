@@ -6,6 +6,16 @@
 - [격리 IndexedDB 진단](https://jinbh99-arch.github.io/uri-wrong-answer-qa/check.html)
 - 기존 운영 Netlify 서비스: **변경하지 않음**
 
+## 💾 개발 소스 자동 백업 (2026-11-08 적용)
+
+- [자동 백업 실행 내역 및 ZIP 받기](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/workflows/source-backup.yml)
+- [v2.28 / QA8 복구 기준 코드](https://github.com/jinbh99-arch/uri-wrong-answer-qa/tree/backup/baseline-v2.28-qa8-20261108) · 기준 커밋 `eba3f38af04f8d92a2e9fbf2466c5232881f9efa`
+- [백업 관리·SHA-256 검사·복구 절차](docs/BACKUP_OPERATIONS.md)
+- 주요 코드 변경 때와 매주 월요일 12:00(한국시간)에 GitHub Actions가 **소스 전용 ZIP + SHA-256 검사 파일**을 보관하도록 설정했습니다. 백업 실행 성공 및 파일 생성 여부는 위 실행 내역으로 확인합니다.
+- Actions 아티팩트는 최대 30일 보관 요청(저장소 정책상 더 짧을 수 있음)으로, **정말 독립적인 백업을 위해서는 중요한 ZIP을 GitHub 밖에 별도 저장해야 합니다.**
+- **사진·아이 실제 오답 기록·브라우저 데이터는 포함되지 않습니다.** 실제 아이 개인정보는 공개 시험용 사이트나 GitHub에 입력하지 마세요.
+- 기존 운영 Netlify에는 변경·자동 배포하지 않습니다.
+
 ## 저장소 격리
 
 이 공개 GitHub Pages 저장소의 본체 QA 앱은 `uriaimath-github-qa-v224-only` 이름의 별도 IndexedDB를 사용합니다. 이전 시연판의 localStorage 키·이전 DB 이름·BroadcastChannel 명칭도 QA 전용으로 구분했습니다. 진단 화면은 별도 `uriaimath-v21-isolated-test-only` 저장소를 사용합니다.
