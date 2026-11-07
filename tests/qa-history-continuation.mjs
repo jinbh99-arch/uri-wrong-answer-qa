@@ -119,6 +119,13 @@ try{
  await p.locator('#clear-all').click();
  await p.locator('#confirm-dialog[open]').waitFor();
  await p.locator('#dlg-ok').click();
+ await p.waitForFunction(async name=>{
+   const req=indexedDB.open(name);
+   const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+   try{const q=db.transaction('mistakes','readonly').objectStore('mistakes').count();
+     return await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result===0);q.onerror=()=>reject(q.error)});
+   }finally{db.close()}
+ },DB,{timeout:20000});
  assert.equal((await records()).length,0);
  pass('가상 데이터 정리', '0건');
  assert.deepEqual(errors,[]);
