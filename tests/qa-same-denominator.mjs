@@ -20,10 +20,15 @@ async function readRow() {
 try{
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
  await page.goto(process.env.QA_BASE || 'http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- await page.locator('#nav-add').click();
- await page.locator('#problem').fill('1/4+2/4=?');
- await page.locator('#student-answer').fill('3/8');
- await page.locator('#concept').selectOption('math.fraction.add.same_den');
+ const demo=page.locator('#v225-samples');
+ assert.equal(await demo.locator('[data-v225-sample]').count(),3);
+ await demo.locator('[data-v225-sample="same"]').click();
+ assert.equal(await page.locator('#problem').inputValue(),'1/4+2/4=?');
+ assert.equal(await page.locator('#student-answer').inputValue(),'3/8');
+ assert.equal(await page.locator('#concept').inputValue(),'math.fraction.add.same_den');
+ const noAuto=await readRow();
+ assert.equal(noAuto,undefined,'예시 선택만으로 데이터가 저장됨');
+ pass('선택형 가상 예시 3종·자동 저장 없음');
  await page.locator('#memo').fill('QA 가상 같은 분모 문제');
  await page.locator('#save-btn').click();
  await page.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:20000});
