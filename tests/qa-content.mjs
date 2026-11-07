@@ -84,6 +84,31 @@ for(const eq of fractionSources){
 }
 assert.equal(app.v27ParseFractionAdd('1/2+1/3 그리고 다른 문제'),null);
 ok('분수 원인 후보·전이 문제 256개, 정답/동치/불일치/범위 제한',fractions);
+
+let sameCount=0,sameRejected=0;
+for(let b=2;b<=12;b++){
+ for(let a=1;a<b;a++)for(let c=1;c<b;c++){
+  const src=a+'/'+b+'+'+c+'/'+b;
+  const spec=app.v27ParseFractionAdd(src);
+  if(a+c>b){assert.equal(spec,null,'허용 범위 넘는 합을 받아들임: '+src);sameRejected++;continue}
+  assert.ok(spec,'같은 분모 지원 문항이 파싱되지 않음: '+src);
+  assert.equal(spec.sameDenominator,true);
+  assert.equal(spec.L,b);
+  assert.equal(spec.left,a);
+  assert.equal(spec.right,c);
+  assert.equal(spec.n,a+c);
+  assert.equal(app.v27AnswerMatches(String(a+c)+'/'+b,spec),true);
+  if(a+c===b)assert.equal(app.v27AnswerMatches('1',spec),true);
+  const cause=app.v222CauseCard('fraction',spec,(a+c)+'/'+(2*b));
+  assert.equal(cause.questions.length,3);
+  const task=app.v222TransferTask('fraction',spec,0);
+  assert.equal(task.fractionSpec.sameDenominator,true,'새 문제는 같은 분모 시범으로 유지');
+  assert.notEqual(task.signature,spec.signature,'새 문제는 기존 문항과 구분');
+  sameCount++;
+ }
+}
+ok('같은 분모 분수 전 범위 286개·허용 범위 밖 차단 220개',sameCount);
+
 for(let g=2;g<=6;g++)for(let each=2;each<=6;each++){
  const spec=app.v211ParseEqualGroups(g+'×'+each);
  assert.ok(spec);
@@ -101,5 +126,5 @@ for(let g=2;g<=6;g++)for(let each=2;each<=6;each++){
 }
 assert.equal(app.v211ParseEqualGroups('7×3'),null);
 ok('곱셈 원인 후보·전이 문제 600개, 정답/불일치/범위 제한',groups);
-console.log('QA_CONTENT_RESULT='+JSON.stringify({status:'PASS',checks:evidence,totalTransferSamples:fractions+groups,
+console.log('QA_CONTENT_RESULT='+JSON.stringify({status:'PASS',checks:evidence,totalTransferSamples:fractions+groups,sameDenominatorSamples:sameCount,sameDenominatorRejected:sameRejected,
  note:'내부 산술·그래프 구조 확인이며 공식 교육과정 원문 대조 또는 교육전문가 검증이 아님'}));
