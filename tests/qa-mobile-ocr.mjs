@@ -82,7 +82,7 @@ async function test390(){
   await page.waitForFunction(()=>document.querySelector('#v08-photo-ready')?.textContent?.includes('사진 선택 완료'));
   assert.equal(await page.locator('#ocr-reviewed').isChecked(),false);
   await page.locator('#save-btn').click();
-  await page.waitForFunction(()=>document.querySelector('#v13-save-state')?.textContent?.includes('확인'),null,{timeout:20000});
+  await page.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:20000});
   const after=await openDbRead('mistakes',id);
   assert.notEqual(after.ocrStatus,'browser_ocr_reviewed','사진 변경 후 검증 완료로 남으면 안 됨');
   passed('사진 변경 시 이전 OCR 확인 상태 무효화','기존 기록 ID 유지');
