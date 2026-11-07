@@ -1,0 +1,48 @@
+name: Source snapshot backup (isolated QA)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monday 03:00 UTC = Monday 12:00 KST
+    - cron: '0 3 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'check.html'
+      - 'README.md'
+      - 'QA*.md'
+      - 'tests/**'
+      - 'scripts/create_source_snapshot.py'
+      - 'docs/BACKUP_OPERATIONS.md'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  source-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public isolated QA source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Create full source-only ZIP with SHA-256 inventory
+        run: python3 scripts/create_source_snapshot.py --output-dir source-snapshot-output
+      - name: Publish verified source snapshot for manual off-GitHub copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-source-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: source-snapshot-output/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Explain scope and limitations
+        run: |
+          echo '### QA source archive' >> "$GITHUB_STEP_SUMMARY"
+          echo '- ZIP includes code, tests, QA and operations docs only.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- ZIP SHA-256 and per-file SHA-256 are included.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Artifacts can expire; copy important ZIPs outside GitHub.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Not a backup of browser IndexedDB, photos or student data.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Never deploy this snapshot to production automatically.' >> "$GITHUB_STEP_SUMMARY"
