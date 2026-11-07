@@ -11,6 +11,7 @@ on:
       - 'tests/qa-mobile-ocr.mjs'
       - 'tests/qa-content.mjs'
       - 'tests/qa-capacity.mjs'
+      - 'tests/qa-same-denominator.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -44,6 +45,8 @@ jobs:
         run: node tests/qa-mobile-ocr.mjs
       - name: Full 500-record capacity and two-tab preservation
         run: node tests/qa-capacity.mjs
+      - name: New same-denominator fraction learning path
+        run: node tests/qa-same-denominator.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -53,4 +56,5 @@ jobs:
             qa-e2e-failure.png
             qa-mobile-failure.png
             qa-boundary-failure.png
+            qa-same-den-failure.png
           if-no-files-found: ignore
