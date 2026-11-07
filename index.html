@@ -2494,11 +2494,11 @@ function v27ParseFractionAdd(input){
  const m=t.match(/^(\d{1,2})\s*\/\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*(?:=\s*(?:\?|□|_{1,8})?|[을를]\s*(?:계산하세요|계산해\s*보세요|계산하시오|구하세요|구하시오|더하세요)|의\s*합을\s*(?:구하세요|구하시오))?\s*[.!。]?\s*$/u);
  if(!m)return null;
  const [a,b,c,d]=m.slice(1).map(Number);
- if(!([a,b,c,d].every(Number.isSafeInteger))||a<1||c<1||b<2||d<2||a>=b||c>=d||b===d||b>12||d>12)return null;
+ if(!([a,b,c,d].every(Number.isSafeInteger))||a<1||c<1||b<2||d<2||a>=b||c>=d||b>12||d>12)return null;
  const L=b*d/v27Gcd(b,d),n=a*(L/b)+c*(L/d);
  if(L>12||n>L)return null; // 화면·개념 설명 범위 제한
  const g=v27Gcd(n,L);
- return {a,b,c,d,L,left:a*(L/b),right:c*(L/d),n,finalN:n/g,finalD:L/g,signature:`${a}/${b}+${c}/${d}`};
+ return {a,b,c,d,L,left:a*(L/b),right:c*(L/d),n,finalN:n/g,finalD:L/g,sameDenominator:b===d,signature:`${a}/${b}+${c}/${d}`};
 }
 function v27ReadExplicitAnswer(raw,spec){
  let t=String(raw||'').normalize('NFKC').trim().replace(/\s+/g,'');
@@ -2597,6 +2597,11 @@ function v222CauseCard(kind,spec,original){
   return {evidence:evidence.kind,candidate,questions:['그림에서 묶음은 모두 몇 개이고, 한 묶음에는 몇 개인가요?',`${spec.each}를 ${spec.groups}번 더한다면 어떤 식으로 쓸 수 있나요?`,'묶음의 수와 한 묶음의 물건 수를 바꾸면 전체 개수는 어떻게 될까요?']};
  }
  const candidate=evidence.kind==='add-both'?'분모끼리도 더해 본 가능성':evidence.kind==='matches'?'기록된 답은 계산값과 같아 원인 판단 보류':'현재 답만으로 원인 판단 보류';
+ if(spec.sameDenominator)return {evidence:evidence.kind,candidate,questions:[
+  `두 분수 ${spec.a}/${spec.b}와 ${spec.c}/${spec.d}는 똑같은 크기로 나눈 조각인가요?`,
+  `조각 ${spec.a}개와 ${spec.c}개를 합하면 같은 크기의 조각은 모두 몇 개인가요?`,
+  `조각의 크기가 변하지 않았는데 왜 분모 ${spec.b}를 그대로 써야 할까요?`
+ ]};
  return {evidence:evidence.kind,candidate,questions:[`첫째 분수 ${spec.a}/${spec.b}와 둘째 분수 ${spec.c}/${spec.d}는 조각 크기가 같나요?`,`두 분수를 같은 ${spec.L}등분 조각으로 바꾸면 각각 몇 조각인가요?`,'조각의 크기를 같게 만든 다음에는 무엇을 더해야 하나요?']};
 }
 function v222TransferAttemptIndex(kind,history){
@@ -2617,7 +2622,9 @@ function v222TransferTask(kind,spec,attemptIndex=0){
   return {kind,signature:`${spec.groups}×${each}`,exampleAnswer:String(spec.groups*each),groupCount:spec.groups,itemsPerGroup:each};
  }
  if(kind!=='fraction')throw Error('지원하지 않는 적용 문제 유형입니다.');
- const pool=['1/3+1/4','1/2+1/4','1/3+1/6','1/4+1/6','1/2+1/3','1/4+1/8','1/3+1/9','1/2+1/6'];
+ const pool=spec.sameDenominator
+  ? ['1/4+2/4','1/5+2/5','2/5+2/5','1/6+3/6','2/6+3/6','1/8+3/8','3/8+4/8','2/7+3/7']
+  : ['1/3+1/4','1/2+1/4','1/3+1/6','1/4+1/6','1/2+1/3','1/4+1/8','1/3+1/9','1/2+1/6'];
  const options=pool.map(v27ParseFractionAdd).filter(x=>x&&x.signature!==spec.signature);
  if(!options.length)throw Error('적용 문제를 찾지 못했습니다.');
  const next=options[n%options.length];
@@ -2784,7 +2791,7 @@ function v27Stage(title,trackHelp){
 function renderV27FractionPanel(container,r,spec){
  container.replaceChildren();
  const card=make('section','card v25-learning v27-learning');
- card.append(make('span','v25-progress','G03 · G05 · G06 · G07 · G08 / 분수 덧셈 한정 시범'));
+ card.append(make('span','v25-progress',spec.sameDenominator?'G03 · G05 · G06 · G07 · G08 / 같은 분모 덧셈 시범':'G03 · G05 · G06 · G07 · G08 / 다른 분모 덧셈 시범'));
  card.append(make('h2',null,'🧩 그림으로 생각하고, 다시 풀어요'));
  card.append(make('p','small',`${spec.signature} · 틀린 이유는 단정할 수 없습니다. 그림·개념 지도를 필요할 때 펼쳐 보세요. (AI 개념 관계 검토 전)`));
  let pre='',assisted=false,solutionOpened=false;
@@ -2799,10 +2806,12 @@ function renderV27FractionPanel(container,r,spec){
  hint.append(v222CauseView('fraction',spec,r.studentAnswer));
  hint.addEventListener('toggle',()=>{if(hint.open)assisted=true});first.append(beforeLabel,preBtn,preMsg,hint);card.append(first);
  const mapStep=v27Stage('② 작은 개념 지도 · 궁금한 것만 누르기',()=>{assisted=true});
- mapStep.append(make('p','small','현재 문제를 이해할 때 확인해 볼 다섯 개념입니다. 필수 선수학습 순서가 아닙니다.'));
+ mapStep.append(make('p','small',spec.sameDenominator?'같은 크기의 조각을 합할 때 도움될 수 있는 다섯 개념입니다. AI 작성 예시이며 필수 선수학습 순서는 아닙니다.':'현재 문제를 이해할 때 확인해 볼 다섯 개념입니다. 필수 선수학습 순서가 아닙니다.'));
  const map=make('div','v25-map'),nodeNote=make('p','v25-node-note','개념을 누르면 한 문장씩 설명을 볼 수 있어요.');nodeNote.setAttribute('role','status');
  const root=make('div','v25-map-root'),branches=make('div','v25-map-branches');
- const ids=['math.fraction.add.diff_den','math.fraction.meaning','math.fraction.equivalence','math.common.denominator','math.fraction.add.same_den'];
+ const ids=spec.sameDenominator
+  ? ['math.fraction.add.same_den','math.fraction.meaning','math.unit.fraction','math.equal.units.add','math.fraction.equivalence']
+  : ['math.fraction.add.diff_den','math.fraction.meaning','math.fraction.equivalence','math.common.denominator','math.fraction.add.same_den'];
  for(const [i,id] of ids.entries()){
   const c=getConcept(id);if(!c)continue;
   const b=make('button',null,c.label_ko);b.type='button';b.setAttribute('aria-pressed','false');
@@ -2811,7 +2820,7 @@ function renderV27FractionPanel(container,r,spec){
  }
  map.append(root,branches);mapStep.append(map,nodeNote);card.append(mapStep);
  const drawStep=v27Stage('③ 막대를 직접 채워보기',()=>{assisted=true});
- drawStep.append(make('p','v25-hint','조각을 하나씩 눌러 색칠해 보세요. 두 분수가 같은 크기의 조각으로 어떻게 바뀌는지 생각해 보세요.'));
+ drawStep.append(make('p','v25-hint',spec.sameDenominator?'같은 크기의 조각을 각각 색칠해 보세요. 두 분수를 합할 때 조각의 크기는 그대로이고, 개수만 더합니다.':'조각을 하나씩 눌러 색칠해 보세요. 두 분수가 같은 크기의 조각으로 어떻게 바뀌는지 생각해 보세요.'));
  const getters=[];
  for(const [label,f,n] of [['첫째 분수',`${spec.a}/${spec.b}`,spec.left],['둘째 분수',`${spec.c}/${spec.d}`,spec.right]]){
   const line=make('div','v26-paint-row v27-paint-row');line.append(make('strong',null,`${label} ${f}은 ${spec.L}칸 중 몇 칸일까요?`));
@@ -2836,12 +2845,18 @@ function renderV27FractionPanel(container,r,spec){
   for(let i=0;i<spec.L;i++){const cell=make('i','v27-paint-cell');cell.setAttribute('aria-hidden','true');cell.style.backgroundColor=i<filled?color:'#fff';bar.append(cell)}
   wrap.append(bar);sol.append(wrap);
  }
- sol.append(make('p','small',`서로 다른 조각 크기를 ${spec.L}등분한 같은 크기의 조각으로 바꾸면 ${spec.left}조각과 ${spec.right}조각입니다. ${spec.n}/${spec.L}`+(spec.n===spec.finalN&&spec.L===spec.finalD?'':`은 ${spec.finalN}/${spec.finalD}과 같은 수입니다.`)));
+ sol.append(make('p','small',(spec.sameDenominator
+  ? `두 분수는 처음부터 ${spec.L}등분한 같은 크기의 조각입니다. 크기가 같은 조각 ${spec.left}개와 ${spec.right}개를 더하면 ${spec.n}개입니다. 분모 ${spec.L}는 그대로 둡니다. `
+  : `서로 다른 조각 크기를 ${spec.L}등분한 같은 크기의 조각으로 바꾸면 ${spec.left}조각과 ${spec.right}조각입니다. `)
+  +`${spec.n}/${spec.L}`+(spec.n===spec.finalN&&spec.L===spec.finalD?'':`은 ${spec.finalN}/${spec.finalD}과 같은 수입니다.`)));
  drawStep.append(drawBtn,drawMsg,sol);card.append(drawStep);
  const checksStep=v27Stage('④ 두 개의 짧은 확인 질문',()=>{assisted=true});
  checksStep.append(make('p','small','아이가 직접 적게 해 보세요. 계산값과의 일치만 확인하며 개념 숙련도는 판정하지 않습니다.'));
  const inputs=[];
- for(const [prompt,expected] of [[`${spec.a}/${spec.b} = □/${spec.L} 에서 □는?`,spec.left],[`${spec.c}/${spec.d} = □/${spec.L} 에서 □는?`,spec.right]]){
+ const quickPrompts=spec.sameDenominator
+  ? [[`첫째 분수 ${spec.a}/${spec.b}는 ${spec.L}등분한 조각 몇 개인가요?`,spec.left],[`두 분수를 합하면 같은 크기의 조각은 몇 개인가요?`,spec.n]]
+  : [[`${spec.a}/${spec.b} = □/${spec.L} 에서 □는?`,spec.left],[`${spec.c}/${spec.d} = □/${spec.L} 에서 □는?`,spec.right]];
+ for(const [prompt,expected] of quickPrompts){
   const label=make('label','field',prompt),inp=make('input','control');inp.type='text';inp.inputMode='numeric';inp.maxLength=4;inp.autocomplete='off';label.append(inp);inputs.push({inp,expected});checksStep.append(label);
  }
  const checkBtn=make('button','secondary','두 답 확인'),checkMsg=make('p','v25-status');checkBtn.type='button';checkMsg.setAttribute('role','status');
@@ -2858,7 +2873,7 @@ function renderV27FractionPanel(container,r,spec){
   const answer=final.value.trim();if(!answer){msg.textContent='다시 푼 답을 입력해 주세요.';return}
   const history=v212HistoryForAppend(r,msg);if(!history)return;
   const entry={kind:'v27-fraction-add-pilot',at:iso(),answer:answer.slice(0,80),explanation:note.value.trim().slice(0,350),matchesExample:v27AnswerMatches(answer,spec),
-   checks:inputs.map(({inp,expected},i)=>({questionId:i===0?'left-to-common':'right-to-common',input:inp.value.trim().slice(0,4),matchesExample:inp.value.trim()===String(expected)})),
+   checks:inputs.map(({inp,expected},i)=>({questionId:spec.sameDenominator?(i===0?'same-unit-first':'same-unit-total'):(i===0?'left-to-common':'right-to-common'),input:inp.value.trim().slice(0,4),matchesExample:inp.value.trim()===String(expected)})),
    preHelpAnswer:pre,helpOpened:solutionOpened,supportUsed:assisted,diagramCheck:{paint:getters.map(f=>f()),matchesExample:getters[0]()===spec.left&&getters[1]()===spec.right},
    commonDenominator:spec.L,problemSignature:spec.signature,exampleAnswer:`${spec.finalN}/${spec.finalD}`,source:'child_or_parent_input',reviewState:'draft_unapproved'};
   const transferResult=transfer.read();if(transferResult)entry.transferCheck=transferResult;
@@ -2882,7 +2897,7 @@ function renderV25LearningPanel(){
    if(equalGroups){renderV211EqualGroupsPanel(box,r,equalGroups);return}
    const spec=v27ParseFractionAdd(r.problemText);
    if(spec){renderV27FractionPanel(box,r,spec);return}
-   const note=make('div','callout warning','지원하는 시범은 (1) 분모가 다른 진분수 덧셈(공통 분모 12 이하·합 1 이하), (2) 2~6묶음×2~6개 곱셈입니다. 예: 1/4 + 1/6 = ? (문제 번호·간단한 지시문 허용). 여러 수식이 섞이거나 뜻이 모호한 문항, 사진만 있는 문제는 원인을 판단하지 않습니다.');
+   const note=make('div','callout warning','지원하는 시범은 (1) 같은 분모의 진분수 덧셈(분모 12 이하·합 1 이하), (2) 분모가 다른 진분수 덧셈(공통 분모 12 이하·합 1 이하), (3) 2~6묶음×2~6개 곱셈입니다. 예: 1/4 + 1/6 = ? (문제 번호·간단한 지시문 허용). 여러 수식이 섞이거나 뜻이 모호한 문항, 사진만 있는 문제는 원인을 판단하지 않습니다.');
    card.append(note);box.append(card);return;
  }
  // Explicit candidate: the actual answer provides evidence, not a diagnosis.
