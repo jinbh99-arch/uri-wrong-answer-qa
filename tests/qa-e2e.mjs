@@ -87,6 +87,18 @@ try {
   assert.equal(afterRecord.memo,beforeRecord.memo);
   assert.deepEqual(afterPhoto.bytes,beforePhoto.bytes);
   pass('실제 앱 UI JSON 파일 복원과 사진 바이트 동일성','기록 1·사진 동일');
+  // A damaged downloaded file must be rejected BEFORE touching current records/photos.
+  const damaged=structuredClone(data);
+  damaged.records[0].memo='QA 임의 변경된 손상 백업'; // break SHA-256 integrity
+  await a.locator('#nav-settings').click();
+  await a.locator('#import-file').setInputFiles({name:'tampered.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(damaged))});
+  await a.waitForFunction(()=>document.querySelector('#v18-verify-result')?.textContent?.includes('복원 전 검사에서 차단'),null,{timeout:20000});
+  const afterReject=await inDb(a,'mistakes',createdId);
+  const afterRejectPhoto=await inDb(a,'photos',createdId);
+  assert.equal(afterReject.memo,beforeRecord.memo,'손상 백업이 기존 기록을 바꿨음');
+  assert.deepEqual(afterRejectPhoto.bytes,beforePhoto.bytes,'손상 백업이 사진을 바꿨음');
+  pass('SHA-256 변경 백업 복원 사전 차단','기존 문항과 사진의 바이트 보존');
+
 
   await openRecord(a,'QA 합성 분수문항');
   await a.locator('#detail-edit').click();
