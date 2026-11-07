@@ -3236,6 +3236,93 @@ $('v212-mixed-drill-run').onclick=async()=>{
     };
   });
 
+
+  // V226-LONGTERM-CONTINUATION-START
+  // Read-only export and non-destructive continuation across the existing
+  // 256-attempt cap. Never truncate the original record or mutate its history.
+  const v226DetailBase=renderDetail;
+  renderDetail=async function(){
+    await v226DetailBase();
+    if(route!=='detail')return;
+    const original=records.find(x=>x.id===detailId),parent=$('detail-card');
+    if(!original||!parent)return;
+    const history=Array.isArray(original.practiceHistory)?original.practiceHistory:[];
+    const linked=String(original.memo||'').match(/^\[이전 학습 기록 ID: ([A-Za-z0-9_-]{1,100})\]/);
+    if(linked&&records.some(x=>x.id===linked[1])){
+      const back=make('button','secondary v218-parent-only','↶ 이전 학습 기록 보기');
+      back.type='button';back.onclick=()=>{detailId=linked[1];navigate('detail')};
+      const wrap=make('div','card v218-parent-only');
+      wrap.append(make('p','small','이 기록은 이전 오답을 보존한 채 별도의 학습 회차로 만들었습니다.'),back);
+      parent.append(wrap);
+    }
+    if(!history.length)return;
+    const section=make('section','card v218-parent-only');
+    section.id='v226-history-archive';
+    const heading=make('h3',null,'🔐 재풀이 이력 전체 보관·이어하기');
+    const intro=make('p','small',history.length+'/'+MAX_PRACTICE_HISTORY+'회 기록됨. 화면에는 최근 기록만 표시되지만, 별도 내려받기 파일에는 현재 기록의 재풀이 이력 전체가 들어갑니다.');
+    const warning=make('p','small','이 파일은 사진·학부모 설정이 없는 기록 증거용 JSON으로, 앱의 일반 복원용 백업이 아닙니다. 설정에서 전체 기록·사진 백업을 별도로 보관하세요. 파일에는 아이의 답과 메모가 있으므로 공개 공유하지 마세요.');
+    const action=make('button','secondary','🔽 이 기록의 재풀이 전체 이력 내려받기');
+    action.type='button';action.id='v226-export-history';
+    const status=make('p','small');status.id='v226-export-status';status.setAttribute('role','status');
+    action.onclick=async()=>{
+      action.disabled=true;
+      try{
+        if(!storageOk)throw Error('브라우저 저장소에 접근할 수 없습니다.');
+        const current=await readOne('mistakes',original.id);
+        if(!current||JSON.stringify(current)!==JSON.stringify(original))
+          throw Error('다른 탭에서 기록이 바뀌었습니다. 최신 기록을 다시 열고 내려받으세요.');
+        v26CheckPracticeHistory([current]);
+        const payload={
+          format:'uriaimath-practice-evidence-v01',
+          exportedAt:iso(),
+          recordId:current.id,
+          source:{problemText:current.problemText||'',studentAnswer:current.studentAnswer||'',
+            conceptId:current.conceptId||'',createdAt:current.createdAt||'',gradeAtEntry:current.gradeAtEntry},
+          historyCount:current.practiceHistory.length,
+          history:current.practiceHistory,
+          notice:'읽기 전용 재풀이 기록 보관용. 사진과 학부모 설정이 없어 앱에서 복원할 수 없습니다.'
+        };
+        payload.integrity={scheme:'v226-sha256-v01',...(await v18Digest(JSON.stringify(payload),'SHA-256'))};
+        const file=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+        if(file.size>2*1024*1024)throw Error('재풀이 이력 파일이 2MB를 초과합니다. 전체 백업을 이용하세요.');
+        const url=URL.createObjectURL(file),a=document.createElement('a');
+        a.href=url;a.download='우리아이오답노트_재풀이기록_'+String(current.id).slice(0,60)+'_'+iso().slice(0,10)+'.json';
+        a.click();setTimeout(()=>URL.revokeObjectURL(url),6000);
+        status.textContent='재풀이 '+payload.historyCount+'회 파일 다운로드를 요청했습니다. 실제 저장 여부와 파일 보관 위치를 확인하세요. 복원용 백업은 별도로 필요합니다.';
+      }catch(err){status.textContent='내보내기 중단: '+String(err?.message||err).slice(0,180)+' 기존 데이터는 변경하지 않았습니다.'}
+      finally{action.disabled=false}
+    };
+    section.append(heading,intro,warning,action,status);
+    if(history.length>=240){
+      const notice=make('p','callout warning small',history.length>=MAX_PRACTICE_HISTORY
+       ?'이 오답의 재풀이가 '+MAX_PRACTICE_HISTORY+'회 한도에 도달했습니다. 이전 이력은 삭제하지 않고 새로운 오답 기록으로 연습을 이어갈 수 있습니다.'
+       :'이 오답의 재풀이가 한도에 가까워졌습니다 ('+(MAX_PRACTICE_HISTORY-history.length)+'회 남음). 전체 백업을 안전한 장소에 저장하세요.');
+      section.append(notice);
+    }
+    if(history.length>=MAX_PRACTICE_HISTORY){
+      const continueBtn=make('button','primary','📖 새 기록에서 학습 이어가기 (원본 유지)');
+      continueBtn.type='button';continueBtn.id='v226-continue';
+      const note=make('p','small','누르면 새 오답 등록 양식만 채웁니다. 이전 256회와 기존 사진은 원본에 남으며 새 기록으로 자동 복사되지 않습니다. 새 기록은 직접 저장해야 하며, 전체 오답 500건 한도는 계속 적용됩니다.');
+      continueBtn.onclick=()=>{
+        if(v218Mode!=='parent')return;
+        const latest=records.find(x=>x.id===original.id);
+        if(!latest)return;
+        editId=null;navigate('add');
+        $('problem').value=String(latest.problemText||'');
+        $('student-answer').value='';
+        $('reason').value='unknown';
+        $('memo').value='[이전 학습 기록 ID: '+latest.id+']\n이전 기록은 보존. 새 회차에서 다시 풀기 시작합니다.';
+        renderCandidates();
+        if([...$('concept').options].some(o=>o.value===latest.conceptId))$('concept').value=latest.conceptId||'';
+        $('problem').focus();
+        notify('새 학습 회차를 위한 양식만 채웠습니다. 사진과 256회 이력은 원본에 그대로 있습니다. 새 기록 저장은 직접 선택하세요.');
+      };
+      section.append(note,continueBtn);
+    }
+    parent.append(section);
+  };
+  // V226-LONGTERM-CONTINUATION-END
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
