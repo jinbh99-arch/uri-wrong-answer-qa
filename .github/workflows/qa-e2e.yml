@@ -12,6 +12,7 @@ on:
       - 'tests/qa-content.mjs'
       - 'tests/qa-capacity.mjs'
       - 'tests/qa-same-denominator.mjs'
+      - 'tests/qa-history-continuation.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -47,6 +48,8 @@ jobs:
         run: node tests/qa-capacity.mjs
       - name: New same-denominator fraction learning path
         run: node tests/qa-same-denominator.mjs
+      - name: Safe 256-attempt history continuation and full evidence export
+        run: node tests/qa-history-continuation.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -57,4 +60,5 @@ jobs:
             qa-mobile-failure.png
             qa-boundary-failure.png
             qa-same-den-failure.png
+            qa-archive-failure.png
           if-no-files-found: ignore
