@@ -280,6 +280,22 @@ body.v218-child .v218-parent-only{display:none!important}
  <div id="v17-today-items" class="v17-entries"></div>
  <p class="small">실시간 알림·휴대전화 푸시 기능은 없으며, 여기에 나타나는 ‘오늘’은 현재 기기의 날짜를 기준으로 합니다.</p>
 </section>
+<section class="card v218-parent-only" id="v227-parent-report" aria-labelledby="v227-parent-title">
+ <h2 id="v227-parent-title">📋 학부모용 학습 활동 보고서</h2>
+ <p class="small">이 기기에 남긴 오답·재풀이·학부모 관찰을 기간별로 정리합니다. <strong>답의 계산값 일치는 개념 이해도나 학습 효과를 의미하지 않습니다.</strong> 검증 전 AI 초안의 내용과 공식 성취기준을 혼동하지 마세요.</p>
+ <label class="field" for="v227-period">살펴볼 기록 기간</label>
+ <select class="control" id="v227-period">
+  <option value="7">최근 7일(168시간)</option>
+  <option value="30">최근 30일(720시간)</option>
+  <option value="all">날짜가 확인되는 모든 기간</option>
+ </select>
+ <div id="v227-metrics" class="v29-practice-stats" role="status" aria-live="polite"></div>
+ <div id="v227-evidence" class="small"></div>
+ <button type="button" id="v227-export" class="secondary">📥 집계 CSV 내보내기 (문제·답·사진 제외)</button>
+ <p id="v227-export-state" class="small" role="status">CSV는 학습 활동 집계용이며 전체 기록 복원 백업이 아닙니다. 이 기기에서 내려받아 안전하게 보관하세요.</p>
+ <h3>최근 기록된 활동</h3>
+ <div id="v227-events" class="v17-entries"></div>
+</section>
 <section class="card v218-child-intro" id="v218-child-intro" aria-labelledby="v218-child-title">
  <h2 id="v218-child-title">🧩 아이 학습 화면</h2>
  <p>오늘은 한 문제만 골라 다시 생각해 보세요. <strong>개념 보기 → 그림 움직여 보기 → 다시 풀기</strong> 순서로 도전해요.</p>
@@ -3322,6 +3338,168 @@ $('v212-mixed-drill-run').onclick=async()=>{
     parent.append(section);
   };
   // V226-LONGTERM-CONTINUATION-END
+
+
+  // V227-PARENT-REPORT-START
+  // Derived observations only; never label matches as student mastery or diagnosis.
+  // Source rows/backup formats are not changed and export excludes names, photos,
+  // problem statements, raw answers and record IDs.
+  function v227ReportModel(rows,period,nowMs){
+    if(!['7','30','all'].includes(period))throw Error('학습 보고서 기간을 선택해주세요.');
+    if(!Array.isArray(rows)||!Number.isFinite(nowMs))throw Error('보고서 원본 데이터가 유효하지 않습니다.');
+    const cutoff=period==='all'?Number.NEGATIVE_INFINITY:nowMs-Number(period)*86400000;
+    const out={created:0,attempted:0,answerKnown:0,answerMatched:0,
+      transferAttempted:0,transferKnown:0,transferMatched:0,
+      supportKnown:0,supportUsed:0,parentRecorded:0,parentExplained:0,parentNeedsHelp:0,
+      missingDates:0,unknownKinds:0,events:[]};
+    const acceptedKinds=new Set(['v25-fraction-pilot','v26-fraction-pilot','v27-fraction-add-pilot','v211-equal-groups-pilot']);
+    const timestamp=(str)=>{
+      if(typeof str!=='string'||!str.trim()){out.missingDates++;return null}
+      const ms=Date.parse(str);
+      if(!Number.isFinite(ms)){out.missingDates++;return null}
+      return ms;
+    };
+    const allowed=ms=>ms!==null&&ms>=cutoff&&ms<=nowMs+60000;
+    const addEvent=(ms,row,type,detail)=>{
+      const e={ts:ms,id:String(row.id||''),title:String(row.problemText||'사진으로 기록한 문제').slice(0,64),type,detail};
+      out.events.push(e);
+      if(out.events.length>12){out.events.sort((a,b)=>b.ts-a.ts);out.events.length=12}
+    };
+    for(const row of rows){
+      if(!row||typeof row!=='object')continue;
+      const created=timestamp(row.createdAt);
+      if(allowed(created)){out.created++;addEvent(created,row,'오답 등록','학부모가 기록한 문항입니다.')}
+      if(Array.isArray(row.practiceHistory))for(const h of row.practiceHistory){
+        if(!h||typeof h!=='object')continue;
+        if(!acceptedKinds.has(h.kind)){out.unknownKinds++;continue}
+        const ms=timestamp(h.at);
+        if(!allowed(ms))continue;
+        out.attempted++;
+        if(typeof h.matchesExample==='boolean'){
+          out.answerKnown++;
+          if(h.matchesExample)out.answerMatched++;
+        }
+        const transfer=h.transferCheck;
+        if(transfer&&typeof transfer.answer==='string'&&transfer.answer.trim()){
+          out.transferAttempted++;
+          if(typeof transfer.matchesExample==='boolean'){
+            out.transferKnown++;
+            if(transfer.matchesExample)out.transferMatched++;
+          }
+        }
+        if(typeof h.supportUsed==='boolean'){
+          out.supportKnown++;
+          if(h.supportUsed)out.supportUsed++;
+        }
+        addEvent(ms,row,'재풀이','계산값 비교: '+(h.matchesExample===true?'일치':h.matchesExample===false?'불일치':'미확인')
+          +' · 새 문제: '+(transfer?.answer?'시도 기록 있음':'시도 기록 없음'));
+      }
+      for(const [key,label] of [['checkHistory','오답 확인'],['followupHistory','복습 후 관찰']]){
+        if(!Array.isArray(row[key]))continue;
+        for(const h of row[key]){
+          if(!h||typeof h!=='object')continue;
+          const ms=timestamp(h.at);
+          if(!allowed(ms))continue;
+          out.parentRecorded++;
+          const observed=key==='checkHistory'?h.status:h.outcome;
+          if(observed==='explained')out.parentExplained++;
+          if(observed==='needs_help')out.parentNeedsHelp++;
+          addEvent(ms,row,label,observed==='explained'?'학부모 기록: 스스로 설명함'
+            :observed==='needs_help'?'학부모 기록: 도움이 필요함':'학부모 기록: 기타·미확인');
+        }
+      }
+    }
+    out.events.sort((a,b)=>b.ts-a.ts);
+    return out;
+  }
+  function v227ReportCsv(model,period){
+    const scope=period==='7'?'최근 7일(168시간)':period==='30'?'최근 30일(720시간)':'전체 기간(날짜 확인분)';
+    const cells=[
+      ['기준기간',scope],
+      ['오답 등록 건수',model.created],
+      ['재풀이 기록 횟수',model.attempted],
+      ['재풀이 계산값 비교 가능',model.answerKnown],
+      ['재풀이 계산값 일치',model.answerMatched],
+      ['재풀이 계산값 불일치',model.answerKnown-model.answerMatched],
+      ['재풀이 비교 미확인',model.attempted-model.answerKnown],
+      ['새 문제 시도 기록',model.transferAttempted],
+      ['새 문제 비교 가능',model.transferKnown],
+      ['새 문제 비교 일치',model.transferMatched],
+      ['도움 여부 확인 가능',model.supportKnown],
+      ['도움 이용 기록',model.supportUsed],
+      ['학부모 관찰 횟수',model.parentRecorded],
+      ['학부모: 스스로 설명했다고 기록',model.parentExplained],
+      ['학부모: 도움이 필요했다고 기록',model.parentNeedsHelp],
+      ['날짜 누락·불명확 항목 수',model.missingDates],
+      ['지원하지 않는 재풀이 종류 수',model.unknownKinds],
+      ['주의','답의 계산값 일치만으로 이해·숙련·학습효과를 판정할 수 없음'],
+      ['파일 종류','집계용 CSV. 일반 복원 백업이 아님']
+    ];
+    const escape=value=>{
+      let str=String(value??'').replace(/[\r\n]+/g,' ');
+      if(/^[\s]*[=+@\-\t]/.test(str))str="'"+str;
+      return '"'+str.replace(/"/g,'""')+'"';
+    };
+    return '\ufeff'+[['항목','값'],...cells].map(row=>row.map(escape).join(',')).join('\r\n');
+  }
+  function v227RenderParentReport(){
+    const stats=$('v227-metrics'),events=$('v227-events'),evidence=$('v227-evidence'),control=$('v227-period');
+    if(!stats||!events||!evidence||!control)return;
+    const period=control.value,summary=v227ReportModel(records,period,Date.now());
+    stats.replaceChildren();events.replaceChildren();
+    for(const [num,label] of [
+      [summary.created,'새로 등록한 오답'],
+      [summary.attempted,'재풀이 시도'],
+      [summary.answerMatched+'/'+summary.answerKnown,'계산값 일치 / 비교 가능'],
+      [summary.transferMatched+'/'+summary.transferKnown,'새 문제 일치 / 비교 가능'],
+      [summary.supportUsed+'/'+summary.supportKnown,'도움 이용 / 확인 가능'],
+      [summary.parentRecorded,'학부모 관찰 기록']]){
+      const item=make('div','v29-stat');item.append(make('strong',null,String(num)),make('span',null,label));stats.append(item);
+    }
+    evidence.replaceChildren();
+    evidence.append(make('p',null,'재풀이 비교 미확인 '+(summary.attempted-summary.answerKnown)
+      +'회 · 새 문제 시도 '+summary.transferAttempted+'회(비교 미확인 '+(summary.transferAttempted-summary.transferKnown)
+      +'회) · 학부모가 스스로 설명했다고 기록 '+summary.parentExplained+'회 · 도움이 필요했다고 기록 '+summary.parentNeedsHelp+'회.'));
+    if(summary.missingDates||summary.unknownKinds){
+      evidence.append(make('p',null,'날짜 누락·불명확 '+summary.missingDates+'건은 기간별 집계에 포함하지 않았습니다. 지원하지 않는 재풀이 종류 '+summary.unknownKinds+'건의 결과도 계산하지 않았습니다. 미확인은 오답·도움 미사용으로 간주하지 않습니다.'));
+    }
+    if(!summary.events.length){
+      events.append(make('p','small','선택한 기간에 날짜가 확인된 학습 활동 기록이 없습니다.'));
+      return;
+    }
+    for(const entry of summary.events){
+      const block=make('div','v17-entry'),detail=make('div');
+      detail.append(make('strong',null,entry.type+' · '+entry.title),
+        make('p','small',new Date(entry.ts).toLocaleDateString('ko-KR')+' · '+entry.detail));
+      const action=make('button','secondary','기록 열기');
+      action.type='button';action.dataset.record=entry.id;
+      block.append(detail,action);events.append(block);
+    }
+    if(summary.attempted+summary.parentRecorded+summary.created>12)
+      events.append(make('p','small','최신 활동 12건만 표시합니다. 위 집계는 기간 내 확인 가능한 전체 기록을 기준으로 계산했습니다.'));
+  }
+  const v227PreviousRenderHome=renderHome;
+  renderHome=function(){v227PreviousRenderHome();v227RenderParentReport()};
+  $('v227-period').onchange=v227RenderParentReport;
+  $('v227-export').onclick=async()=>{
+    const state=$('v227-export-state'),button=$('v227-export');
+    button.disabled=true;state.textContent='원본 저장소의 최신 상태를 확인하고 집계 파일을 준비 중입니다.';
+    try{
+      if(!storageOk)throw Error('현재 브라우저 저장소에 접근할 수 없습니다.');
+      const snapshot=await v214CaptureBackupSnapshot(db);
+      v214CheckSnapshot(snapshot);
+      const period=$('v227-period').value;
+      const summary=v227ReportModel(snapshot.records,period,Date.now());
+      const blob=new Blob([v227ReportCsv(summary,period)],{type:'text/csv;charset=utf-8'});
+      const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+      anchor.href=url;anchor.download='우리아이오답노트_학습활동집계_'+localToday()+'_'+period+'.csv';
+      anchor.click();setTimeout(()=>URL.revokeObjectURL(url),6000);
+      state.textContent='학습 활동 집계 CSV 다운로드를 요청했습니다. 문제 원문·아이 이름·사진·답 원문은 포함하지 않았습니다. 백업 파일은 별도로 보관하세요.';
+    }catch(err){
+      state.textContent='집계 내보내기 중단: '+String(err?.message||err).slice(0,190)+' 기존 자료는 변경하지 않았습니다. 다른 탭의 변경이 있었다면 새로고침하세요.';
+    }finally{button.disabled=false}
+  };
+  // V227-PARENT-REPORT-END
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
