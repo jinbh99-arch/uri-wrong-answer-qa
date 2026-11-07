@@ -257,6 +257,16 @@ body.v218-child .v218-parent-only{display:none!important}
  <button class="primary v08-start-btn" id="v08-home-add" type="button" data-route="add">📷 사진 촬영·등록 시작 →</button>
  <p class="small" style="margin-bottom:0">등록 화면의 맨 위에 촬영·사진 선택 버튼이 있습니다. 입력한 오답은 <b>오답 목록</b>에서 확인합니다.</p>
 </div>
+<section class="card v218-parent-only" id="v225-samples" aria-labelledby="v225-samples-title">
+ <h2 id="v225-samples-title">🧪 처음 써보는 학부모를 위한 가상 학습 예시</h2>
+ <p class="small">실제 아이 자료가 아닌 <strong>가상 수학 문제</strong>를 오답 등록 화면에만 미리 채웁니다. <strong>예시 선택만으로는 기록이 저장되지 않습니다.</strong> 확인 후 직접 ‘오답 저장’을 누른 경우에만 이 브라우저에 등록됩니다. 원인 후보·개념 설명은 AI 작성 시범이며 진단이 아닙니다.</p>
+ <div class="row" style="flex-wrap:wrap">
+  <button type="button" class="secondary" data-v225-sample="same">분모 같은 분수 체험</button>
+  <button type="button" class="secondary" data-v225-sample="different">분모 다른 분수 체험</button>
+  <button type="button" class="secondary" data-v225-sample="groups">묶음 곱셈 체험</button>
+ </div>
+ <p class="small" id="v225-sample-note" role="status" aria-live="polite">문제를 채운 뒤 직접 저장해야 개념 학습을 시작할 수 있습니다.</p>
+</section>
 <section class="card v11-queue" id="v11-photo-queue" aria-labelledby="v11-queue-title">
  <h2 id="v11-queue-title">📷 사진만 저장한 문제, 나중에 이어서 정리해요</h2>
  <p class="small">사진만 먼저 저장해도 괜찮습니다. 시간이 날 때 문제 내용과 관련 개념을 보완할 수 있습니다. <strong>이것은 기록 정리 상태이며 아이의 학습 수준이 아닙니다.</strong></p>
@@ -3202,6 +3212,29 @@ $('v212-mixed-drill-run').onclick=async()=>{
   $('v218-child-mode').onclick=()=>v218ApplyMode('child');
   $('v218-parent-mode').onclick=()=>v218ApplyMode('parent');
   v218ApplyMode('parent');
+
+  // v2.25 QA onboarding — fill a synthetic example only; NEVER auto-save.
+  const v225DemoExamples={
+    same:{problem:'1/4+2/4=?',answer:'3/8',concept:'math.fraction.add.same_den'},
+    different:{problem:'1/4+1/6=?',answer:'2/10',concept:'math.fraction.add.diff_den'},
+    groups:{problem:'3×4=?',answer:'7',concept:''}
+  };
+  document.querySelectorAll('#v225-samples [data-v225-sample]').forEach(btn=>{
+    btn.onclick=()=>{
+      if(v218Mode!=='parent')return;
+      const example=v225DemoExamples[btn.getAttribute('data-v225-sample')];
+      if(!example)return;
+      editId=null;navigate('add');
+      $('problem').value=example.problem;
+      $('student-answer').value=example.answer;
+      $('memo').value='가상 학습 예시 · 실제 아이 기록 아님';
+      $('reason').value='unknown';
+      renderCandidates();
+      $('concept').value=example.concept;
+      $('problem').focus();
+      notify('가상 예시가 입력됐습니다. 이 내용은 저장 버튼을 눌러야 기록됩니다.');
+    };
+  });
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
