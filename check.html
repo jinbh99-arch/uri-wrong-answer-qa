@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>우리아이 오답노트 | 실저장소 비파괴 진단 v2.3</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#203451;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}main{max-width:740px;margin:auto;padding:20px 14px 32px}h1{font-size:clamp(23px,5vw,29px);margin:12px 0}h2{font-size:19px;margin:0 0 12px}.card{background:white;border:1px solid #dce4f0;border-radius:18px;padding:18px;margin:14px 0}button,.action{display:inline-block;border:0;background:#2858c7;color:white;padding:13px 15px;border-radius:10px;font-weight:750;margin:4px 3px;cursor:pointer;text-decoration:none;font-size:15px;line-height:1.4;text-align:center}button.secondary,.action.secondary{background:#eaf0fb;color:#254781}button:disabled{opacity:.55;cursor:not-allowed}button:focus-visible,.action:focus-visible{outline:3px solid orange;outline-offset:3px}p,li{line-height:1.75}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:#f4f7fc;border-radius:9px;padding:12px;max-height:330px;overflow:auto}.ok{color:#087750;font-weight:750}.bad{color:#b52939;font-weight:750}.muted{color:#52667d;font-size:13px}.notice{padding:11px 13px;border:1px solid #cadefd;background:#edf4ff;border-radius:12px;font-size:14px;line-height:1.65}.warn{border-color:#f3d2a2;background:#fff7eb}.steps{background:#f4f7fd;padding:13px;border-radius:12px}.steps strong{color:#24529f}.hide{display:none!important}code{overflow-wrap:anywhere}#cross-state{border-radius:10px;padding:10px 12px;background:#f5f8ff}#tab-b-screen{border:2px solid #a6c3f8}.badge{display:inline-block;background:#e6f4ed;color:#146e4d;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:750}.actions{display:flex;flex-wrap:wrap;gap:5px}@media(max-width:480px){.actions>*{width:100%}.card{padding:15px}button,.action{min-height:48px}}
+</style>
+</head>
+<body><main>
+<header><div class="badge">실제 브라우저 시험용 · v2.3</div><h1>🛡️ 실제 저장소 비파괴 진단</h1><p>운영 오답·사진을 열거나 수정하지 않고, 가상 기록을 별도 IndexedDB에 저장하여 검사합니다.</p></header>
+<section class="card" id="v223-unified-panel" aria-labelledby="v223-title">
+<h2 id="v223-title">🧪 통합 자동검사 — 한 번만 실행</h2>
+<p>가상 기록과 사진의 <strong>쓰기·다시 읽기, 오래된 수정 차단, 두 탭 확인, 새로고침 후 보존</strong>을 순서대로 검사합니다. 시험 전용 저장소만 사용하며 실제 오답·사진·프로필은 읽지 않습니다.</p>
+<p class="notice warn">실제 앱의 복원·삭제까지 통과했다는 뜻은 아닙니다. 팝업이 차단되면 두 탭 검사는 <strong>미검증</strong>으로 남깁니다. 시험용 새 탭 1개가 열릴 수 있습니다.</p>
+<button type="button" id="v223-run-all">통합검사 한 번에 실행</button>
+<button type="button" class="secondary" id="v223-save-results" disabled>결과 JSON 저장</button>
+<p id="v223-run-state" role="status">미실시 — 시험 전용 IndexedDB에만 임시 데이터를 기록합니다.</p>
+<pre id="v223-run-report" aria-live="polite">결과 없음</pre>
+</section>
+<section class="card" aria-labelledby="principle"><h2 id="principle">보호 원칙</h2><p class="muted">시험 전용 저장소 <code>uriaimath-v21-isolated-test-only</code>만 사용합니다. 실제 앱 저장소 <code>uriaimath-local-v02</code>와 분리됩니다. 시험 사진에는 실제 아이 정보가 없습니다.</p><p id="environment" role="status">접속 상태 확인 중</p></section>
+<section class="card" id="tab-b-screen" hidden aria-labelledby="tab-b-title"><h2 id="tab-b-title">📱 두 번째 탭(B) 확인 화면</h2><p class="notice">이 화면은 첫 번째 탭(A)과 다른 탭에서 자동 검사하도록 만든 화면입니다. 아래 결과를 확인한 후 첫 번째 탭으로 돌아가세요. 탭을 새로 열었을 때 1·2번의 '미실시'가 보이는 것이 저장 데이터 삭제를 뜻하지 않습니다.</p><p id="tab-b-result" role="status">시험 기록을 확인하는 중입니다…</p><p id="tab-b-confirm" class="muted">첫 번째 탭에서도 확인되어야 두 탭 시험을 '통과'로 판정합니다.</p><a class="action secondary" href="./">🏠 오답노트 홈</a></section>
+<section class="card" aria-labelledby="save-title"><h2 id="save-title">1. 가상 기록·사진 저장</h2><p>별도 시험 저장소에 가상 기록과 사진 20바이트를 저장한 뒤 다시 읽어 비교합니다.</p><button id="save">가상 기록·사진 저장 후 재읽기</button><p id="save-result" role="status">미실시</p></section>
+<section class="card" aria-labelledby="read-title"><h2 id="read-title">2. 재접속 시험</h2><p>1번 통과 후 새로고침하거나 브라우저를 완전히 종료·재진입한 뒤 아래 버튼을 누르세요.</p><div class="actions"><button id="reload-auto" type="button">🔄 새로고침 후 자동 재검사</button><button id="read" class="secondary">직접 다시 읽어 비교</button></div><p class="muted">자동 재검사는 현재 페이지의 실제 새로고침 전·후 저장 데이터 일치를 확인합니다. 브라우저 완전 종료 후 보존은 별도 확인이 필요합니다.</p><p id="read-result" role="status">미실시</p></section>
+<section class="card" aria-labelledby="cross-title"><h2 id="cross-title">3. 두 탭 시험 — 새 탭에서도 자동으로 읽기</h2><p><strong>기존에는 새 탭에서 '미실시'가 표시되어 초기화처럼 보였습니다.</strong> 이제 새 탭(B)이 가상 사진을 자동으로 확인하고, 원래 탭(A)에 확인 결과를 돌려줍니다.</p>
+<div class="steps"><strong>① 준비 → ② 새 탭 열기 → ③ 원래 탭에서 결과 확인</strong><p class="muted">첫 탭(A)은 열어 둬야 합니다. 두 번째 탭(B)이 열렸다고 해서 기존 앱의 기록이 삭제되는 것은 아닙니다.</p></div>
+<div class="actions"><button id="cross-prepare" type="button">① 두 탭 시험 준비</button><a class="action secondary hide" id="cross-open" target="_blank" rel="noopener noreferrer">② 두 번째 탭에서 자동 검사 열기 ↗</a></div>
+<p id="cross-state" role="status">미실시 — ① 준비 버튼부터 누르세요.</p>
+<p id="cross-tip" class="muted">브라우저에서 새 탭 열기를 막거나 현재 탭으로 전환하면 ③ 동시 접속 판정은 보류합니다. 두 탭이 실제로 열려 있어야 통과로 처리합니다.</p>
+<button id="cross-recheck" class="secondary">③ 원래 탭에서 결과 다시 확인</button>
+</section>
+<section class="card" aria-labelledby="stale-title"><h2 id="stale-title">4. 오래된 수정 차단 — 독립 시험 DB</h2><p>실제 오답노트 본체의 저장소에는 접근하지 않고, <strong>동일한 시험용 IndexedDB에 별도 연결 2개</strong>를 열어 기록을 비교합니다. 연결 B가 시험 기록을 먼저 변경한 뒤, 연결 A의 오래된 내용이 같은 읽기·쓰기 트랜잭션 안에서 차단되는지 확인합니다.</p><button id="guard-test" type="button">🧪 오래된 수정 차단 검사</button><p id="guard-result" role="status">미실시</p><p class="muted">이 검사는 본체 보호 로직의 원리를 별도로 재현한 것입니다. 실제 앱의 두 탭 UI 경쟁 상태까지 검증한 것으로 표시하지 않습니다.</p></section>
+<section class="card" aria-labelledby="clean-title"><h2 id="clean-title">5. 시험 저장소 정리</h2><p>시험 전용 IndexedDB 하나만 삭제합니다. 실제 오답 기록은 삭제하지 않습니다. 완료 후 이전 시험 결과는 초기화됩니다.</p><button id="clean" class="secondary">시험 저장소만 삭제</button><p id="clean-result" role="status">미실시</p></section>
+<section class="card" aria-labelledby="log-title"><h2 id="log-title">검증 결과 로그</h2><pre id="log" aria-live="polite"></pre><button id="export" class="secondary">검증 로그 JSON 내려받기</button><p class="muted">①·②는 실제 IndexedDB 저장·재읽기, ③은 동일 출처 두 탭의 데이터 조회, ④는 별도 시험 저장소 내 보호 알고리즘 재현을 확인합니다. 운영 앱의 복원 중단·동시 수정 충돌 방지, 실제 카메라·OCR, 장기 보존까지 검증한 결과는 아닙니다. 시험용 데이터만 사용하세요.</p></section>
+</main>
+<script>
+'use strict';
+// v2.3: preserve isolated DB name for existing users' non-destructive test continuity.
+const DB_NAME='uriaimath-v21-isolated-test-only';
+const STORE='checks', KEY='single-test-record', META_KEY='v22-cross-tab-meta';
+const TEST_BYTES=new Uint8Array([137,80,78,71,13,10,26,10,0,1,2,3,4,5,6,7,8,9,10,255]);
+const $=id=>document.getElementById(id); const logs=[];
+const DOCUMENT_ID=makeToken();
+let pendingCrossId=null, pollA=null, pollB=null;
+const params=new URLSearchParams(location.search);
+const inTabB=params.has('crossTab');
+function makeToken(){if(globalThis.crypto?.randomUUID)return crypto.randomUUID().replaceAll('-','');const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');}
+function equal(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+function log(stage,status,detail){const row={at:new Date().toISOString(),stage,status,detail};logs.push(row);$('log').textContent=JSON.stringify(logs,null,2);return row;}
+function show(id,txt,status){const el=$(id);el.textContent=txt;el.className=status==='pass'?'ok':status==='fail'?'bad':'';}
+function reqResult(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('IndexedDB 읽기/쓰기 실패'));});}
+function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||new Error('트랜잭션 중단'));tx.onerror=()=>reject(tx.error||new Error('트랜잭션 오류'));});}
+function openDB(){return new Promise((resolve,reject)=>{let done=false;const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE);};req.onsuccess=()=>{if(!done){done=true;const db=req.result;db.onversionchange=()=>db.close();resolve(db);}else req.result.close();};req.onerror=()=>{if(!done){done=true;reject(req.error||new Error('DB 열기 실패'));}};req.onblocked=()=>{if(!done){done=true;reject(new Error('다른 탭에서 시험 DB를 열어 둔 상태입니다.'));}};});}
+async function putRows(rows){const db=await openDB();try{const tx=db.transaction(STORE,'readwrite'),done=txDone(tx);for(const [key,row] of rows)tx.objectStore(STORE).put(row,key);await done;}finally{db.close();}}
+async function getRows(keys){const db=await openDB();try{const tx=db.transaction(STORE,'readonly'),done=txDone(tx), store=tx.objectStore(STORE);const promises=keys.map(k=>reqResult(store.get(k)));const got=await Promise.all(promises);await done;return got;}finally{db.close();}}
+function payload(){return {kind:'anonymous-isolated-test',recordText:'가상 수학 시험문제',photo:new Blob([TEST_BYTES],{type:'application/octet-stream'}),createdAt:new Date().toISOString()};}
+function verifyPayload(row){if(!row||row.kind!=='anonymous-isolated-test'||!(row.photo instanceof Blob))throw Error('시험 기록이 없거나 형식이 올바르지 않습니다.');if(row.recordText!=='가상 수학 시험문제')throw Error('시험 기록 본문 불일치');return row.photo.arrayBuffer().then(b=>{const arr=new Uint8Array(b);if(!equal(arr,TEST_BYTES))throw Error('시험 사진 바이트 불일치');return {photoBytes:arr.length,createdAt:row.createdAt};});}
+async function readAndValidate(key){const [row]=await getRows([key]);return await verifyPayload(row);}
+const V23_RELOAD_MARK='uriaimath-v23-auto-reload-test';
+$('reload-auto').onclick=async()=>{
+ try{
+  const checked=await readAndValidate(KEY);
+  sessionStorage.setItem(V23_RELOAD_MARK,JSON.stringify({origin:location.origin,startedAt:Date.now(),photoBytes:checked.photoBytes}));
+  show('read-result','실제 페이지를 새로고침하고 자동 재검사를 시작합니다.');
+  location.reload();
+ }catch(e){show('read-result','자동 재검사 준비 실패: 1번 시험 데이터 저장을 먼저 확인하세요. ('+e.message+')','fail');log('reload-auto-prepare','fail',e.message);}
+};
+async function finishAutomaticReload(){
+ let marked=null;
+ try{const raw=sessionStorage.getItem(V23_RELOAD_MARK);if(raw)marked=JSON.parse(raw);}catch(e){log('reload-auto-access','fail',e.message)}
+ if(!marked)return;
+ try{sessionStorage.removeItem(V23_RELOAD_MARK);}catch{}
+ if(marked.origin!==location.origin||!Number.isFinite(marked.startedAt)||Date.now()-marked.startedAt>120000){
+  show('read-result','자동 재검사 보류: 주소가 바뀌었거나 재검사 시간이 초과되었습니다.');log('reload-auto','fail','invalid reload marker');return;
+ }
+ try{
+  const checked=await readAndValidate(KEY);
+  if(checked.photoBytes!==marked.photoBytes)throw Error('새로고침 전후 사진 바이트 수 불일치');
+  show('read-result',`✅ 통과: 실제 새로고침 뒤 기록 및 가상 사진 ${checked.photoBytes}바이트가 유지됐습니다. (브라우저 완전 종료 검증은 아님)`,'pass');
+  log('reload-auto','pass',{elapsedMs:Date.now()-marked.startedAt,photoBytes:checked.photoBytes,scope:'page reload only'});
+ }catch(e){show('read-result','새로고침 후 재검사 실패: '+e.message,'fail');log('reload-auto','fail',e.message)}
+}
+function isolatedGuardedPut(key,rec,expected){
+ return new Promise(async(resolve,reject)=>{
+  let c,tx,stale=false,finished=false;
+  const finish=(kind,val)=>{if(finished)return;finished=true;try{c?.close()}catch{};kind==='ok'?resolve(val):reject(val)};
+  try{
+   c=await openDB();tx=c.transaction(STORE,'readwrite');const s=tx.objectStore(STORE);
+   const req=s.get(key);
+   req.onsuccess=()=>{
+    const cur=req.result;
+    if(JSON.stringify(cur)!==expected){stale=true;try{tx.abort()}catch{};return}
+    try{s.put(rec,key)}catch(e){try{tx.abort()}catch{}}
+   };
+   tx.oncomplete=()=>finish('ok',true);
+   tx.onerror=()=>finish('err',stale?Object.assign(Error('V20_STALE'),{code:'V20_STALE'}):(tx.error||Error('guard failure')));
+   tx.onabort=()=>finish('err',stale?Object.assign(Error('V20_STALE'),{code:'V20_STALE'}):(tx.error||Error('guard aborted')));
+  }catch(e){finish('err',e)}
+ });
+}
+async function isolatedDeleteKey(key){
+ const c=await openDB();try{const tx=c.transaction(STORE,'readwrite'),done=txDone(tx);tx.objectStore(STORE).delete(key);await done;}finally{c.close()}
+}
+$('guard-test').onclick=async()=>{
+ const btn=$('guard-test');btn.disabled=true;
+ const key='v23-guard-'+makeToken();
+ try{
+  const initial={kind:'guard-test',memo:'기준 오답',photo:new Blob([TEST_BYTES])};
+  await putRows([[key,initial]]);
+  const [original]=await getRows([key]);const staleSnapshot=JSON.stringify(original);
+  // B connection commits an update before A's compare-and-write transaction.
+  const fromB={...initial,memo:'B탭에서 먼저 수정 완료'};
+  await isolatedGuardedPut(key,fromB,staleSnapshot);
+  const fromA={...initial,memo:'A탭에서 오래된 내용 덮어쓰기 시도'};
+  let blocked=false,code='';
+  try{await isolatedGuardedPut(key,fromA,staleSnapshot)}catch(e){code=e.code||e.message;blocked=code==='V20_STALE'}
+  const [final]=await getRows([key]);
+  const bytes=final?.photo instanceof Blob?new Uint8Array(await final.photo.arrayBuffer()):null;
+  if(!blocked||final?.memo!==fromB.memo||!bytes||!equal(bytes,TEST_BYTES))throw Error('오래된 수정 차단 또는 사진 보존 검증 실패: '+code);
+  show('guard-result','✅ 통과: B가 먼저 저장한 내용을 유지했고, A의 오래된 수정은 V20_STALE로 차단됐습니다. 시험 사진 20바이트 유지. (독립 보호 알고리즘 검사)','pass');
+  log('isolated-guard','pass',{staleBlocked:true,code,photoBytes:bytes.length,scope:'isolated test DB; not app UI test'});
+ }catch(e){show('guard-result','실패: '+e.message,'fail');log('isolated-guard','fail',e.message)}
+ finally{try{await isolatedDeleteKey(key)}catch(e){log('isolated-guard-cleanup','fail',e.message)}btn.disabled=false;}
+};
+$('save').onclick=async()=>{const btn=$('save');btn.disabled=true;try{await putRows([[KEY,payload()]]);const checked=await readAndValidate(KEY);show('save-result',`통과: 실제 IndexedDB에 기록·사진 저장 및 독립 재읽기 일치 (${checked.photoBytes}바이트)`,'pass');log('save-read','pass',checked);}catch(e){show('save-result','실패: '+e.message,'fail');log('save-read','fail',e.message);}finally{btn.disabled=false;}};
+$('read').onclick=async()=>{try{const checked=await readAndValidate(KEY);show('read-result',`통과: 재접속 후 시험 기록·사진 ${checked.photoBytes}바이트 일치`,'pass');log('reopen','pass',checked);}catch(e){show('read-result','실패: '+e.message,'fail');log('reopen','fail',e.message);}};
+function stopPolls(){if(pollA){clearInterval(pollA);pollA=null;}if(pollB){clearInterval(pollB);pollB=null;}}
+function createCrossURL(id){const url=new URL(location.href);url.searchParams.set('crossTab',id);url.hash='tab-b-screen';return url.href;}
+function crossLink(id){const link=$('cross-open');link.href=createCrossURL(id);link.classList.remove('hide');}
+async function prepareCross(){const btn=$('cross-prepare');btn.disabled=true;stopPolls();try{
+ const token=makeToken(),meta={kind:'cross-tab-test-meta',token,sourceDocumentId:DOCUMENT_ID,createdAt:new Date().toISOString(),status:'prepared',confirmedAt:null};
+ await putRows([[`v22-cross-payload-${token}`,payload()],[META_KEY,meta]]);pendingCrossId=token;crossLink(token);
+ show('cross-state','준비 완료: 아래 ② 버튼으로 새 탭(B)을 여세요. 새 탭에서 자동 검사를 진행합니다. 첫 탭(A)은 닫지 마세요.');
+ log('cross-tab-prepare','pass',{token,stage:'A prepared; not yet verified'});startAPoll();
+ }catch(e){show('cross-state','시험 준비 실패: '+e.message,'fail');log('cross-tab-prepare','fail',e.message);}finally{btn.disabled=false;}
+}
+$('cross-prepare').onclick=prepareCross;
+async function checkA(){if(!pendingCrossId)return;
+ const [meta,ack]=await getRows([META_KEY,`v22-cross-ack-${pendingCrossId}`]);
+ if(!meta||meta.token!==pendingCrossId)return;
+ if(meta.status==='confirmed'&&meta.confirmedAt){show('cross-state',`✅ 통과: 탭 B가 가상 사진·기록을 읽었고 탭 A도 응답을 확인했습니다 (${meta.confirmedAt}).`,'pass');logOnceConfirmed(meta);stopPolls();return;}
+ if(!ack)return;
+ if(!ack.checked||ack.token!==pendingCrossId||ack.sourceDocumentId===ack.tabDocumentId||meta.sourceDocumentId!==DOCUMENT_ID){show('cross-state','두 탭 확인 보류: 서로 다른 탭에서 읽은 기록이 확인되지 않았습니다.','fail');return;}
+ await putRows([[META_KEY,{...meta,status:'confirmed',confirmedAt:new Date().toISOString(),ackDocumentId:ack.tabDocumentId,photoBytes:ack.photoBytes}]]);
+ show('cross-state',`✅ 통과: 탭 B가 실제 IndexedDB 기록과 사진 ${ack.photoBytes}바이트를 조회했고, 살아 있는 탭 A가 응답을 확인했습니다.`,'pass');log('cross-tab','pass',{token:pendingCrossId,photoBytes:ack.photoBytes,A:'active',B:'acknowledged'});stopPolls();
+}
+function logOnceConfirmed(meta){if(!logs.some(x=>x.stage==='cross-tab'&&x.status==='pass'&&x.detail?.token===meta.token))log('cross-tab','pass',{token:meta.token,restored:true});}
+function startAPoll(){if(pollA)clearInterval(pollA);let busy=false;pollA=setInterval(async()=>{if(busy||!pendingCrossId)return;busy=true;try{await checkA();}catch(e){log('cross-tab-a-error','fail',e.message);}finally{busy=false;}},850);}
+$('cross-recheck').onclick=async()=>{try{const [meta]=await getRows([META_KEY]);if(meta?.kind!=='cross-tab-test-meta'){show('cross-state','시험 준비 기록이 없습니다. ① 준비를 먼저 누르세요.');return;}
+ if(meta.status==='confirmed'){show('cross-state',`✅ 이전 두 탭 시험 통과 기록: ${meta.confirmedAt}. 같은 순간에 A·B가 응답한 기록입니다.`,'pass');log('cross-tab-recheck','pass',{confirmedAt:meta.confirmedAt});return;}
+ if(meta.sourceDocumentId!==DOCUMENT_ID){show('cross-state','현재 화면은 시험을 준비했던 원래 탭(A)이 아닙니다. 새로고침하거나 탭이 바뀌면 동시 접속 통과라고 판단할 수 없습니다. 실제 준비 버튼을 누른 A탭에서 ③ 확인하세요. A탭을 찾을 수 없으면 ① 준비부터 다시 진행하세요.');return;}
+ pendingCrossId=meta.token;crossLink(meta.token);await checkA();if(!meta.confirmedAt){const [current]=await getRows([META_KEY]);if(current?.status!=='confirmed')show('cross-state','대기: 아직 B 탭의 자동 검사 응답을 받지 못했습니다. ② 새 탭을 열고 다시 확인해주세요.');}
+ }catch(e){show('cross-state','확인 실패: '+e.message,'fail');log('cross-tab-recheck','fail',e.message);}};
+async function runTabB(){const token=params.get('crossTab')||'';const box=$('tab-b-screen');box.hidden=false;box.scrollIntoView({block:'start'});
+ if(!/^[0-9a-f]{32}$/.test(token)){show('tab-b-result','잘못된 시험 링크입니다. 탭 A에서 다시 준비하세요.','fail');return;}
+ let msg='';try{
+ const [meta,row]=await getRows([META_KEY,`v22-cross-payload-${token}`]);
+ if(!meta||meta.kind!=='cross-tab-test-meta'||meta.token!==token)throw new Error('현재 유효한 두 탭 시험 기록이 없습니다. A 탭에서 ① 준비를 다시 눌러주세요.');
+ if(meta.sourceDocumentId===DOCUMENT_ID)throw new Error('같은 화면에서 검사가 실행되어 별도 탭으로 확인할 수 없습니다.');
+ const checked=await verifyPayload(row);
+ await putRows([[`v22-cross-ack-${token}`,{kind:'cross-tab-ack',token,sourceDocumentId:meta.sourceDocumentId,tabDocumentId:DOCUMENT_ID,checked:true,photoBytes:checked.photoBytes,checkedAt:new Date().toISOString()}]]);
+ show('tab-b-result',`✅ B 탭 통과: 같은 IndexedDB에서 가상 기록과 사진 ${checked.photoBytes}바이트가 일치합니다.`,'pass');
+ show('tab-b-confirm','A 탭이 열려 있어야 두 탭 동시 시험 통과가 확정됩니다. 원래 탭(A)으로 돌아가 ③ 버튼을 누르세요.');
+ log('cross-tab-B','pass',{token,photoBytes:checked.photoBytes});
+ let busy=false;pollB=setInterval(async()=>{if(busy)return;busy=true;try{const [current]=await getRows([META_KEY]);if(!current||current.token!==token){clearInterval(pollB);pollB=null;show('tab-b-confirm','시험이 종료되거나 새 시험이 시작됐습니다. 현재 탭의 재확인은 중단했습니다.');return;}
+ if(current?.token===token&&current.status==='confirmed'){
+ show('tab-b-confirm','✅ 탭 A가 B 탭의 검사 응답을 확인했습니다. 두 탭 시험이 완료됐습니다.','pass');clearInterval(pollB);pollB=null;
+ }}catch(e){}finally{busy=false;}},1000);
+ }catch(e){msg=e.message;show('tab-b-result','B 탭 검사 실패: '+msg,'fail');log('cross-tab-B','fail',msg);}
+}
+$('clean').onclick=async()=>{const btn=$('clean');btn.disabled=true;stopPolls();try{
+ const db=await openDB();db.close();await new Promise((resolve,reject)=>{const req=indexedDB.deleteDatabase(DB_NAME);req.onsuccess=resolve;req.onerror=()=>reject(req.error||new Error('시험 저장소 삭제 실패'));req.onblocked=()=>reject(new Error('다른 탭에서 데이터베이스를 열어 두었습니다. 잠시 후 재시도해주세요.'));});
+ pendingCrossId=null;$('cross-open').classList.add('hide');show('clean-result','통과: 독립 시험 저장소만 삭제했습니다. 운영 기록에는 접근하지 않았습니다.','pass');show('cross-state','시험용 기록 삭제 완료. 다시 시험하려면 ① 준비부터 진행하세요.');log('cleanup','pass',{database:DB_NAME});
+ }catch(e){show('clean-result','실패: '+e.message,'fail');log('cleanup','fail',e.message);}finally{btn.disabled=false;}};
+$('export').onclick=()=>{const out={tool:'v2.3 isolated indexeddb two-tab and guarded-update check',origin:location.origin,ua:navigator.userAgent,exportedAt:new Date().toISOString(),results:logs,scope:'isolated DB only',limitations:['A/B simultaneous confirmation required','not live app conflict-protection','no live app restore','no real camera/OCR','no cross-session long-term guarantee','isolated guard test is not app concurrency UI test']};const url=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='11_v2.3_실환경검증_결과.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);};
+async function restoreView(){try{
+ const [row,meta]=await getRows([KEY,META_KEY]);if(row){show('save-result','이전에 저장된 가상 기록이 발견됐습니다. 2번 재진입 검사로 실제 데이터 일치를 확인하세요.');}
+ if(!inTabB&&meta?.kind==='cross-tab-test-meta'){
+  if(meta.status==='confirmed'){show('cross-state',`✅ 이전 두 탭 시험 통과 기록 있음 (${meta.confirmedAt}). 새 시험은 ①부터 시작합니다.`,'pass');}
+  else if(meta.sourceDocumentId===DOCUMENT_ID){pendingCrossId=meta.token;crossLink(meta.token);startAPoll();show('cross-state','이 탭에서 준비한 시험 대기 중. ② 새 탭을 열어 검사하세요.');}
+  else show('cross-state','이전 탭의 시험 준비 기록이 있습니다. 새 시험은 ① 준비부터 시작하세요.');
+ }
+}catch(e){log('restore-view','fail',e.message);}}
+
+// v2.22-QA1: one user action launches a scoped isolated-storage rehearsal.
+// All writes are to DB_NAME (test-only); no application DB is opened by this page.
+const V223_AUTORUN_KEY='uriaimath-v223-oneclick-session';
+let v223FinalReport=null, v223Running=false;
+function v223SetStatus(message){$('v223-run-state').textContent=message;}
+function v223DisplayReport(report){
+ v223FinalReport=report;
+ $('v223-run-report').textContent=JSON.stringify(report,null,2);
+ $('v223-save-results').disabled=false;
+ v223SetStatus(report.status==='passed'?'✅ 통합 격리검사 통과. 실제 앱 저장·복원 승인 아님.':report.status==='partial'?'⚠️ 일부 검증만 통과. 미검증 항목은 통과로 간주하지 않습니다.':'⛔ 통합검사 실패 또는 차단. 운영 자료에는 접근하지 않았습니다.');
+}
+function v223PromiseDelay(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function v223GuardOnce(){
+ const key='qa-guard-'+makeToken();
+ try{
+  const base={kind:'guard-test',memo:'가상 원본',photo:new Blob([TEST_BYTES])};
+  await putRows([[key,base]]);
+  const [snapshot]=await getRows([key]);
+  await isolatedGuardedPut(key,{...base,memo:'연결 B의 변경'},JSON.stringify(snapshot));
+  let staleBlocked=false;
+  try{await isolatedGuardedPut(key,{...base,memo:'연결 A의 오래된 변경'},JSON.stringify(snapshot))}
+  catch(e){staleBlocked=e.code==='V20_STALE';if(!staleBlocked)throw e}
+  const [current]=await getRows([key]);
+  if(!staleBlocked||current?.memo!=='연결 B의 변경'||!(current.photo instanceof Blob)||!equal(new Uint8Array(await current.photo.arrayBuffer()),TEST_BYTES))throw Error('오래된 수정 차단 또는 사진 보존 실패');
+  return {status:'pass',scope:'same-origin two database connections, NOT two tab UI'};
+ }finally{await isolatedDeleteKey(key).catch(()=>{})}
+}
+async function v223CrossOnce(popup){
+ if(!popup)return {status:'not_tested',reason:'팝업 차단'};
+ await prepareCross();
+ if(!pendingCrossId)throw Error('두 탭 가상 데이터 준비 실패');
+ const token=pendingCrossId;
+ popup.location.href=createCrossURL(token);
+ const deadline=Date.now()+13000;
+ while(Date.now()<deadline){
+  await v223PromiseDelay(300);
+  const [meta,ack]=await getRows([META_KEY,`v22-cross-ack-${token}`]);
+  if(ack?.checked&&ack?.token===token&&meta?.token===token&&ack.tabDocumentId!==meta.sourceDocumentId){
+   await checkA();
+   const [done]=await getRows([META_KEY]);
+   if(done?.status==='confirmed')return {status:'pass',detail:'different tab document acknowledged and original tab confirmed'};
+  }
+ }
+ return {status:'not_tested',reason:'두 탭 자동 응답 시간초과 / 팝업 접근 불가'};
+}
+$('v223-run-all').onclick=async()=>{
+ if(v223Running||inTabB)return;
+ // Open synchronously inside the direct click gesture before awaiting storage calls.
+ let popup=null;
+ try{popup=window.open('about:blank','_blank');if(popup)popup.document.body.textContent='가상 두 탭 검사 연결 준비 중입니다.';}catch{popup=null}
+ v223Running=true;$('v223-run-all').disabled=true;
+ const report={tool:'v2.22-QA1',origin:location.origin,startedAt:new Date().toISOString(),scope:'isolated TEST database only',stages:{},limitations:['not production IndexedDB','not actual application restore','not physical mobile camera/OCR','not student learning validation']};
+ try{
+  if(location.origin==='null'||typeof indexedDB!=='object')throw Error('유효한 동일 출처 IndexedDB 접근이 필요합니다. HTTPS 또는 localhost 브라우저에서 실행하세요.');
+  v223SetStatus('1/4 가상 사진·기록 쓰기 및 다시 읽기…');
+  await putRows([[KEY,payload()]]);const read=await readAndValidate(KEY);
+  report.stages.saveRead={status:'pass',photoBytes:read.photoBytes};
+  v223SetStatus('2/4 서로 다른 저장소 연결의 오래된 편집 차단…');
+  report.stages.conflict=await v223GuardOnce();
+  v223SetStatus('3/4 실제 두 탭 가상 사진 공유 확인…');
+  report.stages.twoTabs=await v223CrossOnce(popup);
+  if(popup){try{popup.close()}catch{}}
+  report.stages.reload={status:'pending'};
+  report.status='partial';report.preReloadAt=new Date().toISOString();
+  sessionStorage.setItem(V223_AUTORUN_KEY,JSON.stringify(report));
+  v223SetStatus('4/4 실제 새로고침 후 시험 사진을 다시 읽습니다…');
+  location.reload();
+ }catch(e){if(popup){try{popup.close()}catch{}}
+  report.status='failed';report.error=String(e?.message||e);report.completedAt=new Date().toISOString();v223DisplayReport(report);
+  v223Running=false;$('v223-run-all').disabled=false;
+ }
+};
+async function v223FinishReload(){
+ let report=null;
+ try{const raw=sessionStorage.getItem(V223_AUTORUN_KEY);if(raw)report=JSON.parse(raw);}catch{}
+ if(!report)return;
+ sessionStorage.removeItem(V223_AUTORUN_KEY);
+ try{
+  if(report.origin!==location.origin||Date.now()-Date.parse(report.preReloadAt)>120000)throw Error('동일 출처 재진입 조건이 일치하지 않습니다.');
+  const read=await readAndValidate(KEY);
+  if(read.photoBytes!==report.stages.saveRead.photoBytes)throw Error('새로고침 후 사진 길이 불일치');
+  report.stages.reload={status:'pass',photoBytes:read.photoBytes,scope:'one page reload only'};
+  report.status=Object.values(report.stages).every(row=>row.status==='pass')?'passed':'partial';
+ }catch(e){report.status='failed';report.stages.reload={status:'fail',error:String(e?.message||e)};}
+ report.completedAt=new Date().toISOString();
+ v223DisplayReport(report);
+}
+$('v223-save-results').onclick=()=>{
+ if(!v223FinalReport)return;
+ const bytes=new Blob([JSON.stringify(v223FinalReport,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(bytes),a=document.createElement('a');a.href=url;
+ a.download='우리아이오답노트_v2.22_격리통합검사_결과.json';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
+};
+
+$('environment').textContent=`접속: ${location.origin} · IndexedDB: ${typeof indexedDB==='object'?'지원 감지':'미지원'}`;
+log('environment','info',{origin:location.origin,protocol:location.protocol,documentId:DOCUMENT_ID,tabB:inTabB});
+restoreView().then(async()=>{await finishAutomaticReload();if(inTabB)runTabB();else await v223FinishReload();}).catch(e=>log('initialization','fail',e.message));
+</script>
+</body></html>
