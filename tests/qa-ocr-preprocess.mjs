@@ -83,7 +83,7 @@ try{
  assert.equal((await dbStatus()).rows.length,0);
  pass('OCR·보정만으로 새 기록을 자동 생성하지 않음');
  await page.locator('#save-btn').click();
- await page.waitForFunction(()=>document.querySelector('#v13-save-state')?.textContent?.includes('확인'),null,{timeout:20000});
+ await page.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:20000});
  const stored=await dbStatus();
  assert.equal(stored.rows.length,1);
  assert.equal(stored.width,80);assert.equal(stored.height,40);
