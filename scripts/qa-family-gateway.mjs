@@ -49,7 +49,7 @@ function isQaFamilyKey(key){
 const DURABLE_FORMAT='qa26-family-encrypted-v01';
 function createTestStorage(options={}){
  if(options.durablePath===undefined){
-  return {accounts:new Map(),persist:()=>{},durable:false};
+  return {accounts:new Map(),loginAttempts:new Map(),persist:()=>{},durable:false};
  }
  if(process.env.QA_DURABLE_TEST_ONLY!=='1')
   throw Error('QA_ONLY: QA_DURABLE_TEST_ONLY=1 required for encrypted persistence');
@@ -63,7 +63,7 @@ function createTestStorage(options={}){
   if(existsSync(path)&&lstatSync(path).isSymbolicLink())throw Error('QA_ONLY: symlink file rejected');
  }
  noLink(target);noLink(dirname(target));
- let accounts=new Map();
+ let accounts=new Map(),loginAttempts=new Map();
  if(existsSync(target)){
   const source=readFileSync(target);
   if(source.length>16*1024*1024)throw Error('QA_ONLY: encrypted store limit exceeded');
@@ -77,6 +77,21 @@ function createTestStorage(options={}){
   // Wrong key or altered file rejects startup: never silently create a new empty family.
   const parsed=JSON.parse(Buffer.concat([decipher.update(ciphertext),decipher.final()]).toString('utf8'));
   if(!Array.isArray(parsed?.accounts)||parsed.accounts.length>100)throw Error('QA_ONLY: invalid account list');
+  // QA36: retain encrypted per-family login backoff through a process restart.
+  // Older encrypted fixtures (QA26-35) contain no loginAttempts: compatible.
+  const savedAttempts=parsed.loginAttempts===undefined?[]:parsed.loginAttempts;
+  if(!Array.isArray(savedAttempts)||savedAttempts.length>256)
+   throw Error('QA_ONLY: invalid login limiter state');
+  for(const pair of savedAttempts){
+   if(!Array.isArray(pair)||pair.length!==2)throw Error('QA_ONLY: malformed login limiter item');
+   const [familyKey,item]=pair;
+   if(!isQaFamilyKey(familyKey)||loginAttempts.has(familyKey)||
+      !Number.isSafeInteger(item?.count)||item.count<1||item.count>5||
+      !Number.isSafeInteger(item?.lastFailedAt)||item.lastFailedAt<0||
+      !Number.isSafeInteger(item?.blockedUntil)||item.blockedUntil<0)
+    throw Error('QA_ONLY: invalid encrypted login limiter entry');
+   loginAttempts.set(familyKey,item);
+  }
   for(const e of parsed.accounts){
    if(!isQaFamilyKey(e?.familyKey)||accounts.has(e.familyKey))throw Error('QA_ONLY: bad family identity');
    const salt=Buffer.from(e.salt,'base64'),hashed=Buffer.from(e.hashed,'base64');
@@ -95,13 +110,16 @@ function createTestStorage(options={}){
    accounts.set(e.familyKey,{salt,hashed,revision:e.revision,snapshot:e.snapshot,history});
   }
  }
- function persist(candidate){
+ function persist(candidate,attempts=loginAttempts){
+  if(attempts.size>256)throw Error('QA_ONLY: too many login limiter entries');
   const entries=Array.from(candidate,([familyKey,a])=>({
    familyKey,salt:a.salt.toString('base64'),hashed:a.hashed.toString('base64'),
    revision:a.revision,snapshot:a.snapshot,history:a.history||[]
   }));
   if(entries.length>100)throw Error('QA_ONLY: at most 100 synthetic families allowed');
-  const payload=Buffer.from(JSON.stringify({accounts:entries}),'utf8');
+  const payload=Buffer.from(JSON.stringify({
+   accounts:entries,loginAttempts:[...attempts]
+  }),'utf8');
   if(payload.length>12*1024*1024)throw Error('QA_ONLY: plaintext snapshot limit exceeded');
   const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
   cipher.setAAD(Buffer.from(DURABLE_FORMAT));
@@ -125,7 +143,7 @@ function createTestStorage(options={}){
    throw e;
   }
  }
- return {accounts,persist,durable:true};
+ return {accounts,loginAttempts,persist,durable:true};
 }
 export async function createIsolatedQaFamilyGateway(options={}){
  if(process.env.QA_SYNTHETIC_FAMILY_ONLY!=='1')
@@ -135,7 +153,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
  // Still NOT secure hosting/authentication for actual families.
  const clock=typeof options.now==='function'?options.now:Date.now;
  const MAX_ATTEMPTS=5,LOCK_MS=60000,MAX_SESSIONS=5,MAX_TRACKED=256;
- const loginAttempts=new Map();
+ const loginAttempts=storage.loginAttempts;
  const unknownSalt=randomBytes(16);
  function reap(){
   const now=clock();
@@ -150,10 +168,16 @@ export async function createIsolatedQaFamilyGateway(options={}){
  function recordFailedLogin(familyKey){
   const now=clock(),old=loginAttempts.get(familyKey);
   const count=old&&now-old.lastFailedAt<LOCK_MS?old.count+1:1;
-  if(!loginAttempts.has(familyKey)&&loginAttempts.size>=MAX_TRACKED)
-   loginAttempts.delete(loginAttempts.keys().next().value);
-  loginAttempts.set(familyKey,{count,lastFailedAt:now,
+  const next=new Map(loginAttempts);
+  if(!next.has(familyKey)&&next.size>=MAX_TRACKED)
+   next.delete(next.keys().next().value);
+  next.set(familyKey,{count,lastFailedAt:now,
    blockedUntil:count>=MAX_ATTEMPTS?now+LOCK_MS:0});
+  // Encrypted atomic write before mutating memory: restart must not reset
+  // brute-force protection. A disk error does not silently forgive attempts.
+  storage.persist(accounts,next);
+  loginAttempts.clear();
+  for(const [key,item] of next)loginAttempts.set(key,item);
  }
  const server=createServer(async(req,res)=>{
   try{
@@ -198,7 +222,11 @@ export async function createIsolatedQaFamilyGateway(options={}){
      recordFailedLogin(familyKey);
      throw reject(401,'CREDENTIALS_INVALID');
     }
-    loginAttempts.delete(familyKey);
+    if(loginAttempts.has(familyKey)){
+     const next=new Map(loginAttempts);next.delete(familyKey);
+     storage.persist(accounts,next);
+     loginAttempts.delete(familyKey);
+    }
     const count=[...tokens.values()].filter(x=>x.familyKey===familyKey).length;
     if(count>=MAX_SESSIONS)throw reject(429,'SESSION_LIMIT_REACHED');
     const token=randomBytes(32).toString('hex');
@@ -283,8 +311,10 @@ export async function createIsolatedQaFamilyGateway(options={}){
        ||tokens.get(token)!==session||session.expiresAt<=clock())
      throw reject(409,'STALE_OR_REVOKED_SESSION');
     const candidate=new Map(accounts);candidate.delete(session.familyKey);
-    storage.persist(candidate); // Atomic encrypted rewrite; failure keeps old family.
+    const nextAttempts=new Map(loginAttempts);nextAttempts.delete(session.familyKey);
+    storage.persist(candidate,nextAttempts); // Failure preserves family and limiter.
     accounts.delete(session.familyKey);
+    loginAttempts.delete(session.familyKey);
     for(const [sessionToken,entry] of tokens){
      if(entry.familyKey===session.familyKey)tokens.delete(sessionToken);
     }
