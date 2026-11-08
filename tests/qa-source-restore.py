@@ -123,7 +123,11 @@ def verify(source_zip: Path) -> dict:
                 "scripts/qa47-live-auth-lab.mjs",
                 "tests/qa47-edge-auth-status.mjs",
                 "tests/qa47-live-auth-ui.mjs",
-                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md"}
+                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md",
+                "oauth-test.html",
+                "scripts/qa48-google-oauth-test.mjs",
+                "tests/qa48-google-oauth-ui.mjs",
+                "docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
