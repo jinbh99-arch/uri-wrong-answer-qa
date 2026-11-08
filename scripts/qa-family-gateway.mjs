@@ -17,6 +17,9 @@ function reply(res,status,payload,extra={}){
   'cache-control':'no-store',
   'x-content-type-options':'nosniff',
   'x-qa-service':'non-production-loopback-only',
+  'referrer-policy':'no-referrer',
+  'x-frame-options':'DENY',
+  'content-security-policy':"default-src 'none'; frame-ancestors 'none'; base-uri 'none'", 
   ...extra
  });
  res.end(JSON.stringify(payload));
@@ -164,13 +167,17 @@ export async function createIsolatedQaFamilyGateway(options={}){
  function loginGuard(familyKey){
   const now=clock(),failure=loginAttempts.get(familyKey);
   if(failure?.blockedUntil>now)throw reject(429,'LOGIN_RATE_LIMITED');
+  // QA38: never evict an active lock to admit a new identifier.
+  // At capacity, an unfamiliar key fails closed until an old entry expires.
+  if(!failure&&loginAttempts.size>=MAX_TRACKED)
+   throw reject(429,'LOGIN_TRACKING_CAPACITY');
  }
  function recordFailedLogin(familyKey){
   const now=clock(),old=loginAttempts.get(familyKey);
   const count=old&&now-old.lastFailedAt<LOCK_MS?old.count+1:1;
   const next=new Map(loginAttempts);
   if(!next.has(familyKey)&&next.size>=MAX_TRACKED)
-   next.delete(next.keys().next().value);
+   throw reject(429,'LOGIN_TRACKING_CAPACITY');
   next.set(familyKey,{count,lastFailedAt:now,
    blockedUntil:count>=MAX_ATTEMPTS?now+LOCK_MS:0});
   // Encrypted atomic write before mutating memory: restart must not reset
@@ -204,6 +211,8 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const {familyKey,password}=await jsonBody(req);
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
     if(accounts.has(familyKey))throw reject(409,'ALREADY_REGISTERED');
+    // Bound both ephemeral and encrypted QA account stores consistently.
+    if(accounts.size>=100)throw reject(429,'SYNTHETIC_FAMILY_CAPACITY');
     const salt=randomBytes(16);
     const created={salt,hashed:hash(password,salt),revision:0,snapshot:null,history:[]};
     const candidate=new Map(accounts);candidate.set(familyKey,created);
@@ -430,6 +439,10 @@ export async function createIsolatedQaFamilyGateway(options={}){
    return reply(res,status,{error:status===500?'INTERNAL_TEST_ONLY_ERROR':error.reason||'REQUEST_REJECTED',qaOnly:true});
   }
  });
+ // Bound stalled synthetic requests; do not treat this as production DoS protection.
+ server.requestTimeout=15000;
+ server.headersTimeout=10000;
+ server.maxHeadersCount=64;
  // Explicitly bind loopback; port=0 prevents collision and any public access.
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)});
  return Object.freeze({
