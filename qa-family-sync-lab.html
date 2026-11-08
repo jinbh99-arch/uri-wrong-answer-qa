@@ -37,6 +37,20 @@ a{color:#204fb3}small{font-size:12px}
 <label for="lab-password">가상 비밀번호 (16자 이상)</label><input id="lab-password" type="password" autocomplete="new-password" placeholder="실제 사용하는 비밀번호를 넣지 마세요">
 <div class="flex"><button type="button" id="lab-register">가상 가족 만들기</button><button type="button" id="lab-login">로그인</button><button type="button" id="lab-logout" class="secondary">로그아웃</button></div>
 <p class="small">토큰과 비밀번호는 브라우저 메모리에서만 사용합니다. 새로고침하면 자동으로 로그아웃됩니다.</p>
+<section aria-labelledby="lab-rotate-title">
+<h2 id="lab-rotate-title">가상 비밀번호 변경 및 모든 기기 로그아웃</h2>
+<p class="small">가상 가족 비밀번호를 변경하면 기존 모든 기기의 로그인은 즉시 폐기되며 다시 로그인해야 합니다. 서버 오답·사진은 유지됩니다. 운영 계정 복구 기능은 아닙니다.</p>
+<label for="lab-rotate-old">기존 가상 비밀번호</label>
+<input id="lab-rotate-old" type="password" autocomplete="off">
+<label for="lab-rotate-new">새 가상 비밀번호 (16~160자)</label>
+<input id="lab-rotate-new" type="password" autocomplete="new-password">
+<label for="lab-rotate-confirm">새 비밀번호 다시 입력</label>
+<input id="lab-rotate-confirm" type="password" autocomplete="new-password">
+<label style="display:flex;align-items:flex-start;gap:9px;font-size:14px;font-weight:600">
+<input id="lab-rotate-approved" type="checkbox" style="width:20px;min-height:20px;margin:3px 0">
+비밀번호 변경과 다른 기기를 포함한 모든 로그인 세션 폐기에 동의합니다.</label>
+<button type="button" id="lab-rotate" class="secondary" disabled>가상 비밀번호 변경·모든 기기 로그아웃</button>
+</section>
 </section>
 <section class="card" aria-labelledby="lab-exchange-heading">
 <h2 id="lab-exchange-heading">2. 합성 데이터 수동 교환</h2>
@@ -78,7 +92,7 @@ a{color:#204fb3}small{font-size:12px}
 'use strict';
 const $=id=>document.getElementById(id);
 let token='',revision=null,server='';
-const controls=['lab-register','lab-login','lab-logout','lab-refresh','lab-upload','lab-download','lab-preview-merge','lab-commit-merge','lab-delete'];
+const controls=['lab-register','lab-login','lab-logout','lab-refresh','lab-upload','lab-download','lab-preview-merge','lab-commit-merge','lab-delete','lab-rotate'];
 let confirmedBase=null,mergePlan=null;
 const inLab=location.protocol==='http:'&&location.hostname==='127.0.0.1'&&location.port==='4173';
 const say=(value,error=false)=>{$('lab-status').textContent=value;$('lab-status').dataset.error=String(error)};
@@ -87,6 +101,7 @@ if(!inLab){
  $('lab-port').disabled=true;$('lab-family').disabled=true;$('lab-password').disabled=true;
  $('lab-file').disabled=true;$('lab-synthetic').disabled=true;$('lab-merge-approved').disabled=true;
  $('lab-delete-password').disabled=true;$('lab-delete-phrase').disabled=true;$('lab-delete-approved').disabled=true;
+ for(const id of ['lab-rotate-old','lab-rotate-new','lab-rotate-confirm','lab-rotate-approved'])$(id).disabled=true;
  say('공개 사이트에서는 작동하지 않습니다. 가상 로컬 실험실(127.0.0.1:4173) 전용입니다.',true);
  return;
 }
@@ -122,10 +137,13 @@ function loginState(auth){
  $('lab-preview-merge').disabled=!auth||!confirmedBase;
  $('lab-commit-merge').disabled=!auth||!mergePlan||!$('lab-merge-approved').checked;
  $('lab-delete').disabled=!auth;
+ $('lab-rotate').disabled=!auth;
  if(!auth){
   token='';revision=null;server='';confirmedBase=null;mergePlan=null;
   $('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
   $('lab-delete-password').value='';$('lab-delete-phrase').value='';$('lab-delete-approved').checked=false;
+  for(const id of ['lab-rotate-old','lab-rotate-new','lab-rotate-confirm'])$(id).value='';
+  $('lab-rotate-approved').checked=false;
   $('lab-revision').textContent='로그아웃됨 · 개정번호 미확인';
   $('lab-merge-status').textContent='로그아웃하여 승인 미리보기와 기준본을 폐기했습니다.';
  }
@@ -145,6 +163,7 @@ async function operation(task){
  $('lab-preview-merge').disabled=!auth||!confirmedBase;
  $('lab-commit-merge').disabled=!auth||!mergePlan||!$('lab-merge-approved').checked;
  $('lab-delete').disabled=!auth;
+ $('lab-rotate').disabled=!auth;
  }
 }
 $('lab-register').onclick=()=>operation(async()=>{
@@ -254,6 +273,26 @@ $('lab-delete').onclick=()=>operation(async()=>{
   loginState(false);
   say('가상 가족 데이터와 서버 세션의 논리적 삭제를 확인했습니다. 다른 곳에 내려받은 백업은 별도로 관리해야 합니다.');
  }finally{$('lab-delete-password').value=''}
+});
+$('lab-rotate').onclick=()=>operation(async()=>{
+ if(!token||revision===null)throw Error('먼저 가상 가족에 로그인하세요.');
+ const oldPassword=$('lab-rotate-old').value,newPassword=$('lab-rotate-new').value;
+ if(!$('lab-rotate-approved').checked)throw Error('모든 기기 로그아웃 동의가 필요합니다.');
+ if(newPassword.length<16||newPassword.length>160)throw Error('새 가상 비밀번호는 16~160자여야 합니다.');
+ if(newPassword!==$('lab-rotate-confirm').value)throw Error('새 비밀번호 확인이 일치하지 않습니다.');
+ if(oldPassword===newPassword)throw Error('새 비밀번호는 이전 비밀번호와 달라야 합니다.');
+ try{
+  const response=await request('/qa/password','POST',{
+   familyKey:$('lab-family').value.trim(),oldPassword,newPassword,
+   approved:true,confirmation:'ROTATE_SYNTHETIC_PASSWORD'
+  },revision);
+  if(!response.rotated||!response.sessionsRevoked)throw Error('비밀번호 교체 확인 응답이 없습니다.');
+  loginState(false);
+  $('lab-password').value='';
+  say('가상 비밀번호가 변경되고 모든 기기의 세션이 폐기되었습니다. 새 가상 비밀번호로 다시 로그인하세요.');
+ }finally{
+  for(const id of ['lab-rotate-old','lab-rotate-new','lab-rotate-confirm'])$(id).value='';
+ }
 });
 say('로컬 전용 실험실이 활성화되었습니다. 임시 포트와 가상 가족 ID를 입력하세요.');
 })();

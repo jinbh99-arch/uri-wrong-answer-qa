@@ -179,6 +179,50 @@ export async function createIsolatedQaFamilyGateway(options={}){
    }
    // QA31: delete only the current synthetic family. Logical deletion in the
    // encrypted QA store, NOT forensic erasure of filesystem snapshots/backups.
+   // QA32: current-family password rotation. Uses the encrypted atomic store,
+   // and invalidates EVERY session after successful persistence.
+   // This is synthetic loopback QA only, not an account recovery service.
+   if(req.url==='/qa/password'&&req.method==='POST'){
+    const bearer=req.headers.authorization;
+    if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
+     throw reject(401,'AUTH_REQUIRED');
+    const token=bearer.slice(7),session=tokens.get(token);
+    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    const acct=accounts.get(session.familyKey);
+    if(!acct)throw reject(401,'SESSION_FAMILY_MISSING');
+    const match=req.headers['if-match'];
+    if(typeof match!=='string'||!/^"\d+"$/.test(match))
+     throw reject(428,'IF_MATCH_REQUIRED');
+    if(match!=='"'+acct.revision+'"')throw reject(409,'STALE_REVISION');
+    const body=await jsonBody(req);
+    if(body.confirmation!=='ROTATE_SYNTHETIC_PASSWORD'||body.approved!==true)
+     throw reject(428,'PASSWORD_CHANGE_CONFIRMATION_REQUIRED');
+    if(body.familyKey!==session.familyKey||
+       !safePassword(body.oldPassword)||!safePassword(body.newPassword))
+     throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
+    if(body.oldPassword===body.newPassword)
+     throw reject(422,'PASSWORD_MUST_CHANGE');
+    if(!timingSafeEqual(acct.hashed,hash(body.oldPassword,acct.salt)))
+     throw reject(403,'CREDENTIALS_INVALID');
+    const salt=randomBytes(16),hashed=hash(body.newPassword,salt);
+    // If a second device changes the family after this request began,
+    // refuse rather than reverting the state or reviving old credentials.
+    const fresh=accounts.get(session.familyKey);
+    if(!fresh||fresh!==acct||tokens.get(token)!==session||fresh.revision!==acct.revision)
+     throw reject(409,'STALE_OR_REVOKED_SESSION');
+    const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
+    const saved={...fresh,salt,hashed,revision:fresh.revision+1,
+      history:[...(fresh.history||[]),...(previous?[previous]:[])].slice(-12)};
+    const candidate=new Map(accounts);candidate.set(session.familyKey,saved);
+    storage.persist(candidate); // Failed persistence means password and sessions stay unchanged.
+    accounts.set(session.familyKey,saved);
+    for(const [sessionToken,entry] of tokens){
+     if(entry.familyKey===session.familyKey)tokens.delete(sessionToken);
+    }
+    return reply(res,200,{rotated:true,sessionsRevoked:true,revision:saved.revision,
+      qaOnly:true,cloudReady:false,productionPasswordRecovery:false},
+      {etag:'"'+saved.revision+'"'});
+   }
    if(req.url==='/qa/family'&&req.method==='DELETE'){
     const bearer=req.headers.authorization;
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))

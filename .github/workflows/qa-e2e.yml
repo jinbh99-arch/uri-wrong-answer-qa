@@ -47,6 +47,7 @@ on:
       - 'tests/qa-family-merge-commit.mjs'
       - 'tests/qa-family-merge-ui.mjs'
       - 'tests/qa-family-delete.mjs'
+      - 'tests/qa-family-password-rotation.mjs'
       - 'qa-family-sync-lab.html'
       - 'scripts/qa-family-threeway.mjs'
       - 'tests/qa-study-plan.mjs'
@@ -96,6 +97,8 @@ jobs:
         run: node tests/qa-cross-device-roundtrip.mjs
       - name: QA22 G16 synthetic study measurement and privacy readiness
         run: node tests/qa-learning-study-readiness.mjs
+      - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
+        run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
         run: node tests/qa-family-delete.mjs
       - name: QA30 G15 explicit three-way merge commit, encrypted base history, concurrent stream-write race
