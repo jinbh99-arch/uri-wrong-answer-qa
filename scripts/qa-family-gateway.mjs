@@ -3,7 +3,10 @@
 // NOT imported by index.html and not reachable from public GitHub Pages.
 // Explicit QA_SYNTHETIC_FAMILY_ONLY=1 guard prevents accidental use.
 import {createServer} from 'node:http';
-import {randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';
+import {randomBytes,scryptSync,timingSafeEqual,createCipheriv,createDecipheriv} from 'node:crypto';
+import {existsSync,readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,closeSync,renameSync,unlinkSync,chmodSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {resolve,dirname,sep} from 'node:path';
 import {checkBackup,previewMerge,SyncPreflightError} from './qa-family-merge-preflight.mjs';
 
 const MAX_BODY=1024*1024;
@@ -41,10 +44,83 @@ function hash(password,salt){
 function isQaFamilyKey(key){
  return typeof key==='string'&&/^qa-[a-z0-9-]{4,32}$/.test(key);
 }
-export async function createIsolatedQaFamilyGateway(){
+// Optional restorable AES-GCM encrypted test data: only under OS temp directory.
+const DURABLE_FORMAT='qa26-family-encrypted-v01';
+function createTestStorage(options={}){
+ if(options.durablePath===undefined){
+  return {accounts:new Map(),persist:()=>{},durable:false};
+ }
+ if(process.env.QA_DURABLE_TEST_ONLY!=='1')
+  throw Error('QA_ONLY: QA_DURABLE_TEST_ONLY=1 required for encrypted persistence');
+ const base=resolve(tmpdir()),target=resolve(options.durablePath);
+ if(!target.startsWith(base+sep)||target.endsWith(sep)||target===base)
+  throw Error('QA_ONLY: storage path must be a file below OS temporary directory');
+ if(typeof options.encryptionKey!=='string'||!/^[a-f0-9]{64}$/i.test(options.encryptionKey))
+  throw Error('QA_ONLY: a fresh 32-byte AES key is required, never a user password');
+ const key=Buffer.from(options.encryptionKey,'hex');
+ function noLink(path){
+  if(existsSync(path)&&lstatSync(path).isSymbolicLink())throw Error('QA_ONLY: symlink file rejected');
+ }
+ noLink(target);noLink(dirname(target));
+ let accounts=new Map();
+ if(existsSync(target)){
+  const source=readFileSync(target);
+  if(source.length>16*1024*1024)throw Error('QA_ONLY: encrypted store limit exceeded');
+  const envelope=JSON.parse(source.toString('utf8'));
+  if(envelope.format!==DURABLE_FORMAT)throw Error('QA_ONLY: unknown encrypted format');
+  const iv=Buffer.from(envelope.iv,'base64'),tag=Buffer.from(envelope.tag,'base64');
+  const ciphertext=Buffer.from(envelope.ciphertext,'base64');
+  if(iv.length!==12||tag.length!==16)throw Error('QA_ONLY: invalid authenticated envelope');
+  const decipher=createDecipheriv('aes-256-gcm',key,iv);
+  decipher.setAAD(Buffer.from(DURABLE_FORMAT));decipher.setAuthTag(tag);
+  // Wrong key or altered file rejects startup: never silently create a new empty family.
+  const parsed=JSON.parse(Buffer.concat([decipher.update(ciphertext),decipher.final()]).toString('utf8'));
+  if(!Array.isArray(parsed?.accounts)||parsed.accounts.length>100)throw Error('QA_ONLY: invalid account list');
+  for(const e of parsed.accounts){
+   if(!isQaFamilyKey(e?.familyKey)||accounts.has(e.familyKey))throw Error('QA_ONLY: bad family identity');
+   const salt=Buffer.from(e.salt,'base64'),hashed=Buffer.from(e.hashed,'base64');
+   if(salt.length!==16||hashed.length!==32||!Number.isSafeInteger(e.revision)||e.revision<0)
+    throw Error('QA_ONLY: invalid account credential/revision');
+   if(e.snapshot!==null)checkBackup(e.snapshot);
+   accounts.set(e.familyKey,{salt,hashed,revision:e.revision,snapshot:e.snapshot});
+  }
+ }
+ function persist(candidate){
+  const entries=Array.from(candidate,([familyKey,a])=>({
+   familyKey,salt:a.salt.toString('base64'),hashed:a.hashed.toString('base64'),
+   revision:a.revision,snapshot:a.snapshot
+  }));
+  if(entries.length>100)throw Error('QA_ONLY: at most 100 synthetic families allowed');
+  const payload=Buffer.from(JSON.stringify({accounts:entries}),'utf8');
+  if(payload.length>12*1024*1024)throw Error('QA_ONLY: plaintext snapshot limit exceeded');
+  const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
+  cipher.setAAD(Buffer.from(DURABLE_FORMAT));
+  const ciphertext=Buffer.concat([cipher.update(payload),cipher.final()]);
+  const wrapper=JSON.stringify({
+   format:DURABLE_FORMAT,iv:iv.toString('base64'),
+   tag:cipher.getAuthTag().toString('base64'),ciphertext:ciphertext.toString('base64')
+  });
+  const temp=target+'.'+randomBytes(8).toString('hex')+'.tmp';
+  let descriptor;
+  try{
+   descriptor=openSync(temp,'wx',0o600);
+   writeFileSync(descriptor,wrapper,'utf8');
+   fsyncSync(descriptor);closeSync(descriptor);descriptor=undefined;
+   noLink(target);
+   renameSync(temp,target);
+   chmodSync(target,0o600);
+  }catch(e){
+   if(descriptor!==undefined)closeSync(descriptor);
+   try{unlinkSync(temp)}catch{}
+   throw e;
+  }
+ }
+ return {accounts,persist,durable:true};
+}
+export async function createIsolatedQaFamilyGateway(options={}){
  if(process.env.QA_SYNTHETIC_FAMILY_ONLY!=='1')
   throw Error('QA_ONLY: explicit QA_SYNTHETIC_FAMILY_ONLY=1 required');
- const accounts=new Map(),tokens=new Map();
+ const storage=createTestStorage(options),accounts=storage.accounts,tokens=new Map();
  const server=createServer(async(req,res)=>{
   try{
    if(!req.socket.remoteAddress||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress))
@@ -54,7 +130,10 @@ export async function createIsolatedQaFamilyGateway(){
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
     if(accounts.has(familyKey))throw reject(409,'ALREADY_REGISTERED');
     const salt=randomBytes(16);
-    accounts.set(familyKey,{salt,hashed:hash(password,salt),revision:0,snapshot:null});
+    const created={salt,hashed:hash(password,salt),revision:0,snapshot:null};
+    const candidate=new Map(accounts);candidate.set(familyKey,created);
+    storage.persist(candidate);
+    accounts.set(familyKey,created);
     return reply(res,201,{created:true,qaOnly:true,cloudReady:false});
    }
    if(req.url==='/qa/login'&&req.method==='POST'){
@@ -100,8 +179,11 @@ export async function createIsolatedQaFamilyGateway(){
       throw reject(409,'SILENT_RECORD_OR_PHOTO_LOSS');
     }
     // In-memory atomic commit; revision increment, separate family storage.
-    acct.snapshot=structuredClone(doc);
-    acct.revision=oldRev+1;
+    const saved={...acct,snapshot:structuredClone(doc),revision:oldRev+1};
+    const candidate=new Map(accounts);candidate.set(session.familyKey,saved);
+    // Synchronous atomic write: no acknowledgement before verified disk commit.
+    storage.persist(candidate);
+    accounts.set(session.familyKey,saved);
     return reply(res,200,{stored:true,revision:acct.revision,qaOnly:true},{etag:'"'+acct.revision+'"'});
    }
    throw reject(404,'NOT_FOUND');
@@ -116,6 +198,6 @@ export async function createIsolatedQaFamilyGateway(){
  return Object.freeze({
   baseUrl:'http://127.0.0.1:'+server.address().port,
   shutdown:()=>new Promise((resolve,reject)=>server.close(err=>err?reject(err):resolve())),
-  qaOnly:true,cloudReady:false,productionAuth:false
+  qaOnly:true,cloudReady:false,productionAuth:false,encryptedRestartRecovery:storage.durable
  });
 }
