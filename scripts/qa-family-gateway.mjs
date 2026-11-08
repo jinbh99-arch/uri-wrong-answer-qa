@@ -8,6 +8,7 @@ import {existsSync,readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,close
 import {tmpdir} from 'node:os';
 import {resolve,dirname,sep} from 'node:path';
 import {checkBackup,previewMerge,SyncPreflightError} from './qa-family-merge-preflight.mjs';
+import {previewThreeWay} from './qa-family-threeway.mjs';
 
 const MAX_BODY=1024*1024;
 function reply(res,status,payload,extra={}){
@@ -150,6 +151,23 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const bearer=req.headers.authorization;
     if(typeof bearer==='string'&&bearer.startsWith('Bearer '))tokens.delete(bearer.slice(7));
     return reply(res,200,{loggedOut:true});
+   }
+   if(req.url==='/qa/sync-preview'&&req.method==='POST'){
+    const bearer=req.headers.authorization;
+    if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
+     throw reject(401,'AUTH_REQUIRED');
+    const session=tokens.get(bearer.slice(7));
+    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    const acct=accounts.get(session.familyKey);
+    if(!acct||!acct.snapshot)throw reject(409,'BASELINE_NOT_STORED');
+    const request=await jsonBody(req);
+    if(!request.base||!request.local)throw reject(422,'MISSING_BASE_OR_LOCAL');
+    let result;
+    try{result=previewThreeWay(request.base,request.local,acct.snapshot)}
+    catch(e){throw reject(422,e instanceof SyncPreflightError?e.code:'INVALID_THREE_WAY_BACKUP')}
+    // Never send student records, photo bytes or a merged candidate back over this experimental API.
+    const {candidate,...publicPlan}=result;
+    return reply(res,200,{...publicPlan,candidateAvailable:!!candidate,qaOnly:true,storedRevision:acct.revision});
    }
    if(req.url==='/qa/snapshot'&&['GET','PUT'].includes(req.method)){
     const bearer=req.headers.authorization;
