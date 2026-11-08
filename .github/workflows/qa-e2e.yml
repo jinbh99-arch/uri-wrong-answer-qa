@@ -63,6 +63,14 @@ on:
       - 'tests/qa41-http-api.mjs'
       - 'scripts/qa42-app-http-bridge.mjs'
       - 'tests/qa42-native-app-http.mjs'
+      - 'scripts/qa43-ops-preflight.mjs'
+      - 'data/qa43-operating-candidate.template.json'
+      - 'scripts/qa43-recovery-envelope.mjs'
+      - 'tests/qa43-ops-preflight.mjs'
+      - 'tests/qa43-postgres-recovery.mjs'
+      - 'tests/qa43-mobile-release.mjs'
+      - 'tests/qa43-docs-contract.mjs'
+      - 'docs/**'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -154,6 +162,18 @@ jobs:
         env:
           QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
         run: node tests/qa42-native-app-http.mjs
+      - name: QA43 step 1 release config, role, secrets, OIDC and guardian approval fail closed
+        run: node tests/qa43-ops-preflight.mjs
+      - name: QA43 step 2 AES-GCM family backups, PostgreSQL disaster restore, CAS, deletion, revocation
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa43-postgres-recovery.mjs
+      - name: QA43 step 3 320 390px mobile keyboard offline expired session and origin checks
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa43-mobile-release.mjs
+      - name: QA43 step 4 privacy guardian research and launch draft contract enforcement
+        run: node tests/qa43-docs-contract.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation

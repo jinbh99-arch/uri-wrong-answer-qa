@@ -1,0 +1,53 @@
+{
+  "schema": "qa43-operating-candidate-v1",
+  "mode": "PRELAUNCH_DRAFT",
+  "publicAppOrigin": "https://app.example.invalid",
+  "apiOrigin": "https://api.example.invalid",
+  "oidc": {
+    "issuer": "https://identity.example.invalid",
+    "audience": "qa43-placeholder-api",
+    "jwksRotation": "DOCUMENTED_PENDING",
+    "accessTokenOnly": true,
+    "verifyLegalGuardianExternally": true,
+    "tokenRevocationStrategy": "SHORT_TTL_PLUS_SERVER_MEMBERSHIP_REVOKE"
+  },
+  "database": {
+    "network": "PRIVATE_ONLY",
+    "rowLevelSecurity": true,
+    "appRole": "NON_OWNER_NON_BYPASSRLS",
+    "pointInTimeRecovery": "REHEARSAL_REQUIRED",
+    "encryptionAtRest": true,
+    "region": "TO_BE_APPROVED"
+  },
+  "photos": {
+    "storage": "PRIVATE_OBJECT_STORAGE_PLANNED",
+    "encryption": true,
+    "access": "SHORT_LIVED_SCOPED_ACCESS",
+    "metadata": "STRIP_BEFORE_PERSIST",
+    "retention": "TO_BE_APPROVED"
+  },
+  "privacy": {
+    "guardianConsent": "NOT_APPROVED",
+    "childDataCollection": false,
+    "deletionAndExport": "REVIEW_REQUIRED",
+    "incidentResponse": "REVIEW_REQUIRED"
+  },
+  "deployment": {
+    "environment": "UNDEPLOYED_DRAFT",
+    "publicExposure": false,
+    "tlsTermination": "PLAN_ONLY",
+    "rollBackProcedure": "REHEARSAL_REQUIRED",
+    "hardwareValidation": "NOT_TESTED"
+  },
+  "secrets": {
+    "oidcSigningKey": "secret-manager://TEMPLATE_ONLY/oidc-signing-key",
+    "databaseCredentials": "secret-manager://TEMPLATE_ONLY/db-role",
+    "objectStoreCredentials": "secret-manager://TEMPLATE_ONLY/photo-store"
+  },
+  "externalApprovals": {
+    "cloudProvider": "PENDING",
+    "privacyAndGuardian": "PENDING",
+    "realDevices": "PENDING",
+    "releaseOwner": "PENDING"
+  }
+}
