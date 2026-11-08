@@ -68,6 +68,49 @@ CREATE POLICY qa44_guardian_read_only_snapshot
 GRANT USAGE ON SCHEMA qa44 TO authenticated;
 GRANT SELECT ON qa44.guardian_memberships,qa44.family_snapshots TO authenticated;
 
+-- SERVER-ONLY update role. Do not grant this role to anonymous visitors,
+-- authenticated clients, service-role JS in the browser, or public APIs.
+-- The actual backend must use a separate private DB login with this role and
+-- set the JWT subject GUC ONLY AFTER server-side Supabase getUser(token).
+CREATE ROLE qa44_sync_writer NOLOGIN;
+GRANT USAGE ON SCHEMA qa44 TO qa44_sync_writer;
+GRANT SELECT ON qa44.guardian_memberships,qa44.family_snapshots TO qa44_sync_writer;
+GRANT UPDATE(revision,snapshot_text,content_sha256,updated_at)
+ ON qa44.family_snapshots TO qa44_sync_writer;
+CREATE POLICY qa44_writer_read_membership
+ ON qa44.guardian_memberships FOR SELECT TO qa44_sync_writer
+ USING (auth.uid() IS NOT NULL AND guardian_user_id=(SELECT auth.uid())
+  AND role='guardian' AND verification_source='externally_verified'
+  AND verified_at IS NOT NULL AND consent_verified_at IS NOT NULL
+  AND revoked_at IS NULL);
+CREATE POLICY qa44_writer_read_snapshot
+ ON qa44.family_snapshots FOR SELECT TO qa44_sync_writer
+ USING ((SELECT auth.uid()) IS NOT NULL AND EXISTS (
+  SELECT 1 FROM qa44.guardian_memberships m
+  WHERE m.family_id=family_snapshots.family_id
+   AND m.guardian_user_id=(SELECT auth.uid()) AND m.role='guardian'
+   AND m.verification_source='externally_verified'
+   AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL
+   AND m.revoked_at IS NULL
+ ));
+CREATE POLICY qa44_writer_update_snapshot
+ ON qa44.family_snapshots FOR UPDATE TO qa44_sync_writer
+ USING ((SELECT auth.uid()) IS NOT NULL AND EXISTS (
+  SELECT 1 FROM qa44.guardian_memberships m
+  WHERE m.family_id=family_snapshots.family_id
+   AND m.guardian_user_id=(SELECT auth.uid()) AND m.role='guardian'
+   AND m.verification_source='externally_verified'
+   AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL
+   AND m.revoked_at IS NULL
+ )) WITH CHECK ((SELECT auth.uid()) IS NOT NULL AND EXISTS (
+  SELECT 1 FROM qa44.guardian_memberships m
+  WHERE m.family_id=family_snapshots.family_id
+   AND m.guardian_user_id=(SELECT auth.uid()) AND m.role='guardian'
+   AND m.verification_source='externally_verified'
+   AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL
+   AND m.revoked_at IS NULL
+ ));
+
 -- Supabase Storage. Storage operations remain private and family-scoped.
 -- Uploads are insert-only: no client overwrite/delete to defeat backups or
 -- delete a guardian's shared objects. Server validator is still REQUIRED
