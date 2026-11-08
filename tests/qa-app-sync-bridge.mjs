@@ -87,6 +87,19 @@ try{
  const beforeA=await state(A);
  assert.equal(beforeA.records.length,1);
  assert.equal(beforeA.photos.length,1);
+ // QA37: a disconnected preflight must not create a plaintext JSON download.
+ const offlineDownloads=[];
+ A.on('download',item=>offlineDownloads.push(item));
+ await A.route('**/qa/snapshot',async route=>{
+  if(route.request().method()==='GET')await route.abort('internetdisconnected');
+  else await route.continue();
+ });
+ await A.locator('#qa34-upload').click();
+ await A.getByText('가상 서버 연결을 확인할 수 없습니다.',{exact:false}).waitFor();
+ assert.equal(offlineDownloads.length,0);
+ assert.deepEqual(await state(A),beforeA);
+ await A.unroute('**/qa/snapshot');
+ pass('기기 A 전송 전 연결 끊김: 원본 JSON 추가 다운로드 없음, 로컬 사진·오답 불변');
  const [download]=await Promise.all([
   A.waitForEvent('download',{timeout:30000}),
   A.locator('#qa34-upload').click()
@@ -100,6 +113,14 @@ try{
  assert.equal(Object.keys(remote.data.snapshot.photos).length,1);
  assert.equal((await state(B)).records.length,0);
  pass('기기 A 실제 앱 서명·사진·기록 백업 → 서버 rev1 저장, 기기 B는 자동 변경되지 않음');
+ // QA37: interrupted download must not open the destructive import dialog.
+ await B.route('**/qa/snapshot',route=>route.abort('internetdisconnected'));
+ await B.locator('#qa34-pull').click();
+ await B.getByText('가상 서버 연결을 확인할 수 없습니다.',{exact:false}).waitFor();
+ assert.equal(await B.locator('#confirm-dialog[open]').count(),0);
+ assert.equal((await state(B)).records.length,0);
+ await B.unroute('**/qa/snapshot');
+ pass('기기 B 가져오기 중 연결 끊김: 복원창 없음, 기존 로컬 원본 0건 유지');
  await B.locator('#qa34-pull').click();
  await B.locator('#confirm-dialog[open]').waitFor({timeout:30000});
  assert.equal((await state(B)).records.length,0,'remote data must not restore without consent');
@@ -112,8 +133,49 @@ try{
  await add(B,'QA34 가상 두번째 오답 B',false);
  const Bnow=await state(B);
  assert.equal(Bnow.records.length,2);
+ // QA37: gateway accepts PUT but its response is deliberately lost.
+ // Client cannot assume failed commit and must not transparently resend.
+ let commitsWithoutAck=0;
+ await B.route('**/qa/snapshot',async route=>{
+  if(route.request().method()==='PUT'){
+   const accepted=await route.fetch();
+   assert.equal(accepted.status(),200);
+   commitsWithoutAck++;
+   await route.abort('internetdisconnected');
+  }else await route.continue();
+ });
+ const [ambiguousDownload]=await Promise.all([
+  B.waitForEvent('download',{timeout:30000}),B.locator('#qa34-upload').click()
+ ]);
+ assert.ok(ambiguousDownload.suggestedFilename().endsWith('.json'));
+ await B.getByText('전송 결과를 확인할 수 없습니다. 자동 재전송하지 않습니다.',{exact:false}).waitFor();
+ assert.equal(commitsWithoutAck,1);
+ await B.unroute('**/qa/snapshot');
+ assert.deepEqual(await state(B),Bnow);
+ remote=await api('/qa/snapshot','GET',undefined,tok);
+ assert.equal(remote.data.revision,2);
+ const retryDownloads=[];
+ B.on('download',item=>retryDownloads.push(item));
  await B.locator('#qa34-upload').click();
- await B.getByText('서버 개정번호 2에 저장했습니다.',{exact:false}).waitFor();
+ await B.getByText('서버 기록이 다른 기기에서 변경되어 전송을 중단했습니다.',{exact:false}).waitFor();
+ assert.equal(retryDownloads.length,0,'no repeated plaintext backup on uncertain commit');
+ const retryRemote=await api('/qa/snapshot','GET',undefined,tok);
+ assert.equal(retryRemote.data.revision,2);
+ assert.deepEqual(retryRemote.data.snapshot,remote.data.snapshot);
+ pass('서버가 PUT 저장 후 응답만 유실: 자동 재전송 없음, 수동 재전송도 최신 버전 사전검사로 차단');
+ // Recovery is a separate deliberate pull and mandatory import confirmation.
+ await B.locator('#qa34-pull').click();
+ await B.locator('#confirm-dialog[open]').waitFor({timeout:30000});
+ assert.deepEqual(await state(B),Bnow);
+ await B.locator('#dlg-ok').click();
+ await B.waitForFunction(()=>document.querySelector('#home-count')?.textContent==='2'
+   ||document.querySelector('#records-count')?.textContent?.includes('전체 2건'));
+ assert.deepEqual(await state(B),Bnow);
+ pass('사용자가 직접 재조회·복원 승인한 뒤 서버 최신본과 사진 원본을 유지');
+ // The app's successful restore navigates to Home; re-open Settings before
+ // testing subsequent session revocation against its visible upload button.
+ await B.locator('#nav-settings').click();
+ await B.locator('#qa34-upload:visible').waitFor();
  remote=await api('/qa/snapshot','GET',undefined,tok);
  assert.equal(remote.data.revision,2);
  assert.equal(remote.data.snapshot.records.length,2);
