@@ -184,7 +184,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     // Synchronous atomic write: no acknowledgement before verified disk commit.
     storage.persist(candidate);
     accounts.set(session.familyKey,saved);
-    return reply(res,200,{stored:true,revision:acct.revision,qaOnly:true},{etag:'"'+acct.revision+'"'});
+    return reply(res,200,{stored:true,revision:saved.revision,qaOnly:true},{etag:'"'+saved.revision+'"'});
    }
    throw reject(404,'NOT_FOUND');
   }catch(error){
