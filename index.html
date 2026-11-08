@@ -3442,7 +3442,17 @@ $('v212-mixed-drill-run').onclick=async()=>{
    const matched=supported.filter(r=>{const h=trials(r);return h.length&&h[h.length-1].matchesExample===true});
    const counts=[['시범 학습 대상',supported.length],['재풀이 기록 있음',attempted.length],['마지막 답 계산값 일치',matched.length]];
    for(const [label,num] of counts){const card=make('div','v29-stat');card.append(make('strong',null,String(num)),make('span',null,label));stats.append(card)}
-   if(!supported.length){next.append(make('p','small','재풀이 가능한 분수·곱셈 시범 문제를 등록하면 이곳에 나타납니다. 일반 문제는 오답 목록에서 확인할 수 있어요.'));return}
+   if(!supported.length){
+    const general=[...records].filter(r=>r.hasPhoto||String(r.problemText||'').trim()).sort((a,b)=>
+      String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    if(!general.length){next.append(make('p','small','오답을 등록하면 이곳에서 다시 풀 문제를 선택할 수 있습니다.'));return}
+    const unfinished=general.filter(r=>!Array.isArray(r.generalRetryHistory)||r.generalRetryHistory.length===0);
+    const target=(unfinished.length?unfinished:general)[0];
+    next.append(make('p','small','일반 문제와 사진만 있는 오답도 직접 다시 풀어 기록할 수 있습니다. 자동 채점하지 않으며 부족한 개념을 판정하지 않습니다.'));
+    const action=make('button','primary','✏️ '+String(target.problemText||'사진으로 등록한 문제').slice(0,70)+' · 다시 풀기');
+    action.type='button';action.onclick=()=>{detailId=target.id;navigate('detail')};next.append(action);
+    return
+   }
    const remaining=supported.filter(r=>{const h=trials(r);return !h.length||h[h.length-1].matchesExample!==true});
    const target=(remaining.length?remaining:supported)[0];
    next.append(make('p','small',remaining.length?'먼저 다시 풀어볼 문제를 골랐어요. (복습 우선순위에 대한 교육적 검증은 없습니다.)':'모든 시범 문제에 재풀이가 있습니다. 시간이 지난 뒤 다시 확인할 수도 있어요.'));
@@ -3622,7 +3632,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const out={created:0,attempted:0,answerKnown:0,answerMatched:0,
       transferAttempted:0,transferKnown:0,transferMatched:0,
       supportKnown:0,supportUsed:0,parentRecorded:0,parentExplained:0,parentNeedsHelp:0,
-      missingDates:0,unknownKinds:0,events:[]};
+      missingDates:0,unknownKinds:0,generalAttempted:0,generalReviewed:0,events:[]};
     const acceptedKinds=new Set(['v25-fraction-pilot','v26-fraction-pilot','v27-fraction-add-pilot','v211-equal-groups-pilot']);
     const timestamp=(str)=>{
       if(typeof str!=='string'||!str.trim()){out.missingDates++;return null}
@@ -3665,6 +3675,25 @@ $('v212-mixed-drill-run').onclick=async()=>{
         addEvent(ms,row,'재풀이','계산값 비교: '+(h.matchesExample===true?'일치':h.matchesExample===false?'불일치':'미확인')
           +' · 새 문제: '+(transfer?.answer?'시도 기록 있음':'시도 기록 없음'));
       }
+      // Generic re-solve attempts are recorded but NEVER automatically judged right/wrong.
+      if(Array.isArray(row.generalRetryHistory))for(const h of row.generalRetryHistory){
+        if(!h||typeof h!=='object')continue;
+        const ms=timestamp(h.at);
+        if(allowed(ms)){
+          out.attempted++;out.generalAttempted++;
+          addEvent(ms,row,'일반 재풀이','직접 답을 다시 적음 · 계산값/정답 자동 비교 없음');
+        }
+        if(h.review!=='not_checked'&&h.reviewedAt){
+          const reviewedMs=timestamp(h.reviewedAt);
+          if(allowed(reviewedMs)){
+            out.generalReviewed++;out.parentRecorded++;
+            if(h.review==='explained')out.parentExplained++;
+            if(h.review==='needs_help')out.parentNeedsHelp++;
+            addEvent(reviewedMs,row,'일반 재풀이 학부모 관찰',
+              h.review==='explained'?'학부모 관찰: 스스로 설명함':'학부모 관찰: 도움이 필요함');
+          }
+        }
+      }
       for(const [key,label] of [['checkHistory','오답 확인'],['followupHistory','복습 후 관찰']]){
         if(!Array.isArray(row[key]))continue;
         for(const h of row[key]){
@@ -3689,6 +3718,8 @@ $('v212-mixed-drill-run').onclick=async()=>{
       ['기준기간',scope],
       ['오답 등록 건수',model.created],
       ['재풀이 기록 횟수',model.attempted],
+      ['일반 재풀이(자동채점 없음)',model.generalAttempted],
+      ['일반 재풀이 학부모 관찰',model.generalReviewed],
       ['재풀이 계산값 비교 가능',model.answerKnown],
       ['재풀이 계산값 일치',model.answerMatched],
       ['재풀이 계산값 불일치',model.answerKnown-model.answerMatched],
@@ -3728,7 +3759,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
       const item=make('div','v29-stat');item.append(make('strong',null,String(num)),make('span',null,label));stats.append(item);
     }
     evidence.replaceChildren();
-    evidence.append(make('p',null,'재풀이 비교 미확인 '+(summary.attempted-summary.answerKnown)
+    evidence.append(make('p',null,'일반 재풀이 '+summary.generalAttempted+'회(자동채점 없음) · 재풀이 비교 미확인 '+(summary.attempted-summary.answerKnown)
       +'회 · 새 문제 시도 '+summary.transferAttempted+'회(비교 미확인 '+(summary.transferAttempted-summary.transferKnown)
       +'회) · 학부모가 스스로 설명했다고 기록 '+summary.parentExplained+'회 · 도움이 필요했다고 기록 '+summary.parentNeedsHelp+'회.'));
     if(summary.missingDates||summary.unknownKinds){
