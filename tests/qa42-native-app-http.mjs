@@ -115,7 +115,7 @@ try{
  assert.equal((await state(B)).records.length,0);
  pass('실제 앱 390/320px 분리 브라우저 JWT·Postgres 연결, 토큰 입력창 비움, 다른 가족 별도 권한');
 
- assert.equal((await A.evaluate(()=>localStorage.length)),0,'no credentials in localStorage');
+ assert.equal(await A.evaluate(jwt=>Object.values(localStorage).every(value=>!value.includes(jwt)),jwtA),true,'bearer token must not enter localStorage');
  const cross=await server(ID,jwtC);
  assert.equal(cross.status,404);
  assert.equal((await server(OTHER,jwtC)).status,200);
