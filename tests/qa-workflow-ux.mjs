@@ -18,6 +18,17 @@ try{
  });
  assert.ok(order.start<order.diagnostic,'등록 시작보다 기술 안내가 앞에 있음');
  pass('부모 첫 화면의 핵심 촬영 CTA 우선 배치');
+ for(const width of [320,390,768]){
+  await page.setViewportSize({width,height:844});
+  const rect=await page.locator('#v08-home-add').evaluate(button=>{
+   const r=button.getBoundingClientRect();
+   return {left:r.left,right:r.right,width:r.width,screen:innerWidth};
+  });
+  assert.ok(rect.left>=-1&&rect.right<=rect.screen+1,'CTA horizontal overflow at '+width);
+  assert.ok(rect.width>=200,'CTA too narrow at '+width);
+ }
+ await page.setViewportSize({width:390,height:844});
+ pass('320·390·768px 모바일/태블릿 화면에서 핵심 등록 버튼 표시');
 
  assert.equal(await page.locator('#qa9-next-action').isVisible(),false);
  await page.locator('#nav-add').click();
