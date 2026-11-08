@@ -168,3 +168,12 @@ if(root&&location.origin===LOCAL_ORIGIN){
  state();
  status('127.0.0.1 로컬 전용 기능입니다. 실제 자녀 자료는 입력하지 마세요.');
 }
+
+
+// QA42 is imported ONLY by the exact local synthetic QA site. Never attach
+// the signed-JWT prototype or its controls to public/production origins.
+if(location.origin===LOCAL_ORIGIN)
+ import('./qa42-app-http-bridge.mjs').catch(()=>{
+  const el=document.getElementById('qa34-status');
+  if(el)el.textContent='QA42 시험 모듈을 불러오지 못했습니다. 기존 로컬 기록은 그대로 유지됩니다.';
+ });
