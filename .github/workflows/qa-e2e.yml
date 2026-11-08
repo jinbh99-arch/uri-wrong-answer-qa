@@ -20,6 +20,7 @@ on:
       - 'tests/qa-workflow-ux.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
+      - 'tests/qa-evidence-transition.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -71,6 +72,8 @@ jobs:
         run: node tests/qa-general-retry.mjs
       - name: QA11 general concept map and ambiguous candidate protection
         run: node tests/qa-concept-support.mjs
+      - name: QA12 G11 synthetic parent observation transitions and evidence-only CSV
+        run: node tests/qa-evidence-transition.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -87,4 +90,5 @@ jobs:
             qa-workflow-ux-failure.png
             qa-general-retry-failure.png
             qa11-concept-failure.png
+            qa12-evidence-failure.png
           if-no-files-found: ignore
