@@ -9,7 +9,7 @@ const initial=[
 const consistent=evaluateSyntheticStudy(initial);
 assert.equal(consistent.completeCaseUnadjustedDifference,0);
 assert.deepEqual(consistent.missingOutcomeWorstCaseContrast,{min:0,max:0});
-assert.deepEqual(consistent.qualityWarnings,[]);
+assert.deepEqual(consistent.qualityWarnings,['ATTRITION_BOUNDS_INCLUDE_ZERO']);
 assert.equal(consistent.learnerImpactConfirmed,false);
 pass('대조집단 두 그룹에 같은 평균 변화: 0점, 학습효과 자동 승인 없음');
 const missing=evaluateSyntheticStudy([...initial,p('005','pilot',50,null)]);
