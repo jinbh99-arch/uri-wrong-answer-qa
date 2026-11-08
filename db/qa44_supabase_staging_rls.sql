@@ -125,7 +125,7 @@ INSERT INTO storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 CREATE POLICY qa44_private_photo_read
  ON storage.objects FOR SELECT TO authenticated
  USING (bucket_id='qa44-family-photos' AND
-   name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}/[A-Za-z0-9_-]{1,100}/[0-9a-f]{8}-[0-9a-f-]{27}\.(png|jpg|webp)$'
+   name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[A-Za-z0-9_-]{1,100}/[0-9a-f]{8}-[0-9a-f-]{27}\.(png|jpg|webp)$'
    AND EXISTS (
      SELECT 1 FROM qa44.guardian_memberships m
      WHERE m.family_id::text=split_part(name,'/',1)
@@ -138,7 +138,7 @@ CREATE POLICY qa44_private_photo_read
 CREATE POLICY qa44_private_photo_insert
  ON storage.objects FOR INSERT TO authenticated
  WITH CHECK (bucket_id='qa44-family-photos' AND
-   name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}/[A-Za-z0-9_-]{1,100}/[0-9a-f]{8}-[0-9a-f-]{27}\.(png|jpg|webp)$'
+   name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[A-Za-z0-9_-]{1,100}/[0-9a-f]{8}-[0-9a-f-]{27}\.(png|jpg|webp)$'
    AND EXISTS (
      SELECT 1 FROM qa44.guardian_memberships m
      WHERE m.family_id::text=split_part(name,'/',1)
