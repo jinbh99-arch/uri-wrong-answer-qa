@@ -65,7 +65,9 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
             raise RuntimeError("Source archive exceeds safe maximum")
         result.append((name, body))
     names = {name for name, _ in result}
-    required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs"}
+    required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs",
+                "scripts/qa-family-gateway.mjs", "scripts/qa-inapp-sync-bridge.mjs",
+                "scripts/qa-family-merge-preflight.mjs"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
