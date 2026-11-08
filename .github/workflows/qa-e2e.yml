@@ -57,6 +57,8 @@ on:
       - 'db/qa39_family_rls.sql'
       - 'scripts/qa39-tenant-store.mjs'
       - 'tests/qa39-postgres-tenant.mjs'
+      - 'scripts/qa40-oidc-resolver.mjs'
+      - 'tests/qa40-oidc-postgres.mjs'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -103,7 +105,7 @@ jobs:
           node-version: '22'
       - name: Install Playwright for isolated Chromium
         run: |
-          npm install --no-save playwright@1.56.1 pg@8.16.3
+          npm install --no-save playwright@1.56.1 pg@8.16.3 jose@6.1.0
           npx playwright install --with-deps chromium
       - name: Start temporary local QA HTTP server
         run: |
@@ -136,6 +138,10 @@ jobs:
         env:
           QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
         run: node tests/qa39-postgres-tenant.mjs
+      - name: QA40 G15 signed synthetic OIDC token verification with PostgreSQL guardian RLS
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa40-oidc-postgres.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
