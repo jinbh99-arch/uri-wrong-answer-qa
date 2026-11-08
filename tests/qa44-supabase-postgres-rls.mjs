@@ -85,6 +85,9 @@ try{
  await denied(UA,insert,['public',PA]);
  await denied(UC,insert,['qa44-family-photos',PA]);
  pass('승인된 자기 가족 이미지 경로만 INSERT, 다른 가족·경로 탈출·무승인 접근 차단');
+ // asUser() deliberately rolls back EVERY test transaction; seed the
+ // previously authorized synthetic uploads as admin to test later RLS reads.
+ await admin.query('INSERT INTO storage.objects(bucket_id,name) VALUES($1,$2)',['qa44-family-photos',PA]);
  await admin.query('INSERT INTO storage.objects(bucket_id,name) VALUES($1,$2)',['qa44-family-photos',PB]);
  assert.deepEqual((await rows(UA,select,['qa44-family-photos'])).map(x=>x.name),[PA]);
  assert.deepEqual((await rows(UB,select,['qa44-family-photos'])).map(x=>x.name),[PB]);
