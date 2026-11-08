@@ -1,0 +1,95 @@
+{
+  "schema": "qa45-precreate-free-v1",
+  "status": "NO_PROJECT_NO_BILLING",
+  "organization": {
+    "name": "uri-level-test",
+    "confirmedPlan": "free",
+    "verifiedBy": "Supabase organizations list/get organization; 2026-11-08",
+    "projectCountObserved": 0
+  },
+  "policy": {
+    "createProject": false,
+    "upgradePlan": false,
+    "enterPaymentCard": false,
+    "enablePaidServices": false,
+    "createRealUsers": false,
+    "collectChildData": false,
+    "enableProductionEmail": false,
+    "publishProductionSite": false,
+    "changeNetlifyProduction": false
+  },
+  "freeArchitecture": {
+    "provider": "Supabase",
+    "tier": "free",
+    "authProviders": [
+      "google",
+      "email"
+    ],
+    "smtpCandidate": "Resend Free",
+    "database": "PostgreSQL",
+    "photoStorage": "private",
+    "parentVerification": "separate from OAuth and email",
+    "monthlyCommittedCostKRW": 0
+  },
+  "tasks": [
+    {
+      "id": "1",
+      "name": "무료 프로젝트 생성 준비",
+      "status": "PREPARED_NOT_CREATED",
+      "evidence": [
+        "docs/QA44_무료Supabase_인증_가족DB_연동인계_v1.0.md",
+        "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"
+      ],
+      "realServiceVerified": false
+    },
+    {
+      "id": "2",
+      "name": "가족별 데이터베이스·RLS 적용",
+      "status": "PREPARED_NOT_APPLIED",
+      "evidence": [
+        "db/qa44_supabase_staging_rls.sql",
+        "tests/qa44-supabase-postgres-rls.mjs"
+      ],
+      "realServiceVerified": false
+    },
+    {
+      "id": "3",
+      "name": "구글·이메일 로그인 실제 설정",
+      "status": "PREPARED_NOT_CONFIGURED",
+      "evidence": [
+        "scripts/qa44-supabase-auth-adapter.mjs",
+        "tests/qa44-supabase-auth.mjs"
+      ],
+      "realServiceVerified": false
+    },
+    {
+      "id": "4",
+      "name": "사진 저장소 접근권한",
+      "status": "PREPARED_NOT_APPLIED",
+      "evidence": [
+        "db/qa44_supabase_staging_rls.sql",
+        "tests/qa44-supabase-postgres-rls.mjs"
+      ],
+      "realServiceVerified": false
+    },
+    {
+      "id": "5",
+      "name": "합성자료 실제 서버 보안 테스트",
+      "status": "BLOCKED_NO_SERVER",
+      "evidence": [
+        "tests/qa44-supabase-postgres-rls.mjs",
+        "tests/qa44-supabase-family-store.mjs"
+      ],
+      "realServiceVerified": false
+    }
+  ],
+  "externalGates": {
+    "projectCreationAuthorization": "NOT_REQUESTED",
+    "realProviderCredentials": "NOT_CONFIGURED",
+    "guardianConsent": "NOT_VERIFIED",
+    "legalReview": "DRAFT_ONLY",
+    "productionRelease": "BLOCKED",
+    "physicalPhonesTested": 0,
+    "g16StudyParticipants": 0
+  }
+}

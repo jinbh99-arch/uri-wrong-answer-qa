@@ -102,7 +102,11 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "tests/qa44-mobile-auth-ui.mjs",
                 "tests/qa44-free-budget.mjs",
                 "docs/QA44_무료Supabase_인증_가족DB_연동인계_v1.0.md",
-                "docs/QA44_아동개인정보_국내법령_검토대조_v1.0.md"}
+                "docs/QA44_아동개인정보_국내법령_검토대조_v1.0.md",
+                "scripts/qa45-no-project-guard.mjs",
+                "data/qa45-free-no-project-plan.json",
+                "tests/qa45-no-project-guard.mjs",
+                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)

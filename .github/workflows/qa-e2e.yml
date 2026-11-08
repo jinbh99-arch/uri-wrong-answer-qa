@@ -80,6 +80,9 @@ on:
       - 'tests/qa44-supabase-family-store.mjs'
       - 'tests/qa44-mobile-auth-ui.mjs'
       - 'tests/qa44-free-budget.mjs'
+      - 'scripts/qa45-no-project-guard.mjs'
+      - 'data/qa45-free-no-project-plan.json'
+      - 'tests/qa45-no-project-guard.mjs'
       - 'docs/**'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
@@ -198,6 +201,8 @@ jobs:
         run: node tests/qa44-free-budget.mjs
       - name: QA44 actual app Settings synthetic Google/email sign-in in 320 and 390px Chromium
         run: node tests/qa44-mobile-auth-ui.mjs
+      - name: QA45 live Free organization precreate no project no billing and real approval gate
+        run: node tests/qa45-no-project-guard.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
