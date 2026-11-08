@@ -29,6 +29,8 @@ def allowed(path: str) -> bool:
         return True
     if re.fullmatch(r"data/[A-Za-z0-9_.-]+\.json", path):
         return True
+    if re.fullmatch(r"db/[A-Za-z0-9_.-]+\.sql", path):
+        return True
     if re.fullmatch(r"docs/[A-Za-z0-9_.-]+\.md", path):
         return True
     if re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", path):
@@ -67,7 +69,9 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
     names = {name for name, _ in result}
     required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs",
                 "scripts/qa-family-gateway.mjs", "scripts/qa-inapp-sync-bridge.mjs",
-                "scripts/qa-family-merge-preflight.mjs"}
+                "scripts/qa-family-merge-preflight.mjs",
+                "db/qa39_family_rls.sql", "scripts/qa39-tenant-store.mjs",
+                "tests/qa39-postgres-tenant.mjs"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
