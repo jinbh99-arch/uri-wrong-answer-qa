@@ -30,6 +30,12 @@ on:
       - 'tests/qa-parent-review-cycle.mjs'
       - 'tests/qa-learning-four-goals.mjs'
       - 'tests/qa-photo-intake.mjs'
+      - 'tests/qa-curriculum-provenance.mjs'
+      - 'tests/qa-family-sync-preflight.mjs'
+      - 'tests/qa-learning-study-readiness.mjs'
+      - 'data/curriculum-notice-lineage-v0.1.json'
+      - 'scripts/qa-family-merge-preflight.mjs'
+      - 'scripts/qa-learning-effect-readiness.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -61,6 +67,12 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/qa-http.log 2>&1 &
           sleep 2
           curl --fail http://127.0.0.1:4173/ > /dev/null
+      - name: QA22 G14 source-notice lineage, AI mapping and approval truthfulness
+        run: node tests/qa-curriculum-provenance.mjs
+      - name: QA22 G15 local-only no-overwrite family merge preflight
+        run: node tests/qa-family-sync-preflight.mjs
+      - name: QA22 G16 synthetic study measurement and privacy readiness
+        run: node tests/qa-learning-study-readiness.mjs
       - name: Mathematics pilot and graph-data consistency checks
         run: node tests/qa-content.mjs
       - name: Real Chromium backup/restore and two-tab UI scenarios
