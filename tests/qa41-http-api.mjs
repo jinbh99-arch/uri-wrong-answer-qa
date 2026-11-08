@@ -159,7 +159,10 @@ try{
  },{baseUrl:api.baseUrl,token,id});
  const browserA=await browserRead(pageA,tokenA,ID_A);
  const browserB=await browserRead(pageB,tokenB,ID_A);
- assert.equal(browserA.status,200);assert.equal(browserA.cors,ORIGIN);
+ // Browsers enforce CORS, but do not expose Access-Control-Allow-Origin
+ // to page JavaScript unless the server explicitly exposes it. Successful
+ // cross-origin fetch and readable JSON are the correct browser assertions.
+ assert.equal(browserA.status,200);
  assert.equal(browserA.data.snapshot.photos['qa41-photo-1'],photo);
  assert.equal(browserB.status,404);
  pass('서로 분리된 실제 Chromium 390/320px 출처에서 CORS+JWT+가족별 RLS 동작 확인');
