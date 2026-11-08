@@ -82,7 +82,9 @@ def verify(source_zip: Path) -> dict:
                 "db/qa39_family_rls.sql", "scripts/qa39-tenant-store.mjs",
                 "tests/qa39-postgres-tenant.mjs",
                 "docs/QA39_G15_PostgreSQL_가족격리_실운영인계_v0.1.md",
-                "docs/QA39_G16_학습효과_사전등록_검토본_v0.2.md"}
+                "docs/QA39_G16_학습효과_사전등록_검토본_v0.2.md",
+                "scripts/qa40-oidc-resolver.mjs", "tests/qa40-oidc-postgres.mjs",
+                "docs/QA40_G15_서명JWT_보호자RLS_연동검증_v0.1.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
