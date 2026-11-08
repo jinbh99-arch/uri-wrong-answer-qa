@@ -1,0 +1,41 @@
+name: G14 public MOE curriculum ZIP identity probe (non-blocking)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/qa-official-math-source-probe.py'
+      - 'scripts/qa-official-hwp-text-verify.py'
+      - '.github/workflows/official-math-source-probe.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/qa-official-math-source-probe.py'
+      - '.github/workflows/official-math-source-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-source-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout isolated public QA repository
+        uses: actions/checkout@v4
+      - name: Try to fetch official 2022-33 math subject attachment ZIP without preserving its content
+        run: python3 scripts/qa-official-math-source-probe.py
+      - name: Read official downloaded math HWP using HWP5 records, then compare 13 source texts
+        run: |
+          python3 -m pip install --user olefile==0.47
+          python3 scripts/qa-official-hwp-text-verify.py
+          rm -f "${RUNNER_TEMP}/qa23-official-2022-subjects.zip"
+      - name: Keep only official public file identity metadata (no original binary or child records)
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa23-official-source-metadata
+          path: |
+            source-snapshot-output/qa23-official-source-probe.json
+            source-snapshot-output/qa23-math-standard-source-review.json
+          retention-days: 30
+          if-no-files-found: error
