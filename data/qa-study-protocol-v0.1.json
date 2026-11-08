@@ -1,0 +1,42 @@
+{
+  "version": "qa27-g16-prospective-protocol-draft-v01",
+  "status": "DRAFT_NOT_APPROVED",
+  "researchPurpose": "초등 수학 오답 기록과 보호자 관찰의 개입이 학습 과제에 미치는 영향 탐색",
+  "design": "가정용 학습 프로그램의 사전·사후 과제 성과; 비교집단 여부 및 배정은 연구 검토 후 확정",
+  "primaryOutcome": "독립 평가자가 승인한 수학 과제 점수(0~100), 사전/사후 동일 척도",
+  "primaryOutcomeInstrumentValidated": false,
+  "comparisonGroupPlanned": true,
+  "randomAllocationConfirmed": false,
+  "observedChildren": 0,
+  "parentsConsentedAndVerified": 0,
+  "schoolOrResearchEthicsApproval": false,
+  "educationalExpertApproval": false,
+  "privacyReviewApproved": false,
+  "preregisteredExternally": false,
+  "measures": [
+    "baseline",
+    "followup",
+    "allocation",
+    "attrition"
+  ],
+  "preSpecifiedDescriptiveAnalyses": [
+    "per-arm observed mean change",
+    "between-arm raw change difference",
+    "0..100 attrition sensitivity range"
+  ],
+  "minimumSampleSize": "TO_BE_DETERMINED_WITH_POWER_ANALYSIS",
+  "interpretationRestrictions": [
+    "no causal inference from descriptive contrasts",
+    "no effect claim from synthetic data",
+    "do not impute absent scores as zero",
+    "identity and raw answers prohibited from synthetic QA repository"
+  ],
+  "nextDecisionsRequiringHumanAuthority": [
+    "실사용 미성년자의 법정대리인 동의 및 적법한 연구 절차",
+    "수학 성취 과제·측정 타당도 전문가 승인",
+    "표본/대조군/기간/윤리·개인정보 정책 승인",
+    "실제 독립 학습효과 분석"
+  ],
+  "technicalPreparationComplete": true,
+  "actualLearningEffectVerified": false
+}
