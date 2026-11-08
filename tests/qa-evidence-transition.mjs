@@ -143,6 +143,7 @@ try{
  assert.ok(!exported.includes('개인정보가 아닌 가상 아이 답'));
  done('실제 CSV 다운로드는 관찰 변화 숫자만 포함하며 가상 개인 답·메모 유출 없음');
 
+ await page.locator('#nav-settings').click();
  await page.locator('#clear-all').click();
  await page.locator('#confirm-dialog[open]').waitFor();
  await page.locator('#dlg-ok').click();
