@@ -49,7 +49,9 @@ for(const m of mapping){
  assert.ok(ids.has(m.concept_id));
  assert.equal(m.mapping_review_state,'ai_mapping_candidate_unapproved');
  assert.equal(m.expert_approved,false);
- assert.equal(m.official_server_file_identity_verified,false);
+ assert.equal(m.official_server_file_identity_verified,true);
+ assert.equal(m.academic_mapping_approved,false,'official source does not approve the AI mapping');
+ assert.match(m.official_text_validation,/교육부 공식 원본/);
 }
 ok('13개 성취기준 대응 후보가 승인 전으로 남아 있음',13);
 // Execute the EXACT application pilot arithmetic functions, not copied substitutes.

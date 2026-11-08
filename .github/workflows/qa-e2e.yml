@@ -34,6 +34,7 @@ on:
       - 'tests/qa-family-sync-preflight.mjs'
       - 'tests/qa-learning-study-readiness.mjs'
       - 'data/curriculum-notice-lineage-v0.1.json'
+      - 'data/official-math-source-2022-33-attestation-v0.1.json'
       - 'scripts/qa-family-merge-preflight.mjs'
       - 'scripts/qa-learning-effect-readiness.mjs'
       - 'data/concept-graph-v0.3-demo.json'

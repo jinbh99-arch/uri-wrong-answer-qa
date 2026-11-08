@@ -1,0 +1,30 @@
+{
+  "version": "qa24-official-2022-33-math-hwp-verify-v01",
+  "source_notice": "교육부 고시 제2022-33호",
+  "source_attachment_download": "https://www.moe.go.kr/boardCnts/fileDown.do?fileSeq=1512facbda6c234a1641ac7e9c156ca2&m=&s=moe",
+  "source_notice_url": "https://www.moe.go.kr/boardCnts/viewRenew.do?boardID=141&boardSeq=93458&lev=0&statusYN=W",
+  "current_regulatory_notice": "국가교육위원회 고시 제2026-1호",
+  "current_regulatory_notice_url": "https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000273516",
+  "baseline_math_annex": "[별책8] 수학과 교육과정.hwp",
+  "zip_http_status": 200,
+  "zip_bytes": 15795889,
+  "zip_sha256": "b37a372a90d6d00bb3985888bbb41caae7a35f28877dc243a6f4b28861c53146",
+  "math_hwp_bytes": 2094592,
+  "math_hwp_sha256": "aab8eed59ecf244223d04afad75f4cf5ac5085fadcfc3cf52c2f6d54ddfc7856",
+  "extraction": {
+    "sections": 1,
+    "records": 18609,
+    "paragraphs": 4065,
+    "compressed": true
+  },
+  "candidate_entries_verified_against_original": 13,
+  "unique_standard_codes": 10,
+  "unmatched_pairs": 0,
+  "official_original_code_and_text_verified": true,
+  "official_binary_retrieved_directly": true,
+  "expert_concept_mapping_approved": false,
+  "official_expert_review_not_claimed": true,
+  "user_pdf_binary_compared_against_original": false,
+  "proof_pr_run": "https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/42443478565",
+  "qualification": "교육부 고시 2022-33 수학 별책8 원본 HWP의 코드·원문 13/13만 검증. AI 개념↔성취기준 매핑은 미승인."
+}

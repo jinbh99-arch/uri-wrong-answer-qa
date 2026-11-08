@@ -20,10 +20,17 @@ check(manifest.subsequent_amendments.every(a=>a.math_annex_8_listed_as_amended==
 check(manifest.subsequent_amendments.find(x=>x.id.includes('2026-1호')).amended_annex_numbers.join(',')==='1,2,3,4,15','2026-1 annex list changed');
 check(manifest.primary_subject_notice_lineage_verified===true,'public notice review not documented');
 check(manifest.source_2022_annex_binary_equal_to_user_pdf===null,'unverified PDF identity must remain unknown');
-check(manifest.baseline.official_attachment_bytes_verified===false,'official PDF bytes not independently verified');
-check(manifest.official_2022_math_annex_text_independently_compared===false,'independent source text not verified');
+check(manifest.baseline.official_attachment_bytes_verified===true,'MOE official HWP bytes not verified');
+check(manifest.official_2022_math_annex_text_independently_compared===true,'independent MOE HWP text proof missing');
 check(manifest.academic_relationships_expert_reviewed===false,'educational mapping not reviewed');
 check(manifest.g14_final_completed===false,'G14 cannot be falsely marked complete');
+const attestation=JSON.parse(readFileSync('data/official-math-source-2022-33-attestation-v0.1.json','utf8'));
+check(attestation.zip_sha256==='b37a372a90d6d00bb3985888bbb41caae7a35f28877dc243a6f4b28861c53146','official ZIP SHA changed');
+check(attestation.math_hwp_sha256==='aab8eed59ecf244223d04afad75f4cf5ac5085fadcfc3cf52c2f6d54ddfc7856','official math HWP SHA changed');
+check(attestation.candidate_entries_verified_against_original===13 && attestation.unmatched_pairs===0,'official text mismatch');
+check(attestation.official_original_code_and_text_verified===true,'official source not checked');
+check(attestation.expert_concept_mapping_approved===false,'unreviewed mapping elevated');
+check(manifest.g14_qa_technical_source_completed===true,'G14 official source technical QA not complete');
 check(rows.length===13,'expected 13 original mapping candidates, not verified standards');
 for(const [i,r] of rows.entries()){
  const key=r.concept_id+'::'+r.standard_code;
@@ -36,12 +43,13 @@ for(const [i,r] of rows.entries()){
  check(r.domain==='수와 연산','unsupported domain '+key);
  check(r.source_pdf_text?.length>=20&&r.source_pdf_page>0,'text/page absent '+key);
  check(r.standard_uid==='MOE-KR-2022-MATH::'+r.standard_code,'UID mismatch '+key);
- check(r.source_db_validation==='부분 검증','not appropriately qualified '+key);
+ check(r.source_db_validation==='원문 공식 대조 완료·개념 연결 부분 검증','source vs academic mapping conflated '+key);
  check(r.mapping_review_state==='ai_mapping_candidate_unapproved','approval escalated '+key);
- check(r.official_server_file_identity_verified===false,'forged official file identity '+key);
+ check(r.official_server_file_identity_verified===true,'official source file evidence lost '+key);
  check(r.expert_approved===false&&r.academic_mapping_approved===false,'expert/academic approval escalated '+key);
- check(r.official_text_validation.includes('공식 서버 미대조'),'independent official source falsely claimed '+key);
- check(r.curriculum_notice.includes('제2022-33호')&&r.curriculum_notice.includes('최종 대조 미완료'),'notice footnote lost '+key);
+ check(r.official_text_validation.includes('교육부 공식 원본')&&r.official_text_validation.includes('전문가 미승인'),'source mapping status unclear '+key);
+ check(r.curriculum_notice.includes('제2022-33호')&&r.curriculum_notice.includes('제2026-1호'),'notice lineage missing '+key);
+ check(r.official_source_provenance_version==='qa24-official-2022-33-math-hwp-verify-v01','provenance link missing '+key);
  codes.add(r.standard_code);
 }
 check(codes.size>=7,'unexpected distinct standard code coverage');
@@ -51,6 +59,6 @@ const conceptSet=new Set(graph.concepts.map(x=>x.concept_id));
 check(rows.every(x=>conceptSet.has(x.concept_id)),'orphan candidate mapping');
 check(graph.approval_status==='draft_unapproved'&&graph.edges.every(e=>e.active_for_recommendation===false),'AI draft was promoted');
 console.log('QA_G14_NOTICE_AUDIT='+JSON.stringify({status:'PASS',candidateRows:rows.length,distinctCodes:codes.size,checks:summary.checks,
- noticeLineageVerified:true,official2022AnnexByteMatchVerified:false,independent13TextVerified:false,expertMappingApproval:false,
- result:'G14 PARTIAL — notice lineage verified, candidate official source+mapping NOT VERIFIED',
+ noticeLineageVerified:true,official2022HwpSourceVerified:true,independent13TextVerified:true,expertMappingApproval:false,
+ result:'G14 SOURCE QA PASS — direct original HWP 13/13; AI academic mapping remains unapproved',
  manifestSHA256:createHash('sha256').update(readFileSync('data/curriculum-notice-lineage-v0.1.json')).digest('hex')}));
