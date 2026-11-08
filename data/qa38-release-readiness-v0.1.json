@@ -1,0 +1,98 @@
+{
+  "schema": "qa38-release-readiness-v1",
+  "asOf": "2026-11-08",
+  "project": "uriaimath-offline-wrong-answer-qa",
+  "qaTechnicallyCompleteGoals": 14,
+  "totalGoals": 16,
+  "finalProductApprovedGoals": 0,
+  "mode": "SYNTHETIC_LOOPBACK_ONLY",
+  "realChildRecords": 0,
+  "realResearchParticipants": 0,
+  "productionDeploymentApproved": false,
+  "realDataCollectionApproved": false,
+  "studyProtocol": "DRAFT_NOT_APPROVED",
+  "sourceOfTruth": "GitHub issue #20 G15, issue #21 G16, data/qa-study-protocol-v0.1.json",
+  "gates": [
+    {
+      "id": "G15-IDENTITY",
+      "title": "실제 가족·법정대리인 인증 공급자·권한 모델",
+      "status": "BLOCKED",
+      "requiredEvidence": "실운영 인증 제공자 계약/법정대리인 권한 확인",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G15-HOSTING",
+      "title": "HTTPS 비공개 클라우드·가족 행 격리·감사로그·최소권한",
+      "status": "BLOCKED",
+      "requiredEvidence": "외부 공개 전 클라우드 배포·침투 및 개인정보 처리 검토",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G15-PRIVACY",
+      "title": "아동 사진·보존/삭제/철회/백업/침해 대응",
+      "status": "BLOCKED",
+      "requiredEvidence": "개인정보 처리방침·안전성 평가·법률 검토",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G15-DEVICES",
+      "title": "Android/iOS 실기기 2대·네트워크 장애·OCR 실제 촬영",
+      "status": "BLOCKED",
+      "requiredEvidence": "물리적 기기 실증 보고·운영 수락",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G15-RECOVERY",
+      "title": "비밀번호 복구·재인증·기기간 복원/삭제",
+      "status": "BLOCKED",
+      "requiredEvidence": "공급자와 운영 환경에서 사용자 수락·로그 검증",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G16-ETHICS",
+      "title": "미성년자/보호자 동의 및 연구 윤리·철회",
+      "status": "BLOCKED",
+      "requiredEvidence": "적법한 연구 모집·동의·외부 윤리 검토",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G16-INSTRUMENT",
+      "title": "2022 개정 수학 성취기준 연계 사전·사후 평가",
+      "status": "BLOCKED",
+      "requiredEvidence": "평가도구 및 성취기준 원문 전문가 검증",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G16-PROTOCOL",
+      "title": "대조군·교란·무작위화·검정력·사전등록",
+      "status": "BLOCKED",
+      "requiredEvidence": "독립 연구설계와 분석계획 사전 승인",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G16-DATA",
+      "title": "개인정보 분리 가명화·접근권한·데이터 보존·파기",
+      "status": "BLOCKED",
+      "requiredEvidence": "자료 수집 전 외부 승인·별도 비공개 연구 환경",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    },
+    {
+      "id": "G16-OUTCOME",
+      "title": "실제 참가자 결과·탈락·불확실성·외부 검토",
+      "status": "BLOCKED",
+      "requiredEvidence": "실증 자료/독립 전문가 분석·부정 결과 공개",
+      "externalApprovalNeeded": true,
+      "evidence": []
+    }
+  ],
+  "policy": "GitHub CI is a QA code check only; even all local checks passing does not authorize deployment or collection of child data."
+}
