@@ -37,6 +37,7 @@ try{
       async signOut(){
        globalThis.__QA48_TEST_CALLS__.push({type:'logout'});
        sessionStorage.removeItem('qa48-test-session');
+       sessionStorage.removeItem('uri-qa48-owner-google-test-session');
        return {error:null}
       }
      },
@@ -101,6 +102,7 @@ try{
    pass(width+'px user-triggered logout ends in-tab auth session');
    await p.evaluate(()=>{
     sessionStorage.setItem('qa48-test-session','active');
+    sessionStorage.setItem('uri-qa48-owner-google-test-session','synthetic-session-marker');
     sessionStorage.setItem('qa48-test-edge-fail','yes')
    });
    await p.reload({waitUntil:'domcontentloaded'});
