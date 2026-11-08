@@ -37,6 +37,8 @@ on:
       - 'data/official-math-source-2022-33-attestation-v0.1.json'
       - 'scripts/qa-family-merge-preflight.mjs'
       - 'scripts/qa-learning-effect-readiness.mjs'
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa-family-gateway.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -72,6 +74,8 @@ jobs:
         run: node tests/qa-curriculum-provenance.mjs
       - name: QA22 G15 local-only no-overwrite family merge preflight
         run: node tests/qa-family-sync-preflight.mjs
+      - name: QA25 G15 synthetic family authentication and two-device conflict loopback gateway
+        run: node tests/qa-family-gateway.mjs
       - name: QA22 G16 synthetic study measurement and privacy readiness
         run: node tests/qa-learning-study-readiness.mjs
       - name: Mathematics pilot and graph-data consistency checks
