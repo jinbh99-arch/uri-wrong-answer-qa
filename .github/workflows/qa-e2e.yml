@@ -27,6 +27,7 @@ on:
       - 'tests/qa-mobile-accessibility.mjs'
       - 'tests/qa-role-modes.mjs'
       - 'tests/qa-history-restore.mjs'
+      - 'tests/qa-parent-review-cycle.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -94,6 +95,8 @@ jobs:
         run: node tests/qa-role-modes.mjs
       - name: QA18 G08 256-attempt complete backup restoration and invalid history rejection
         run: node tests/qa-history-restore.mjs
+      - name: QA19 G09 parent planned review, recheck, stale tab and lossless observation restore
+        run: node tests/qa-parent-review-cycle.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -116,4 +119,5 @@ jobs:
             qa16-mobile-failure.png
             qa17-modes-failure.png
             qa18-history-recovery-failure.png
+            qa19-review-cycle-failure.png
           if-no-files-found: ignore
