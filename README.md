@@ -118,3 +118,10 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - **QA12 신규 자동검사:** 집계/기간 필터/500개 기록/실제 Chromium 화면·CSV·모바일 너비 포함 10건. 기존 전체 QA 회귀검사도 유지합니다.
 - **판정:** [QA12 G11 기술완료 판정서](QA12_G11_학부모관찰변화_기술완료판정_20261108.md) · [PR #4](https://github.com/jinbh99-arch/uri-wrong-answer-qa/pull/4) · [Actions](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions). **G11의 QA 기술 구현은 1개 완료**로 별도 표시하되, G01~G16 **최종 승인 완료는 0개**(원헌장 전문·실기기·교육 효과·실사용자 검증 미완료)입니다.
 - **운영 Netlify 및 실제 아동 정보:** 변경/시험하지 않았습니다. 본 GitHub Pages는 공개 시험용이므로 실제 아이 이름·사진을 올리지 마세요.
+
+
+## v2.33 / QA13 — G04 개념 그래프 데이터 계약 독립 검증 (2026-11-08)
+
+- 기존 AI 초안 개념 12·관계 15·확인 질문 48을 `data/concept-graph-v0.3-demo.json`의 **읽기 전용 사본**으로 추출하고, JSON Schema와 참조/버전/공식 미승인 상태를 검사합니다. 내장 앱과 정확히 일치하지 않으면 CI 실패.
+- [G04 QA 기술 수락기준과 검증 범위](QA13_G04_개념그래프_기술완료판정_20261108.md) / `tests/qa-graph-contract.mjs`.
+- 공식 성취기준 연결·교육적 선후학습 타당성이 검증된 것이 아니며 실제 아이 개인정보·운영 Netlify는 변경하지 않습니다. 최종 승인 0개 유지.
