@@ -18,6 +18,7 @@ on:
       - 'tests/qa-parent-report.mjs'
       - 'tests/qa-ocr-preprocess.mjs'
       - 'tests/qa-workflow-ux.mjs'
+      - 'tests/qa-general-retry.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -65,6 +66,8 @@ jobs:
         run: node tests/qa-ocr-preprocess.mjs
       - name: QA9 focused learning navigation and unsaved draft safeguards
         run: node tests/qa-workflow-ux.mjs
+      - name: QA10 all-record retry and intact JSON backup roundtrip
+        run: node tests/qa-general-retry.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -79,4 +82,5 @@ jobs:
             qa-parent-report-failure.png
             qa-ocr-preprocess-failure.png
             qa-workflow-ux-failure.png
+            qa-general-retry-failure.png
           if-no-files-found: ignore
