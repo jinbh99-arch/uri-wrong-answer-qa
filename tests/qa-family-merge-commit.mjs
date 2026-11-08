@@ -61,7 +61,7 @@ try{
  process.env.QA_SYNTHETIC_FAMILY_ONLY='1';
  process.env.QA_DURABLE_TEST_ONLY='1';
  server=await createIsolatedQaFamilyGateway({durablePath:file,encryptionKey:key});
- const A=await registerAndLogin('qa30-family-a'),B=await registerAndLogin('qa30-family-b');
+ const A=await registerAndLogin('qa-30-family-a'),B=await registerAndLogin('qa-30-family-b');
  assert.equal((await call('/qa/snapshot','PUT',initial,A,0)).status,200);
  assert.equal((await call('/qa/snapshot','GET',undefined,B)).data.snapshot,null);
  pass('분리된 가족 B에서는 가족 A의 기준본/병합기록 조회 불가능');
@@ -100,13 +100,13 @@ try{
  pass('서버에 실제 존재했던 승인 버전·암호화된 원본과 불일치하는 클라이언트 기준본 거부');
  const bytes=readFileSync(file,'utf8');
  assert.ok(!bytes.includes('QA30 기기A 수정'));
- assert.ok(!bytes.includes('qa30-family-a'));
+ assert.ok(!bytes.includes('qa-30-family-a'));
  pass('병합 이력까지 AES-GCM 암호 파일에 보관하며 외부 평문 비노출');
  await server.shutdown();
  server=await createIsolatedQaFamilyGateway({durablePath:file,encryptionKey:key});
  const old=await call('/qa/snapshot','GET',undefined,A);
  assert.equal(old.status,401);
- const relog=(await call('/qa/login','POST',{familyKey:'qa30-family-a',password})).data.token;
+ const relog=(await call('/qa/login','POST',{familyKey:'qa-30-family-a',password})).data.token;
  const after=await call('/qa/snapshot','GET',undefined,relog);
  assert.equal(after.data.revision,3);assert.deepEqual(after.data.snapshot,final);
  const cEdit=doc([...initial.records,row('q-new-c')]);
