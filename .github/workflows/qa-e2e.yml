@@ -28,6 +28,8 @@ on:
       - 'tests/qa-role-modes.mjs'
       - 'tests/qa-history-restore.mjs'
       - 'tests/qa-parent-review-cycle.mjs'
+      - 'tests/qa-learning-four-goals.mjs'
+      - 'tests/qa-photo-intake.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -97,6 +99,10 @@ jobs:
         run: node tests/qa-history-restore.mjs
       - name: QA19 G09 parent planned review, recheck, stale tab and lossless observation restore
         run: node tests/qa-parent-review-cycle.mjs
+      - name: QA20 G03 G05 G06 G07 diagnosis-safe causes, graph, manipulatives, transfer
+        run: node tests/qa-learning-four-goals.mjs
+      - name: QA21 G01 synthetic mobile photo intake and lossless restore
+        run: node tests/qa-photo-intake.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -120,4 +126,6 @@ jobs:
             qa17-modes-failure.png
             qa18-history-recovery-failure.png
             qa19-review-cycle-failure.png
+            qa20-four-goals-failure.png
+            qa21-photo-failure.png
           if-no-files-found: ignore
