@@ -3913,8 +3913,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
       [summary.answerMatched+'/'+summary.answerKnown,'계산값 일치 / 비교 가능'],
       [summary.transferMatched+'/'+summary.transferKnown,'새 문제 일치 / 비교 가능'],
       [summary.supportUsed+'/'+summary.supportKnown,'도움 이용 / 확인 가능'],
-      [summary.parentRecorded,'학부모 관찰 기록'],
-      [summary.observationChanges.comparable,'관찰 변화 비교 가능 오답']]){
+      [summary.parentRecorded,'학부모 관찰 기록']]){
       const item=make('div','v29-stat');item.append(make('strong',null,String(num)),make('span',null,label));stats.append(item);
     }
     evidence.replaceChildren();
