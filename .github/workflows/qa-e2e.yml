@@ -19,6 +19,7 @@ on:
       - 'tests/qa-ocr-preprocess.mjs'
       - 'tests/qa-workflow-ux.mjs'
       - 'tests/qa-general-retry.mjs'
+      - 'tests/qa-concept-support.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -68,6 +69,8 @@ jobs:
         run: node tests/qa-workflow-ux.mjs
       - name: QA10 all-record retry and intact JSON backup roundtrip
         run: node tests/qa-general-retry.mjs
+      - name: QA11 general concept map and ambiguous candidate protection
+        run: node tests/qa-concept-support.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -83,4 +86,5 @@ jobs:
             qa-ocr-preprocess-failure.png
             qa-workflow-ux-failure.png
             qa-general-retry-failure.png
+            qa11-concept-failure.png
           if-no-files-found: ignore
