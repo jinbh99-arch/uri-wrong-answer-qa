@@ -39,6 +39,7 @@ on:
       - 'scripts/qa-learning-effect-readiness.mjs'
       - 'scripts/qa-family-gateway.mjs'
       - 'tests/qa-family-gateway.mjs'
+      - 'tests/qa-family-durable.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -76,6 +77,8 @@ jobs:
         run: node tests/qa-family-sync-preflight.mjs
       - name: QA25 G15 synthetic family authentication and two-device conflict loopback gateway
         run: node tests/qa-family-gateway.mjs
+      - name: QA26 G15 encrypted restart recovery, two-family separation and fail-closed tamper
+        run: node tests/qa-family-durable.mjs
       - name: QA22 G16 synthetic study measurement and privacy readiness
         run: node tests/qa-learning-study-readiness.mjs
       - name: Mathematics pilot and graph-data consistency checks
