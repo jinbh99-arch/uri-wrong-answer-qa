@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.31 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
+<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.32 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
 <style>
 :root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#1f3150;background:#f6f8fc;--blue:#305ee8;--deep:#183365;--muted:#61718a;--edge:#e1e7f1;--pink:#fdf1f2;--good:#16765a}
 *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #ffbc4e;outline-offset:2px}a{color:#2e5bd5;text-decoration:none}.hide{display:none!important}
@@ -246,6 +246,12 @@ body.v218-child .v218-parent-only{display:none!important}
 .v231-concept-question{border-top:1px solid #d9e5f2;padding:9px 0}
 .v231-concept-question>summary{cursor:pointer;font-weight:700;min-height:42px}
 @media(max-width:350px){.v231-map-nodes{grid-template-columns:1fr 1fr;gap:5px}.v231-inline-map{padding:9px}.v231-map-nodes button{font-size:13px}}
+
+/* QA12: contrast and small-screen readability for aggregate observation-change card */
+.v232-change-summary{margin:14px 0;padding:12px 14px;border:1px solid #9ebed5;border-radius:13px;background:#f5faff;overflow-wrap:anywhere}
+.v232-change-summary strong{font-size:15px}
+.v232-change-summary p{line-height:1.65;margin:6px 0}
+@media(max-width:360px){.v232-change-summary{padding:10px}.v232-change-summary strong{font-size:14px}}
 
 </style>
 </head>
@@ -3725,6 +3731,49 @@ $('v212-mixed-drill-run').onclick=async()=>{
   // Source rows/backup formats are not changed and export excludes names, photos,
   // problem statements, raw answers and record IDs.
   function v227ReportModel(rows,period,nowMs){
+    // QA12 / G11: compare only repeated, explicit parent observations within
+    // the selected period. This measures changes in the recorded observations,
+    // NEVER a child's cognitive development, correctness or learning effect.
+    function observedChange(rows,period,nowMs){
+      const result={comparable:0,helpToExplained:0,explainedToHelp:0,
+        stillHelp:0,stillExplained:0,insufficient:0,ambiguous:0,invalidDates:0};
+      const cutoff=period==='all'?-Infinity:nowMs-Number(period)*86400000;
+      for(const row of rows){
+        if(!row||typeof row!=='object')continue;
+        const observations=[];
+        const record=(at,value)=>{
+          if(!['explained','needs_help'].includes(value))return;
+          const ms=typeof at==='string'&&at.trim()?Date.parse(at):NaN;
+          if(!Number.isFinite(ms)){result.invalidDates++;return}
+          if(ms<cutoff||ms>nowMs+60000)return;
+          observations.push({ms,value});
+        };
+        if(Array.isArray(row.checkHistory))
+          for(const h of row.checkHistory)if(h&&typeof h==='object')record(h.at,h.status);
+        if(Array.isArray(row.followupHistory))
+          for(const h of row.followupHistory)if(h&&typeof h==='object')record(h.at,h.outcome);
+        if(Array.isArray(row.generalRetryHistory))
+          for(const h of row.generalRetryHistory)if(h&&typeof h==='object'&&h.review!=='not_checked')
+            record(h.reviewedAt,h.review);
+        if(observations.length<2){result.insufficient++;continue}
+        observations.sort((a,b)=>a.ms-b.ms);
+        // Two observations with the same timestamp cannot be ordered reliably.
+        if(observations.some((x,i)=>i&&x.ms===observations[i-1].ms)){
+          result.ambiguous++;continue;
+        }
+        result.comparable++;
+        const first=observations[0].value,last=observations[observations.length-1].value;
+        if(first==='needs_help'&&last==='explained')result.helpToExplained++;
+        else if(first==='explained'&&last==='needs_help')result.explainedToHelp++;
+        else if(first==='needs_help')result.stillHelp++;
+        else result.stillExplained++;
+      }
+      if(result.comparable!==result.helpToExplained+result.explainedToHelp+
+           result.stillHelp+result.stillExplained)
+        throw Error('관찰 변화 집계의 합계가 일치하지 않습니다.');
+      return result;
+    }
+
     if(!['7','30','all'].includes(period))throw Error('학습 보고서 기간을 선택해주세요.');
     if(!Array.isArray(rows)||!Number.isFinite(nowMs))throw Error('보고서 원본 데이터가 유효하지 않습니다.');
     const cutoff=period==='all'?Number.NEGATIVE_INFINITY:nowMs-Number(period)*86400000;
@@ -3809,6 +3858,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
       }
     }
     out.events.sort((a,b)=>b.ts-a.ts);
+    out.observationChanges=observedChange(rows,period,nowMs);
     return out;
   }
   function v227ReportCsv(model,period){
@@ -3831,9 +3881,18 @@ $('v212-mixed-drill-run').onclick=async()=>{
       ['학부모 관찰 횟수',model.parentRecorded],
       ['학부모: 스스로 설명했다고 기록',model.parentExplained],
       ['학부모: 도움이 필요했다고 기록',model.parentNeedsHelp],
+      ['수동 관찰 변화 비교 가능 오답',model.observationChanges.comparable],
+      ['도움 필요→스스로 설명 관찰',model.observationChanges.helpToExplained],
+      ['스스로 설명→도움 필요 관찰',model.observationChanges.explainedToHelp],
+      ['도움 필요 관찰 유지',model.observationChanges.stillHelp],
+      ['스스로 설명 관찰 유지',model.observationChanges.stillExplained],
+      ['관찰 횟수 부족 오답',model.observationChanges.insufficient],
+      ['관찰 시간 중복으로 비교 제외',model.observationChanges.ambiguous],
+      ['관찰 날짜 불명확 항목',model.observationChanges.invalidDates],
       ['날짜 누락·불명확 항목 수',model.missingDates],
       ['지원하지 않는 재풀이 종류 수',model.unknownKinds],
-      ['주의','답의 계산값 일치만으로 이해·숙련·학습효과를 판정할 수 없음'],
+      ['주의','학부모의 수동 관찰 변화는 실력 향상·학습효과·정답률을 증명하지 않음'],
+      ['주의2','선택 기간 안의 한 오답에서 첫 번째·마지막 관찰만 비교; 미확인·동일시각 항목은 제외'],
       ['파일 종류','집계용 CSV. 일반 복원 백업이 아님']
     ];
     const escape=value=>{
@@ -3854,13 +3913,28 @@ $('v212-mixed-drill-run').onclick=async()=>{
       [summary.answerMatched+'/'+summary.answerKnown,'계산값 일치 / 비교 가능'],
       [summary.transferMatched+'/'+summary.transferKnown,'새 문제 일치 / 비교 가능'],
       [summary.supportUsed+'/'+summary.supportKnown,'도움 이용 / 확인 가능'],
-      [summary.parentRecorded,'학부모 관찰 기록']]){
+      [summary.parentRecorded,'학부모 관찰 기록'],
+      [summary.observationChanges.comparable,'관찰 변화 비교 가능 오답']]){
       const item=make('div','v29-stat');item.append(make('strong',null,String(num)),make('span',null,label));stats.append(item);
     }
     evidence.replaceChildren();
     evidence.append(make('p',null,'일반 재풀이 '+summary.generalAttempted+'회(자동채점 없음) · 재풀이 비교 미확인 '+(summary.attempted-summary.answerKnown)
       +'회 · 새 문제 시도 '+summary.transferAttempted+'회(비교 미확인 '+(summary.transferAttempted-summary.transferKnown)
       +'회) · 학부모가 스스로 설명했다고 기록 '+summary.parentExplained+'회 · 도움이 필요했다고 기록 '+summary.parentNeedsHelp+'회.'));
+    const changed=summary.observationChanges;
+    const changeNote=make('div','v232-change-summary');
+    changeNote.id='v232-change-summary';
+    changeNote.setAttribute('role','status');
+    changeNote.append(make('strong',null,'📊 학부모 관찰 기록의 변화 (학습 효과 측정 아님)'));
+    changeNote.append(make('p','small',
+      '비교 가능한 오답 '+changed.comparable+'건 · 도움 필요→스스로 설명 '+changed.helpToExplained+
+      '건 · 스스로 설명→도움 필요 '+changed.explainedToHelp+'건 · 같은 관찰 유지 '+
+      (changed.stillHelp+changed.stillExplained)+'건.'));
+    changeNote.append(make('p','small','비교에 필요한 관찰이 2회 미만인 오답 '+
+      changed.insufficient+'건 · 동일시각으로 순서를 정할 수 없는 오답 '+
+      changed.ambiguous+'건 · 날짜 불명확 관찰 '+changed.invalidDates+
+      '건. 기록된 학부모 관찰의 변화만 표시하며 자녀의 개념 이해·숙련·학습효과를 판정하지 않습니다.'));
+    evidence.append(changeNote);
     if(summary.missingDates||summary.unknownKinds){
       evidence.append(make('p',null,'날짜 누락·불명확 '+summary.missingDates+'건은 기간별 집계에 포함하지 않았습니다. 지원하지 않는 재풀이 종류 '+summary.unknownKinds+'건의 결과도 계산하지 않았습니다. 미확인은 오답·도움 미사용으로 간주하지 않습니다.'));
     }
