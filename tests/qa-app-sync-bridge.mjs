@@ -7,7 +7,7 @@ import {createIsolatedQaFamilyGateway} from '../scripts/qa-family-gateway.mjs';
 const BASE='http://127.0.0.1:4173/';
 const DB='uriaimath-github-qa-v224-only';
 const PASSWORD='QA34-SYNTHETIC-APP-SETTINGS-ONLY-2026';
-const FAMILY='qa34-app-family';
+const FAMILY='qa-34-app-family';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 let gate,browser,checks=0;
 const pass=s=>{checks++;console.log('PASS QA34 G15 APP',s)};
