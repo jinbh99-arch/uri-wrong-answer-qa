@@ -48,6 +48,15 @@ a{color:#204fb3}small{font-size:12px}
 이 파일에는 실제 어린이·가족 정보가 없으며 합성 시험자료임을 확인합니다.</label>
 <div class="flex"><button type="button" id="lab-refresh" class="secondary" disabled>서버 최신 번호 확인</button><button type="button" id="lab-upload" disabled>수동 업로드</button><button type="button" id="lab-download" class="secondary" disabled>최신 백업 다운로드</button></div>
 <p id="lab-revision" aria-live="polite">가상 가족 서버 미연결 · 개정번호 미확인</p>
+<section aria-labelledby="lab-merge-title">
+<h2 id="lab-merge-title">3. 서로 다른 기기 변경 수동 병합</h2>
+<p class="small">반드시 먼저 <strong>기준 버전 백업을 이 화면에서 내려받고</strong>, 그 기준으로 작업한 다른 기기의 합성 JSON 파일을 선택하세요. 서버는 저장해 둔 기준 버전과 실제로 대조합니다. 동일 오답 동시 수정·삭제가 발견되면 자동 합치지 않습니다.</p>
+<div class="flex"><button type="button" id="lab-preview-merge" class="secondary" disabled>합치기 전에 충돌 확인</button><button type="button" id="lab-commit-merge" disabled>검토한 변경만 수동 저장</button></div>
+<label style="display:flex;align-items:flex-start;gap:9px;font-size:14px;font-weight:600">
+<input type="checkbox" id="lab-merge-approved" style="width:20px;min-height:20px;margin:3px 0" disabled>
+미리보기에서 충돌이 없는 것을 확인했으며 서버 버전을 다시 검사한 후 수동 저장하는 데 동의합니다.</label>
+<p id="lab-merge-status" class="small" role="status" aria-live="polite">기준본과 변경본을 선택하면 충돌 여부를 확인할 수 있습니다.</p>
+</section>
 </section>
 <p id="lab-status" role="status" aria-live="polite">연결 대기 중입니다.</p>
 <p class="small">이 화면은 교육연구 또는 개인정보 보안 인증을 통과한 서비스가 아닙니다. 최신 개정번호가 바뀌면 자동 덮어쓰기를 차단합니다. 이 경우 원본 JSON을 보관하고 충돌 원인을 확인해야 합니다.</p>
@@ -57,13 +66,14 @@ a{color:#204fb3}small{font-size:12px}
 'use strict';
 const $=id=>document.getElementById(id);
 let token='',revision=null,server='';
-const controls=['lab-register','lab-login','lab-logout','lab-refresh','lab-upload','lab-download'];
+const controls=['lab-register','lab-login','lab-logout','lab-refresh','lab-upload','lab-download','lab-preview-merge','lab-commit-merge'];
+let confirmedBase=null,mergePlan=null;
 const inLab=location.protocol==='http:'&&location.hostname==='127.0.0.1'&&location.port==='4173';
 const say=(value,error=false)=>{$('lab-status').textContent=value;$('lab-status').dataset.error=String(error)};
 if(!inLab){
  controls.forEach(id=>$(id).disabled=true);
  $('lab-port').disabled=true;$('lab-family').disabled=true;$('lab-password').disabled=true;
- $('lab-file').disabled=true;$('lab-synthetic').disabled=true;
+ $('lab-file').disabled=true;$('lab-synthetic').disabled=true;$('lab-merge-approved').disabled=true;
  say('공개 사이트에서는 작동하지 않습니다. 가상 로컬 실험실(127.0.0.1:4173) 전용입니다.',true);
  return;
 }
@@ -96,7 +106,14 @@ async function request(path,method='GET',payload,expectedRevision){
 }
 function loginState(auth){
  for(const id of ['lab-refresh','lab-upload','lab-download'])$(id).disabled=!auth;
- if(!auth){token='';revision=null;server='';$('lab-revision').textContent='로그아웃됨 · 개정번호 미확인'}
+ $('lab-preview-merge').disabled=!auth||!confirmedBase;
+ $('lab-commit-merge').disabled=!auth||!mergePlan||!$('lab-merge-approved').checked;
+ if(!auth){
+  token='';revision=null;server='';confirmedBase=null;mergePlan=null;
+  $('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+  $('lab-revision').textContent='로그아웃됨 · 개정번호 미확인';
+  $('lab-merge-status').textContent='로그아웃하여 승인 미리보기와 기준본을 폐기했습니다.';
+ }
 }
 async function refresh(){
  const data=await request('/qa/snapshot');
@@ -110,6 +127,8 @@ async function operation(task){
  finally{
   $('lab-register').disabled=false;$('lab-login').disabled=false;$('lab-logout').disabled=false;
   const auth=Boolean(token);for(const id of ['lab-refresh','lab-upload','lab-download'])$(id).disabled=!auth;
+ $('lab-preview-merge').disabled=!auth||!confirmedBase;
+ $('lab-commit-merge').disabled=!auth||!mergePlan||!$('lab-merge-approved').checked;
  }
 }
 $('lab-register').onclick=()=>operation(async()=>{
@@ -119,6 +138,7 @@ $('lab-register').onclick=()=>operation(async()=>{
 $('lab-login').onclick=()=>operation(async()=>{
  const data=await request('/qa/login','POST',credentials());
  token=data.token;server=address();$('lab-password').value='';
+ confirmedBase=null;mergePlan=null;$('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
  await refresh();
  say('가상 가족 로그인 성공. 등록한 계정이 아닌 실사용 계정은 절대 입력하지 마세요.');
 });
@@ -140,6 +160,8 @@ $('lab-upload').onclick=()=>operation(async()=>{
   throw Error('오답노트 전체 백업 형식이 아닙니다.');
  const saved=await request('/qa/snapshot','PUT',data,revision);
  revision=saved.revision;
+ confirmedBase=null;mergePlan=null;$('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+ $('lab-merge-status').textContent='저장 후에는 최신 기준본을 다시 내려받아야 3방향 검토가 가능합니다.';
  $('lab-revision').textContent='서버 개정번호 '+revision+' · 합성 백업 업로드 확인';
  say('개정번호 '+revision+'로 합성 백업을 저장했습니다. 충돌이 있으면 서버는 업로드를 거부합니다.');
 });
@@ -147,11 +169,59 @@ $('lab-download').onclick=()=>operation(async()=>{
  if(!token)throw Error('로그인이 필요합니다.');
  const data=await refresh();
  if(!data.snapshot)throw Error('서버에 저장된 합성 백업이 아직 없습니다.');
+ confirmedBase={revision:data.revision,snapshot:data.snapshot};
+ mergePlan=null;$('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+ $('lab-merge-status').textContent='기준본 서버 개정번호 '+confirmedBase.revision+' 저장됨 · 다른 기기의 합성 백업을 선택하세요.';
  const blob=new Blob([JSON.stringify(data.snapshot,null,2)],{type:'application/json'});
  const href=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=href;a.download='qa-family-synthetic-rev-'+revision+'.json';
  a.click();setTimeout(()=>URL.revokeObjectURL(href),4000);
  say('개정번호 '+revision+' 합성 백업을 내려받았습니다. 오답노트 설정에서 직접 복원하세요.');
+});
+$('lab-file').onchange=()=>{
+ mergePlan=null;$('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+ $('lab-commit-merge').disabled=true;
+ $('lab-merge-status').textContent='새 파일을 선택했습니다. 충돌 미리보기를 다시 실행하세요.';
+};
+$('lab-merge-approved').onchange=()=>{
+ $('lab-commit-merge').disabled=!mergePlan||!$('lab-merge-approved').checked;
+};
+$('lab-preview-merge').onclick=()=>operation(async()=>{
+ if(!token||!confirmedBase||!$('lab-synthetic').checked)
+  throw Error('가상 가족 로그인, 기준본 다운로드, 합성자료 확인이 필요합니다.');
+ const file=$('lab-file').files[0];
+ if(!file||file.size>1000000)throw Error('합성 JSON 파일을 1MB 이하로 선택하세요.');
+ const local=JSON.parse(await file.text());
+ mergePlan=null;$('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+ const result=await request('/qa/sync-preview','POST',{base:confirmedBase.snapshot,local});
+ const conflicts=result.conflicts?.length||0,deletions=result.deletedRecordIds?.length||0;
+ const safe=Boolean(result.candidateAvailable)&&!conflicts&&!deletions;
+ $('lab-merge-status').textContent='기준본 '+confirmedBase.revision+' · 최신 서버 '+result.storedRevision+
+  ' · 충돌 '+conflicts+'건 · 삭제 '+deletions+'건 · 확인된 다른 변경 '+result.nonConflictingChangedRecords+'건. '+
+  (safe?'충돌 없음: 아래 동의를 선택하면 버전을 재검사하고 수동 저장할 수 있습니다.':'사람 검토가 필요해 자동 병합을 중단했습니다.');
+ if(safe){
+  mergePlan={baseRevision:confirmedBase.revision,base:confirmedBase.snapshot,
+   local,revision:result.storedRevision,file};
+  $('lab-merge-approved').disabled=false;
+ }
+ say(safe?'오답·사진 원문은 미리보기 결과로 전송하지 않았습니다. 저장은 아직 하지 않았습니다.':
+  '다른 기기의 수정 또는 삭제와 충돌합니다. 어느 것도 덮어쓰지 않았습니다.',!safe);
+});
+$('lab-commit-merge').onclick=()=>operation(async()=>{
+ if(!mergePlan||!$('lab-merge-approved').checked||!$('lab-synthetic').checked)
+  throw Error('충돌 미리보기와 명시적 수동 승인 모두 필요합니다.');
+ const approved=mergePlan;
+ const selected=$('lab-file').files[0];
+ if(selected!==approved.file||JSON.stringify(JSON.parse(await selected.text()))!==JSON.stringify(approved.local))
+  throw Error('미리보기 이후 파일이 바뀌었습니다. 다시 확인하세요.');
+ const saved=await request('/qa/sync-commit','POST',{
+  baseRevision:approved.baseRevision,base:approved.base,local:approved.local,approved:true
+ },approved.revision);
+ revision=saved.revision;mergePlan=null;confirmedBase=null;
+ $('lab-merge-approved').checked=false;$('lab-merge-approved').disabled=true;
+ $('lab-revision').textContent='서버 개정번호 '+revision+' · 명시적 변경 병합 저장';
+ $('lab-merge-status').textContent='합성 기록 '+saved.records+'건을 보존하여 병합했습니다. 다음 작업 전에 최신 백업을 다시 내려받으세요.';
+ say('승인된 충돌 없는 변경만 개정번호 '+revision+'에 저장되었습니다. 삭제·상충 변경은 자동 적용하지 않습니다.');
 });
 say('로컬 전용 실험실이 활성화되었습니다. 임시 포트와 가상 가족 ID를 입력하세요.');
 })();
