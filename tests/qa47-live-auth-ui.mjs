@@ -82,7 +82,7 @@ try{
  }
  console.log('QA47_REAL_LOGIN_UI_RESULT='+JSON.stringify({status:'PASS',checks,
   realProvidersContacted:false,actualGoogleOAuthConfigured:false,actualEmailSent:false,
-  liveBackendGatewayDeployed:true,realChildren:0,productionApproved:false}));
+  liveEdgeDeploymentVerifiedByCI:false,realChildren:0,productionApproved:false}));
 }catch(e){
  console.error('QA47_REAL_LOGIN_UI_RESULT='+JSON.stringify({status:'FAIL',checks,
   error:String(e),stack:String(e?.stack).slice(0,1300)}));
