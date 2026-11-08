@@ -358,3 +358,10 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - **실 Supabase 추가 배포:** `public.qa47_my_verified_family_ids()` **SECURITY INVOKER / authenticated만 실행 가능 / anon 실행 불가** 마이그레이션 성공. `qa47-auth-status` Edge Function **ACTIVE v1 / JWT 검증 필수** 배포 성공. 인증자 자신의 외부 검증 가족 개수만 알려주고 학생 기록·사진·쓰기 접근은 열지 않음.
 - **실 프로젝트에 연결된 로컬 로그인 앱:** 일반 앱 설정에서 `http://127.0.0.1:4173/?qa47=1`로 시험하면 실제 Supabase JS SDK의 `signInWithPassword` → 서버 `getUser` → RLS RPC → Edge 진단 API 호출. 공개 GitHub Pages에서는 실행 불가. 최신 Google OAuth·회원가입·비밀번호 복구 이메일 버튼은 제공자 및 SMTP 검증 전까지 비활성화. [상세 QA47 인계](docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md).
 - **미검증을 완료로 표기하지 않음:** 실 Google 계정 로그인, 메일 송수신, 실제 JWT로 Edge 접근, Storage API 업로드/다운로드, 가족 동기화 Write/CAS·사진 복원, 법정대리인 실동의, 실기기 QA, 운영 승인. 기존 QA44/45/46의 시점 기록 보존. 유료 플랜·결제·아동 실제 자료 없음.
+
+## QA48 — 성인 본인 Google 로그인 실서버 시험 페이지 (2026-11-09)
+
+- [Google 계정 로그인 시험 전용 페이지](https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html) — 실제 Supabase SDK Google OAuth/PKCE, `auth.getUser`, 보호자 RLS RPC 및 JWT Edge 검증, 로그아웃을 **서로 분리된 시험 HTML**에서 실행합니다. 아이 사진·오답 저장·동기화 기능은 전부 비활성화.
+- 사용자 등록된 Google OAuth **테스트 사용자**만 시험. Google Cloud Client Secret은 GitHub에 없고 Supabase에만 보관. 브라우저에서 사용하는 건 공개 가능한 `sb_publishable_` 키뿐.
+- **필수 선행 설정:** Supabase `Authentication > URL Configuration > Redirect URLs`에 `https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html`을 정확히 한 번 추가하세요. 기존 `127.0.0.1` 주소와 Google Cloud의 Supabase 콜백은 그대로 두세요.
+- [QA48 수행·검증·미완료 조건](docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md): CI 가상 OAuth 검사와 실제 개인 Google 계정 로그인은 구분합니다. 본인 실로그인 검증/법정대리인 동의/실아동 데이터·운영 서비스 연결은 별도로 승인받을 때까지 미완료입니다.
