@@ -79,7 +79,18 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "scripts/qa41-signed-family-http.mjs", "tests/qa41-http-api.mjs",
                 "docs/QA41_G15_HTTP_JWT_RLS_통합검증_v1.0.md",
                 "scripts/qa42-app-http-bridge.mjs", "tests/qa42-native-app-http.mjs",
-                "docs/QA42_G15_실제앱_JWT_가족DB_수동교환_검증_v1.0.md"}
+                "docs/QA42_G15_실제앱_JWT_가족DB_수동교환_검증_v1.0.md",
+                "scripts/qa43-ops-preflight.mjs", "data/qa43-operating-candidate.template.json",
+                "scripts/qa43-recovery-envelope.mjs",
+                "tests/qa43-ops-preflight.mjs", "tests/qa43-postgres-recovery.mjs",
+                "tests/qa43-mobile-release.mjs", "tests/qa43-docs-contract.mjs",
+                "docs/QA43_1단계_운영보안_인증_연동준비_v1.0.md",
+                "docs/QA43_2단계_백업_장애복구_훈련_v1.0.md",
+                "docs/QA43_3단계_Android_iOS_실기기검수표_v1.0.md",
+                "docs/QA43_4단계_개인정보처리방침_검토초안_v1.0.md",
+                "docs/QA43_4단계_법정대리인_동의문_검토초안_v1.0.md",
+                "docs/QA43_4단계_G16_학습효과_사전등록검토_v0.3.md",
+                "docs/QA43_4단계_출시승인_체크리스트_v1.0.md"
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
