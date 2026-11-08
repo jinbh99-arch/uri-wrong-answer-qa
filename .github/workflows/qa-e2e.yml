@@ -43,6 +43,8 @@ on:
       - 'tests/qa-cross-device-roundtrip.mjs'
       - 'tests/qa-study-sensitivity.mjs'
       - 'tests/qa-family-threeway.mjs'
+      - 'tests/qa-family-sync-lab.mjs'
+      - 'qa-family-sync-lab.html'
       - 'scripts/qa-family-threeway.mjs'
       - 'tests/qa-study-plan.mjs'
       - 'scripts/qa-study-plan.mjs'
@@ -91,6 +93,8 @@ jobs:
         run: node tests/qa-cross-device-roundtrip.mjs
       - name: QA22 G16 synthetic study measurement and privacy readiness
         run: node tests/qa-learning-study-readiness.mjs
+      - name: QA29 G15 user-visible loopback family sync lab, strict CORS and refusal on public origin
+        run: node tests/qa-family-sync-lab.mjs
       - name: QA28 G15 reversible three-way independent edit preview and authenticated conflict endpoint
         run: node tests/qa-family-threeway.mjs
       - name: QA28 G16 prospective study assumptions and external approval gates
