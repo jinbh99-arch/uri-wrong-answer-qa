@@ -83,6 +83,12 @@ on:
       - 'scripts/qa45-no-project-guard.mjs'
       - 'data/qa45-free-no-project-plan.json'
       - 'tests/qa45-no-project-guard.mjs'
+      - 'scripts/qa47-public-stage-config.mjs'
+      - 'scripts/qa47-live-auth-lab.mjs'
+      - 'supabase/functions/qa47-auth-status/**'
+      - 'tests/qa47-edge-auth-status.mjs'
+      - 'tests/qa47-live-auth-ui.mjs'
+      - 'db/qa47_authenticated_guardian_status_rpc.sql'
       - 'docs/**'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
@@ -203,6 +209,10 @@ jobs:
         run: node tests/qa44-mobile-auth-ui.mjs
       - name: QA45 live Free organization precreate no project no billing and real approval gate
         run: node tests/qa45-no-project-guard.mjs
+      - name: QA47 protected live Supabase Edge gateway synthetic JWT/RLS response boundary
+        run: node tests/qa47-edge-auth-status.mjs
+      - name: QA47 actual app real Supabase email login local-only integration (320/390px, SDK mock in CI)
+        run: node tests/qa47-live-auth-ui.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
