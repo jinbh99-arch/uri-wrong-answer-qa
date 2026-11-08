@@ -39,6 +39,9 @@ try{
  assert.throws(()=>createQa44ServerFamilyStore({pool:writer,authClient:client}),/NO_LIVE_SUPABASE_AUTH_ALLOWED/);
  process.env.QA44_STAGE_ONLY='1';
  const store=createQa44ServerFamilyStore({pool:writer,authClient:client});
+ // Prior RLS test intentionally revokes synthetic A. This independent
+ // server-store case starts with admin-provisioned test guardian authority.
+ await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=NULL WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
  assert.deepEqual(await store.families(TOKEN_A),[FA]);
  assert.deepEqual(await store.families(TOKEN_B),['eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee']);
  assert.deepEqual(await store.families(TOKEN_C),[]);
