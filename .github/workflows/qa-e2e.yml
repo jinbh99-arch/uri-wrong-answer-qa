@@ -24,6 +24,7 @@ on:
       - 'tests/qa-graph-contract.mjs'
       - 'tests/qa-backup-recovery.mjs'
       - 'tests/qa-record-lifecycle.mjs'
+      - 'tests/qa-mobile-accessibility.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -85,6 +86,8 @@ jobs:
         run: node tests/qa-backup-recovery.mjs
       - name: QA15 G02 two-tab CRUD, stale delete and edit preservation
         run: node tests/qa-record-lifecycle.mjs
+      - name: QA16 G13 keyboard navigation, responsive routes and OCR offline fallbacks
+        run: node tests/qa-mobile-accessibility.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -104,4 +107,5 @@ jobs:
             qa12-evidence-failure.png
             qa14-recovery-failure.png
             qa15-crud-failure.png
+            qa16-mobile-failure.png
           if-no-files-found: ignore
