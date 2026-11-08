@@ -73,7 +73,7 @@ GRANT SELECT ON qa44.guardian_memberships,qa44.family_snapshots TO authenticated
 -- The actual backend must use a separate private DB login with this role and
 -- set the JWT subject GUC ONLY AFTER server-side Supabase getUser(token).
 CREATE ROLE qa44_sync_writer NOLOGIN;
-GRANT USAGE ON SCHEMA qa44 TO qa44_sync_writer;
+GRANT USAGE ON SCHEMA qa44,auth TO qa44_sync_writer;
 GRANT SELECT ON qa44.guardian_memberships,qa44.family_snapshots TO qa44_sync_writer;
 GRANT UPDATE(revision,snapshot_text,content_sha256,updated_at)
  ON qa44.family_snapshots TO qa44_sync_writer;
