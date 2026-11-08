@@ -82,7 +82,7 @@ def verify(source_zip: Path) -> dict:
             index = (root / "index.html").read_text(encoding="utf-8")
             if "<html lang=\"ko\">" not in index or 'id="page-home"' not in index:
                 raise ValueError("Restored index does not look like QA app")
-            js = list((root / "tests").glob("*.mjs"))
+            js = sorted([*(root / "tests").glob("*.mjs"), *(root / "scripts").glob("*.mjs")])
             if not js:
                 raise ValueError("No restored test scripts")
             for path in js:
