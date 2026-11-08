@@ -21,6 +21,9 @@ on:
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
+      - 'tests/qa-graph-contract.mjs'
+      - 'data/concept-graph-v0.3-demo.json'
+      - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -74,6 +77,8 @@ jobs:
         run: node tests/qa-concept-support.mjs
       - name: QA12 G11 synthetic parent observation transitions and evidence-only CSV
         run: node tests/qa-evidence-transition.mjs
+      - name: QA13 G04 graph schema, reference and approval safeguards
+        run: node tests/qa-graph-contract.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
