@@ -26,6 +26,7 @@ on:
       - 'tests/qa-record-lifecycle.mjs'
       - 'tests/qa-mobile-accessibility.mjs'
       - 'tests/qa-role-modes.mjs'
+      - 'tests/qa-history-restore.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -91,6 +92,8 @@ jobs:
         run: node tests/qa-mobile-accessibility.mjs
       - name: QA17 G10 child/parent presentation mode, unsaved drafts and non-persistent controls
         run: node tests/qa-role-modes.mjs
+      - name: QA18 G08 256-attempt complete backup restoration and invalid history rejection
+        run: node tests/qa-history-restore.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -112,4 +115,5 @@ jobs:
             qa15-crud-failure.png
             qa16-mobile-failure.png
             qa17-modes-failure.png
+            qa18-history-recovery-failure.png
           if-no-files-found: ignore
