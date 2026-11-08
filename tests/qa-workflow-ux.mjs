@@ -36,7 +36,7 @@ try{
  await page.locator('#memo').fill('QA9 저장 전 임시 메모');
  await page.locator('#nav-home').click();
  await page.locator('#confirm-dialog[open]').waitFor();
- assert.match(await page.locator('#dlg-title').innerText(),/저장하지 않은 입력/);
+ assert.match(await page.locator('#dlg-title').innerText(),/작성 중인 내용/);
  await page.locator('#dlg-cancel').click();
  assert.equal(await page.locator('#page-add').isVisible(),true);
  assert.equal(await page.locator('#problem').inputValue(),'QA9 가상 문항 1/4+2/4=?');
@@ -76,6 +76,8 @@ try{
  assert.equal(await page.locator('#memo').inputValue(),'QA9 편집 중 메모');
  pass('기존 기록 수정 중 메뉴 이동 보호');
  await page.locator('#cancel-edit').click();
+ await page.locator('#confirm-dialog[open]').waitFor();
+ await page.locator('#dlg-ok').click();
 
  await page.locator('#nav-home').click();
  await page.locator('#v218-child-mode').click();
