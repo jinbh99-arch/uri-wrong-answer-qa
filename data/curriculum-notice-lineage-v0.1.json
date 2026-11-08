@@ -8,7 +8,9 @@
     "url": "https://www.moe.go.kr/boardCnts/viewRenew.do?boardID=141&boardSeq=93458&lev=0&statusYN=W",
     "math_annex": "별책 8",
     "attachment_file_hash": null,
-    "official_attachment_bytes_verified": false
+    "official_attachment_bytes_verified": true,
+    "official_subject_zip_sha256": "b37a372a90d6d00bb3985888bbb41caae7a35f28877dc243a6f4b28861c53146",
+    "official_math_hwp_sha256": "aab8eed59ecf244223d04afad75f4cf5ac5085fadcfc3cf52c2f6d54ddfc7856"
   },
   "subsequent_amendments": [
     {
@@ -41,10 +43,14 @@
   "primary_subject_notice_lineage_verified": true,
   "math_annex_unamended_by_listed_amendments": true,
   "source_2022_annex_binary_equal_to_user_pdf": null,
-  "official_2022_math_annex_text_independently_compared": false,
+  "official_2022_math_annex_text_independently_compared": true,
   "candidate_mapping_count_expected": 13,
-  "candidate_mapping_source": "기존 시험용 HTML에 내장된 curriculum-candidate-data, 공급된 PDF와 내부 대조 13/13이라는 과거 기록만",
+  "candidate_mapping_source": "교육부 공식 2022-33 [별책8] HWP 직접 추출 코드·문장 13/13 검증; 개념↔성취기준 연결은 AI 후보로 전문가 미승인",
   "academic_relationships_expert_reviewed": false,
   "g14_final_completed": false,
-  "claim_limit": "국가법령정보센터 공고의 별책 범위 확인은 성취기준 13개 문장과 의미상 개념 연결의 공식 검증이 아니다"
+  "claim_limit": "국가법령정보센터 공고의 별책 범위 확인은 성취기준 13개 문장과 의미상 개념 연결의 공식 검증이 아니다",
+  "official_13_standard_texts_verified": 13,
+  "official_unique_codes_verified": 10,
+  "official_evidence_path": "data/official-math-source-2022-33-attestation-v0.1.json",
+  "g14_qa_technical_source_completed": true
 }
