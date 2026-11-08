@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jinbh99-arch/uri-wrong-answer-qa/blob/main/data/concept-graph.schema.json",
+  "title": "G04 independent AI-draft concept graph, NOT an official curriculum dataset",
+  "description": "Schema/size constraints for QA v2.33 only. Education expert review not completed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "approval_status",
+    "concepts",
+    "edges",
+    "questions",
+    "revision_scope"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.3-demo-2022question-v1.4"
+    },
+    "approval_status": {
+      "const": "draft_unapproved"
+    },
+    "revision_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "concepts": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/concept"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 48,
+      "maxItems": 48,
+      "items": {
+        "$ref": "#/$defs/question"
+      }
+    }
+  },
+  "$defs": {
+    "concept": {
+      "type": "object",
+      "required": [
+        "concept_id",
+        "subject_id",
+        "label_ko",
+        "definition",
+        "scope_note",
+        "aliases",
+        "origin",
+        "review_state",
+        "is_official_standard",
+        "representations",
+        "curriculum_mapping_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label_ko": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 0
+        },
+        "origin": {
+          "const": "ai_authored_draft"
+        },
+        "review_state": {
+          "const": "draft"
+        },
+        "is_official_standard": {
+          "const": false
+        },
+        "representations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 0
+        },
+        "curriculum_mapping_status": {
+          "const": "not_mapped"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "edge_id",
+        "from_concept_id",
+        "to_concept_id",
+        "relation_type",
+        "scope_condition",
+        "rationale",
+        "review_state",
+        "evidence_refs",
+        "reviewer",
+        "reviewed_at",
+        "active_for_recommendation",
+        "author_origin"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_concept_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_concept_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "const": "draft"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 0
+        },
+        "reviewer": {
+          "const": null
+        },
+        "reviewed_at": {
+          "const": null
+        },
+        "active_for_recommendation": {
+          "const": false
+        },
+        "author_origin": {
+          "const": "ai_suggestion"
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "question_id",
+        "concept_id",
+        "prompt_ko",
+        "observation_goal",
+        "expected_example",
+        "review_state",
+        "source_kind",
+        "question_version",
+        "original_question_preserved",
+        "question_type",
+        "question_type_ko",
+        "scoring_status",
+        "education_approval",
+        "evidence_note"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "concept_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt_ko": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_example": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "const": "draft"
+        },
+        "source_kind": {
+          "const": "ai_authored_draft"
+        },
+        "question_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_question_preserved": {
+          "type": "boolean"
+        },
+        "question_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question_type_ko": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scoring_status": {
+          "const": "정답·학습수준 자동판정 미지원"
+        },
+        "education_approval": {
+          "const": "교육 전문가 검증 전"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
