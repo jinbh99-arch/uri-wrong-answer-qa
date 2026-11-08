@@ -71,7 +71,9 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "scripts/qa-family-gateway.mjs", "scripts/qa-inapp-sync-bridge.mjs",
                 "scripts/qa-family-merge-preflight.mjs",
                 "db/qa39_family_rls.sql", "scripts/qa39-tenant-store.mjs",
-                "tests/qa39-postgres-tenant.mjs"}
+                "tests/qa39-postgres-tenant.mjs",
+                "docs/QA39_G15_PostgreSQL_가족격리_실운영인계_v0.1.md",
+                "docs/QA39_G16_학습효과_사전등록_검토본_v0.2.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
