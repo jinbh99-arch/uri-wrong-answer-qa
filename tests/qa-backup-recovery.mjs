@@ -139,7 +139,7 @@ try{
  const after=await snapshot();
  assert.deepEqual(after.records,before.records,'Records/history changed after restore');
  assert.deepEqual(after.photos,before.photos,'Original photo bytes changed after restore');
- assert.deepEqual(after.settings.find(x=>x[0]==='profile'),before.settings.find(x=>x[0]==='profile'));
+ assert.deepEqual(after.settings.find(x=>x[0]==='profile')?.[1],original.profile,'Restored profile differs from exported backup');
  pass('유효 백업 복원 직후 오답·재풀이·사진 바이트·프로필 동일성');
  await page.reload({waitUntil:'domcontentloaded'});
  assert.deepEqual(await snapshot(),after,'Reload mutated restored records');
