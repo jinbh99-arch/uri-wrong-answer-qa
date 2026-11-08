@@ -351,3 +351,10 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 사용자 명시 승인(`무료 프로젝트 생성 동의`)을 받아 Supabase `uri-level-test` Free 조직(월 비용 견적 $0)에 `uri-wrong-answer-qa` 프로젝트를 서울 리전에 생성했습니다. 프로젝트 상태 `ACTIVE_HEALTHY`, PostgreSQL 17.11. GitHub의 `db/qa44_supabase_staging_rls.sql` 기반 migration `qa44_initial_family_guardian_and_private_photos` **실제 적용 성공**. 가족/보호자/스냅샷 세 테이블 RLS·서버 제한 Writer·1MB 비공개 사진 저장소/정책을 실서버에서 확인했습니다. 로그인 계정·아동 기록·사진은 전부 **0건**이며 익명·미승인 권한 접근 차단을 점검했습니다.
 
 **아직 미완료:** Google Cloud OAuth 실자격증명, Supabase 이메일 SMTP/Resend 인증, 앱 실서버 JWT 연결, 실제 두 가상 보호자 계정 교차 접근 및 복구 통합시험, 법정대리인 신원·동의, 운영 보안·실기기·G16 승인. GitHub QA45의 ‘프로젝트 0개’는 **생성 이전의 시점 기록**으로만 보존합니다. [QA46 실클라우드 검증/인계](docs/QA46_실Supabase무료프로젝트_가족DB_사진RLS_검증_v1.0.md). 유료 플랜·결제·실아동 자료·운영 Netlify 변경 없음.
+
+## QA47 — 실제 Supabase Auth · 가족 RLS 실서버 검증, 로컬 로그인 연동 (2026-11-08)
+
+- **실 Supabase DB 테스트:** 서로 다른 성인 합성 계정 2명·가족 2곳을 실제 PostgreSQL 17 트랜잭션에 생성하고 인가자의 자기 가족 RLS 접근 허용, 타가족 오답·사진 접근 거부, 미동의·철회 계정 접근 거부를 검증한 뒤 **전부 ROLLBACK**. 재조회 자료 0건.
+- **실 Supabase 추가 배포:** `public.qa47_my_verified_family_ids()` **SECURITY INVOKER / authenticated만 실행 가능 / anon 실행 불가** 마이그레이션 성공. `qa47-auth-status` Edge Function **ACTIVE v1 / JWT 검증 필수** 배포 성공. 인증자 자신의 외부 검증 가족 개수만 알려주고 학생 기록·사진·쓰기 접근은 열지 않음.
+- **실 프로젝트에 연결된 로컬 로그인 앱:** 일반 앱 설정에서 `http://127.0.0.1:4173/?qa47=1`로 시험하면 실제 Supabase JS SDK의 `signInWithPassword` → 서버 `getUser` → RLS RPC → Edge 진단 API 호출. 공개 GitHub Pages에서는 실행 불가. 최신 Google OAuth·회원가입·비밀번호 복구 이메일 버튼은 제공자 및 SMTP 검증 전까지 비활성화. [상세 QA47 인계](docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md).
+- **미검증을 완료로 표기하지 않음:** 실 Google 계정 로그인, 메일 송수신, 실제 JWT로 Edge 접근, Storage API 업로드/다운로드, 가족 동기화 Write/CAS·사진 복원, 법정대리인 실동의, 실기기 QA, 운영 승인. 기존 QA44/45/46의 시점 기록 보존. 유료 플랜·결제·아동 실제 자료 없음.
