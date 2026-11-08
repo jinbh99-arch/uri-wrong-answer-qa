@@ -76,9 +76,10 @@ function check(g,mapping) {
     assert.equal(m.mapping_review_state,'ai_mapping_candidate_unapproved');
     assert.equal(m.expert_approved,false);
     assert.equal(m.academic_mapping_approved,false);
-    assert.equal(m.official_server_file_identity_verified,false);
-    assert.equal(m.source_db_validation,'부분 검증');
-    assert.match(m.official_text_validation,/공식 서버 미대조/);
+    assert.equal(m.official_server_file_identity_verified,true);
+    assert.equal(m.source_db_validation,'원문 공식 대조 완료·개념 연결 부분 검증');
+    assert.match(m.official_text_validation,/교육부 공식 원본/);
+    assert.equal(m.official_source_provenance_version,'qa24-official-2022-33-math-hwp-verify-v01');
   }
   return {concepts:ids.size,edges:edges.size,questions:questionIds.size,candidateMappings:mapping.length};
 }
