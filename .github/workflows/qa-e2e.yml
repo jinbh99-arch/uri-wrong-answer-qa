@@ -23,6 +23,7 @@ on:
       - 'tests/qa-evidence-transition.mjs'
       - 'tests/qa-graph-contract.mjs'
       - 'tests/qa-backup-recovery.mjs'
+      - 'tests/qa-record-lifecycle.mjs'
       - 'data/concept-graph-v0.3-demo.json'
       - 'data/concept-graph.schema.json'
       - '.github/workflows/qa-e2e.yml'
@@ -82,6 +83,8 @@ jobs:
         run: node tests/qa-graph-contract.mjs
       - name: QA14 G12 failure-path, non-destructive restore and full-byte recovery
         run: node tests/qa-backup-recovery.mjs
+      - name: QA15 G02 two-tab CRUD, stale delete and edit preservation
+        run: node tests/qa-record-lifecycle.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -100,4 +103,5 @@ jobs:
             qa11-concept-failure.png
             qa12-evidence-failure.png
             qa14-recovery-failure.png
+            qa15-crud-failure.png
           if-no-files-found: ignore
