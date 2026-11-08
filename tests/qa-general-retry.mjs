@@ -52,7 +52,11 @@ try{
  pass('지원하지 않던 일반 문제에서 재풀이 입력 화면 생성');
 
  await page.locator('#v218-child-mode').click();
+ await page.locator('#nav-home').click();
+ assert.match(await page.locator('#v29-practice-next').innerText(),/일반 문제와 사진/);
+ await page.locator('#v29-practice-next button').click();
  assert.equal(await page.locator('#v230-save').isVisible(),true);
+ pass('일반 문제를 아이 홈 화면에서 재풀이로 바로 연결');
  await page.locator('#v230-answer').fill('직각은 90도인 각이에요.');
  await page.locator('#v230-explanation').fill('정사각형 모서리와 비교했어요.');
  await page.locator('#v230-save').click();
@@ -81,6 +85,11 @@ try{
  assert.equal(reviewed.generalRetryHistory[0].review,'explained');
  assert.ok(reviewed.generalRetryHistory[0].reviewedAt);
  pass('학부모 관찰을 수동 확인으로 추가, 자동 채점 없음');
+ await page.locator('#nav-home').click();
+ assert.match(await page.locator('#v227-evidence').innerText(),/일반 재풀이 1회/);
+ assert.match(await page.locator('#v227-metrics').innerText(),/학부모 관찰 기록/);
+ await selectRecord(page,'시범 문제:');
+ pass('일반 재풀이·부모 관찰이 학부모 활동 보고서에 포함됨');
 
  await page.locator('#detail-edit').click();
  await page.locator('#memo').fill('QA10 편집 후에도 기존 재풀이 유지');
@@ -157,6 +166,18 @@ try{
  await page.locator('#v18-verify-file').setInputFiles(path);
  await page.waitForFunction(()=>document.querySelector('#v18-verify-result')?.textContent?.includes('복원 호환 사전검사 통과'),null,{timeout:20000});
  pass('정상 v2.30 JSON 백업의 사전 복원 호환검사');
+ // A signed v2.29-style backup with no generic history field must remain readable.
+ const older=structuredClone(json);
+ for(const row of older.records)delete row.generalRetryHistory;
+ const oldPayload=structuredClone(older);delete oldPayload.integrity;
+ older.integrity.digest=createHash('sha256').update(JSON.stringify(oldPayload)).digest('hex');
+ await page.locator('#v18-verify-file').setInputFiles({
+  name:'qa10-older-compatible.json',mimeType:'application/json',
+  buffer:Buffer.from(JSON.stringify(older))
+ });
+ await page.waitForFunction(()=>document.querySelector('#v18-verify-result')?.textContent?.includes('복원 호환 사전검사 통과'),null,{timeout:20000});
+ pass('기존 v2.29 형식의 이력 필드 없는 JSON 백업도 검사 호환');
+
 
  await page.locator('#clear-all').click();
  await page.locator('#confirm-dialog[open]').waitFor();
@@ -181,6 +202,18 @@ try{
   json.records.find(r=>r.id===photoRecord.id).generalRetryHistory);
  assert.deepEqual(await photo(page,photoRecord.id),photoBefore);
  pass('앱 실제 가져오기 UI에서 일반 재풀이·부모 관찰·원본 사진 복원 후 동일성');
+ await page.locator('#nav-home').click();
+ assert.match(await page.locator('#v227-evidence').innerText(),/일반 재풀이 3회/);
+ await page.locator('#nav-settings').click();
+ const [csvDownload]=await Promise.all([
+  page.waitForEvent('download',{timeout:30000}),page.locator('#v227-export').click()
+ ]);
+ const csv=await readFile(await csvDownload.path(),'utf8');
+ assert.match(csv,/일반 재풀이\(자동채점 없음\)/);
+ assert.match(csv,/일반 재풀이 학부모 관찰/);
+ assert.ok(!csv.includes('직각은 90도인 각이에요.'),'학부모 집계 CSV에 답안 원문 노출');
+ pass('일반 재풀이 보고서 CSV 집계 포함·아이 답 원문 비노출');
+
 
  await page.locator('#nav-settings').click();
  await page.locator('#clear-all').click();
