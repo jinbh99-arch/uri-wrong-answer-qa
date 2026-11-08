@@ -738,29 +738,7 @@ function settle(ok){if($('confirm-dialog').open)$('confirm-dialog').close();dial
 $('dlg-ok').onclick=()=>settle(true);$('dlg-cancel').onclick=()=>settle(false);$('confirm-dialog').addEventListener('cancel',()=>{dialogResolve?.(false);dialogResolve=null});
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
-// QA9: protect an unsaved photo, problem, answer or memo when changing tabs.
-// Explicit cancel/save actions keep their existing independent behavior.
-function qa9HasUnsavedAdd(){
- return route==='add'&&(Boolean(editId||image)||
-   ['problem','student-answer','memo'].some(id=>String($(id)?.value||'').trim())||
-   Boolean($('ocr-preview')?.value));
-}
-document.addEventListener('click',e=>{
- const nav=e.target.closest('[data-route]');
- if(nav){
-  const target=nav.dataset.route;
-  if(target!==route&&target!=='add'&&qa9HasUnsavedAdd()){
-   e.preventDefault();
-   void confirmBox('저장하지 않은 입력이 있습니다','다른 화면으로 이동하면 현재 사진·문항·답·메모 초안이 사라질 수 있습니다. 저장하지 않고 나가시겠습니까?')
-    .then(ok=>{if(ok){editId=null;navigate(target)}});
-   return;
-  }
-  if(target==='add'&&route!=='add')editId=null;
-  navigate(target);
- }
- const r=e.target.closest('[data-record]');
- if(r){detailId=r.dataset.record;navigate('detail')}
-});
+document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
 function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${cname(r.conceptId)} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 재확인 ${r.checkHistory?.length||0}회`);b.append(title,foot);box.append(b)}}
 function renderHome(){renderObservationSummary();renderWeeklyStats();const sorted=[...records].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));$('home-count').textContent=records.length;$('home-concepts').textContent=new Set(records.map(x=>x.conceptId).filter(Boolean)).size;$('home-last').textContent=sorted[0]?date(sorted[0].createdAt):'—';$('home-profile').textContent=`👧 ${profile.nickname} · 초등 ${profile.grade}학년 · 수학 (이 기기 내 기록)`;list('home-recent',sorted.slice(0,4),'아직 등록된 오답이 없습니다. 첫 오답을 기록해 보세요.');const repeated=Object.entries(groupCount()).filter(([k,n])=>k!=='미분류'&&n>=2).sort((a,b)=>b[1]-a[1]);const box=$('home-repeat');box.replaceChildren();if(!repeated.length){box.append(make('p','small','아직 2회 이상 등록된 관련 개념이 없습니다.'))}for(const [k,n] of repeated.slice(0,3))box.append(make('div','tagline',`${cname(k)} — 오답 등록 ${n}건 (이해 부족 확정 아님)`))}
 function renderObservationSummary(){
