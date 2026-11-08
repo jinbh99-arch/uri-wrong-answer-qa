@@ -90,6 +90,13 @@ async function test390(){
   await page.locator('#clear-all').click();
   await page.locator('#confirm-dialog[open]').waitFor();
   await page.locator('#dlg-ok').click();
+  // QA38: the confirmation resolves BEFORE the app finishes its guarded
+  // IndexedDB clear. Navigating to Records immediately races the async delete
+  // and leaves stale counts on an unrefreshed list. Wait for the app to return
+  // to Home only AFTER the successful delete + state refresh.
+  await page.locator('#page-home:not(.hide)').waitFor({timeout:30000});
+  await page.waitForFunction(()=>document.querySelector('#home-count')?.textContent==='0',
+    null,{timeout:10000});
   await listRecords(0);
   passed('합성 데이터 삭제 후 0건');
 }
