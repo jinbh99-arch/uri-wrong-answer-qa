@@ -51,6 +51,15 @@ if(root&&location.origin===LOCAL_ORIGIN){
     throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
    }
    return result;
+  }catch(error){
+   // QA37: a lost PUT response does NOT prove the remote write failed.
+   // Never retry a non-idempotent upload automatically after a network loss.
+   if(error?.name==='AbortError'||error instanceof TypeError){
+    throw Error(method==='PUT'
+     ? '전송 결과를 확인할 수 없습니다. 자동 재전송하지 않습니다. 연결 복구 뒤 서버 최신본을 먼저 확인하세요.'
+     : '가상 서버 연결을 확인할 수 없습니다. 로컬 기록은 그대로 유지됩니다. 연결 복구 후 수동으로 다시 시도하세요.');
+   }
+   throw error;
   }finally{clearTimeout(timer)}
  }
  async function perform(action){
