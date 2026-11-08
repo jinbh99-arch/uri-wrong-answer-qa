@@ -124,8 +124,18 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
    output(res,200,result,{...cors,etag:'"'+result.revision+'"'});
   }catch(err){
    const [status,code]=statusFor(err);
+   // QA43: browsers need SAME explicit-origin CORS policy for a 401/409/500
+   // error as for a 200 response. Otherwise an expired JWT is surfaced as a
+   // misleading network failure and the app cannot clear its old session.
+   // Never grant a CORS header to an untrusted or absent Origin.
+   const safeCors=req.headers.origin===SITE_ORIGIN?{
+    'access-control-allow-origin':SITE_ORIGIN,
+    'access-control-allow-methods':'GET, PUT, OPTIONS',
+    'access-control-allow-headers':'Authorization, Content-Type, If-Match',
+    'access-control-max-age':'300'
+   }:{};
    // Do not leak SQL, tokens, student contents, or verifier stack traces.
-   output(res,status,{error:code});
+   output(res,status,{error:code},safeCors);
   }
  });
  server.headersTimeout=10000;server.requestTimeout=15000;server.maxHeadersCount=64;
