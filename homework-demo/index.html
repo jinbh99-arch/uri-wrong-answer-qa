@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="color-scheme" content="light">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<title>우리아이 숙제관리 — v0.77 화면 체험판</title>
+<style>:root{font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans KR",sans-serif;color:#18314b;background:#f4f7fb;font-size:16px;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;line-height:1.55}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}a{color:inherit}
+.shell{width:min(900px,100%);margin:auto;padding:0 20px}.site-header{background:white;border-bottom:1px solid #e1e9f1}.topbar{display:flex;align-items:center;justify-content:space-between;padding-top:19px;padding-bottom:17px;gap:12px}.brand-mark{display:inline-grid;place-items:center;background:#d8e9ff;color:#184ca4;width:28px;height:28px;border-radius:9px;margin-right:9px}.micro{font-size:.76rem;color:#677992;margin-top:3px}.stage-mark{font-size:.73rem;border:1px solid #ebbdb6;background:#fff1eb;color:#903c2f;padding:5px 10px;border-radius:20px;white-space:nowrap}
+main{padding-top:22px!important;padding-bottom:45px!important}.notice{border-left:4px solid #d28446;background:#fffaf3;border-radius:10px;padding:13px 17px;font-size:.89rem}.notice p{margin:5px 0 0;color:#725c47}.panel{background:#fff;border:1px solid #e3eaf2;border-radius:19px;padding:24px;margin-top:20px;box-shadow:0 3px 18px #1b41610c}.connect{max-width:600px;margin:22px auto}.eyebrow{font-size:.72rem;letter-spacing:.07em;font-weight:800;color:#286ac0}.muted{font-size:.9rem;color:#60738b;margin:5px 0 20px}h1{font-size:1.7rem;letter-spacing:-.05em;margin:6px 0 4px}h2{font-size:1.2rem;letter-spacing:-.03em;margin:6px 0 15px}
+label{font-weight:650;font-size:.9rem;display:block;margin:13px 0 5px}input:not([type=checkbox]),select{border:1px solid #c5d1df;border-radius:10px;width:100%;padding:11px 12px;background:#fff;color:#1b3147;min-width:0}input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #8ab9f5;outline-offset:2px}.two{display:grid;grid-template-columns:1fr 1fr;gap:13px}.primary{color:#fff;border:0;border-radius:10px;background:#225bc1;padding:11px 19px;font-weight:750}.primary:hover:not(:disabled){background:#164ca7}.full{width:100%;margin-top:19px}.quiet{background:#fff;border:1px solid #c5d4e5;border-radius:10px;padding:9px 13px;color:#3b526b}.text-button{border:0;background:transparent;color:#225bc1;font-weight:700;text-decoration:underline;padding:8px}
+.hidden{display:none!important}.app-head{margin:27px 0 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.syncbar{display:flex;align-items:center;gap:9px;padding:9px 15px;border:1px solid #c8dece;background:#f2faf3;border-radius:11px;color:#27543a;font-size:.86rem}.syncbar.error{background:#fff6f0;border-color:#eac9b7;color:#913b2f}.syncbar .text-button{margin-left:auto}.status-dot{border-radius:50%;width:9px;height:9px;background:#31a45c;flex:none}.syncbar.error .status-dot{background:#d47536}.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.summary>div{background:white;border-radius:14px;border:1px solid #e4eaf3;padding:14px 16px}.summary span{display:block;font-size:.82rem;color:#60748a}.summary strong{display:block;font-size:1.65rem;font-variant-numeric:tabular-nums}.check{display:flex;align-items:flex-start;gap:10px;background:#f4f8fe;padding:12px;border-radius:10px;font-weight:500}.check input{margin-top:5px;flex:none}.task-section{margin-top:27px}.section-head{display:flex;align-items:start;justify-content:space-between}.stack{display:grid;grid-template-columns:1fr;gap:13px}.task{background:#fff;border:1px solid #dfebf4;border-radius:14px;padding:17px 19px;overflow-wrap:anywhere}.task-header{display:flex;justify-content:space-between;gap:10px;align-items:center}.tag{font-size:.76rem;font-weight:800;color:#326aa9;background:#eaf3ff;border-radius:20px;padding:4px 9px}.due{font-size:.8rem;color:#8b4b38}.task h3{margin:9px 0 3px;font-size:1.08rem}.progress-text{font-size:.87rem;color:#56718b;margin:8px 0 5px}.track{height:9px;border-radius:10px;background:#ecf0f4;overflow:hidden}.fill{height:100%;background:#43a7a4;border-radius:10px}.plan{padding:9px 0;font-size:.86rem;color:#4b6179}.plan-warning{color:#9a522d;font-weight:700}.inline-form{display:flex;gap:9px;align-items:end;flex-wrap:wrap}.inline-form label{margin:0;font-weight:650}.inline-form input{width:100px;max-width:33vw}.inline-form button{padding:10px 15px}.empty{background:white;border:1px dashed #c0cede;border-radius:14px;padding:30px 14px;text-align:center;color:#61768a}.flash{position:sticky;bottom:10px;background:#1b344e;color:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px #0c263c30}.flash.bad{background:#9c372c}.foot{text-align:center;margin-top:30px}
+@media(max-width:480px){.shell{padding-left:14px;padding-right:14px}.panel{padding:18px 16px}.stage-mark{font-size:.63rem}.app-head h1,h1{font-size:1.45rem}.two{grid-template-columns:1fr;gap:0}.summary{gap:7px}.summary>div{padding:12px 10px}.summary strong{font-size:1.35rem}.task{padding:15px}.inline-form{gap:8px}}
+@media(max-width:350px){.site-header strong{font-size:.87rem}.summary span{font-size:.73rem}.summary strong{font-size:1.22rem}.inline-form button{flex:1}}
+
+.help-chip{border-radius:9px;background:#fff2e5;color:#824417;padding:8px 10px;font-size:.87rem;font-weight:700}
+.help-form{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.help-form select{width:230px;max-width:100%;padding:9px}
+.resolve-form,.confirm-form{margin:10px 0}
+.confirmed{font-size:.88rem;font-weight:700;color:#27815d;margin:12px 0}
+
+.members-summary{margin:0 0 15px;padding:12px;border-radius:10px;background:#ecf4ff;color:#205083;font-size:.88rem;font-weight:650;overflow-wrap:anywhere}
+
+.task-filters{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:10px;margin:12px 0 16px;padding:12px;background:#eef4fa;border-radius:12px}
+.task-filters label{margin:0;font-size:.83rem}.task-filters input,.task-filters select{margin-top:5px}
+.edit-form{margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.edit-form p{grid-column:1/-1;margin:0}.edit-form label{margin:0;font-size:.82rem}.edit-form input,.edit-form select{margin-top:5px}
+.edit-form button{grid-column:1/-1}.archive-control{margin:10px 0 4px}
+@media(max-width:500px){.task-filters{grid-template-columns:1fr 1fr}.task-filters label:nth-child(2){grid-column:1/-1;grid-row:1}.edit-form{grid-template-columns:1fr}}
+
+.supply-add{margin-top:24px;padding-top:18px;border-top:1px solid #dde7f3}
+.supply-add textarea{display:block;width:100%;resize:vertical;padding:10px;border:1px solid #bfcde1;border-radius:9px;font:inherit;min-height:85px}
+.supply-add textarea:focus-visible{outline:3px solid #8ab9f5;outline-offset:2px}
+.supply-add h3{font-size:1.05rem;margin:0}
+.measure-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 0;border-top:1px solid #e4eaf2}
+.measure-form p{grid-column:1/-1;font-size:.86rem;margin:0;color:#546f86}
+.measure-form label{margin:0;font-size:.82rem}.measure-form input,.measure-form select{margin-top:5px}
+.measure-form button{grid-column:1/-1}
+.supply-part{display:flex;gap:10px;align-items:center;margin:9px 0;padding:10px;background:#f6f9fc;border-radius:9px}
+.supply-part span{flex:1;overflow-wrap:anywhere}.supply-part button{min-width:100px}
+
+/* v0.36 local-only visual reference: no remote image hosting or network requests. */
+.photo-reference{margin:15px 0;border:1px solid #d9e6f2;border-radius:12px;padding:13px;background:#f7fbff}
+.photo-reference h3{font-size:1.05rem;margin:0 0 6px}
+.photo-reference .photo-preview{display:block;max-width:100%;max-height:340px;margin:12px auto;border-radius:9px;object-fit:contain;border:1px solid #bfd0e2;background:white}
+.photo-reference #photoClear{margin-top:6px}
+
+.pasted-note{padding:12px 0;border-top:1px solid #d9e6f2;margin-top:12px}
+.pasted-note textarea{display:block;width:100%;min-height:92px;padding:10px;border:1px solid #bfcde1;border-radius:9px;font:inherit;resize:vertical;margin:6px 0 10px}
+.pasted-note textarea:focus-visible{outline:3px solid #8ab9f5;outline-offset:2px}
+
+.review-final{margin:16px 0 12px;padding:14px;border:1px solid #b4d1eb;border-radius:12px;background:#f5faff}
+.review-final h3{margin:0 0 9px;font-size:1.04rem}
+.review-summary{font-weight:650;font-size:.88rem;white-space:pre-line;overflow-wrap:anywhere;background:#fff;padding:12px;border-radius:9px;border:1px solid #d8e6f2}
+#photoOcr{margin-top:8px;max-width:100%}
+
+/* v0.39: independent class schedule and due-date planning controls. */
+.schedule-settings{margin:24px 0;border-top:1px solid #d8e5f0;padding-top:18px}
+.schedule-settings h3{margin:0 0 8px;font-size:1.12rem}
+.schedule-settings h4{margin:12px 0 6px;font-size:1rem}
+.schedule-settings .sub-form{margin:18px 0;padding:12px;border:1px solid #d5e2f0;border-radius:11px}
+.weekday-group{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center;border:1px solid #cedeed;border-radius:9px;padding:9px;margin:10px 0}
+.weekday-group legend{font-size:.83rem;font-weight:600;padding:0 5px}
+.weekday-group label{display:inline-flex;gap:4px;align-items:center;white-space:nowrap;font-size:.9rem;margin:0}
+.weekday-group input{margin:0;width:auto}
+.schedule-item{border-bottom:1px solid #e0eaf4;padding:10px 0}
+.schedule-item p{margin:4px 0}
+.schedule-plan{margin-top:12px;background:#f3f7fb;padding:10px 12px;border-radius:9px}
+.schedule-plan summary{font-size:.9rem;font-weight:600;cursor:pointer}
+.allocation-list{margin:8px 0 2px;padding-left:22px;font-size:.86rem;line-height:1.6;max-height:220px;overflow-y:auto}
+.plan-rules-form,.manual-plan-form{margin-top:12px;padding:12px;border:1px solid #d6e2ed;border-radius:10px}
+.plan-rules-form>p,.manual-plan-form>p{margin:0 0 9px}
+.plan-rules-form textarea,.manual-plan-form textarea{display:block;width:100%;min-height:65px;font:inherit;border:1px solid #bfcde1;border-radius:9px;padding:8px;resize:vertical;margin-top:6px}
+.plan-rules-form button,.manual-plan-form button{margin-top:10px}
+.plan-rules-form .weekday-group label{display:inline-flex}
+.plan-rules-form input[type="number"]{width:100%}
+.plan-rules-form .check,.manual-plan-form .check{margin:10px 0}
+@media (max-width:390px){.weekday-group{gap:8px}.schedule-settings .two{grid-template-columns:1fr}}
+
+/* v0.40 B02 last-mile multi-item and guardian plan transitions */
+.item-label{padding:5px 9px;background:#eef5fe;border-radius:8px;font-size:.87rem;font-weight:650;overflow-wrap:anywhere}
+.new-item-form,.rename-item-form{padding:12px;margin-top:12px;border:1px solid #d7e5f0;border-radius:10px}
+.new-item-form input,.rename-item-form input,.new-item-form select{display:block;max-width:100%;width:100%;margin-top:5px}
+.new-item-form button,.rename-item-form button{margin-top:10px}
+.new-item-form p{margin:0 0 10px}
+.new-item-form .check{margin-top:10px}
+.restore-auto-control{margin-top:12px}
+.reminders #reminderSettings{display:flex;gap:0 16px;flex-wrap:wrap}
+.reminders #reminderList{margin:8px 0 0;padding-inline-start:1.3em;overflow-wrap:anywhere}
+.reminders #reminderList:empty{display:none}
+.reminders #reminderList button{text-align:start;white-space:normal;overflow-wrap:anywhere}
+
+/* v0.57 test-only family onboarding; touch-friendly and secret-aware. */
+.onboarding{margin:18px 0;padding:17px 16px;border-radius:13px;background:#f7fafc;border:1px solid #d9e6f1;overflow-wrap:anywhere}
+.onboarding h2,.onboarding h3{font-size:1.07rem;margin:0 0 8px}
+.onboarding h4{font-size:.95rem;margin:0 0 8px}
+.onboarding .micro{margin:9px 0}
+.onboarding button{min-height:43px;margin-top:9px}
+.onboarding form{margin:10px 0}
+.onboarding form>input,.onboarding form>select{max-width:100%}
+.invite-secret{margin-top:12px;padding:12px;border-radius:10px;border:1px solid #e6bf86;background:#fff9ef}
+.invite-secret input{font-family:ui-monospace,monospace;font-size:.88rem;letter-spacing:.02em;overflow:hidden;text-overflow:clip}
+#inviteIssueStatus,#inviteClaimStatus,#consentStatusMessage{min-height:1.3em;overflow-wrap:anywhere}
+@media(max-width:420px){.onboarding{padding:13px 11px}.onboarding button{width:100%}}
+
+.pending-invites{margin:14px 0;padding-top:12px;border-top:1px solid #d6e5f1}
+.pending-invites h4{margin:0 0 7px}
+#invitePendingList{padding:0;margin:8px 0;list-style:none}
+.pending-invite-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #e0e8f0;overflow-wrap:anywhere}
+.pending-invite-item span{min-width:0;flex:1;font-size:.85rem}
+.pending-invite-item button{flex:none}
+@media(max-width:420px){.pending-invite-item{flex-direction:column;align-items:stretch}.pending-invite-item button{width:100%}}
+
+/* v0.66 mobile ergonomics: high-value actions remain reachable by touch and
+ * visible keyboard focus. No effect on authorizations or data persistence. */
+button{min-height:44px}
+[role="button"]{min-height:44px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+ outline:3px solid #225bc1;
+ outline-offset:3px;
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{
+  scroll-behavior:auto!important;
+  animation-duration:0.01ms!important;
+  transition-duration:0.01ms!important;
+ }
+}
+
+.demo-nav{display:flex;gap:8px;flex-wrap:wrap;margin:17px 0}
+.demo-nav button,.role-control button{padding:10px 14px;border-radius:11px;background:#fff;border:1px solid #d6e2f0;color:#385672;font-weight:700}
+.demo-nav button[aria-current="page"],.role-control button[aria-pressed="true"]{background:#225bc1;border-color:#225bc1;color:white}
+.role-control{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.demo-note{font-size:.86rem;color:#536a7f;line-height:1.5}
+.demo-banner{background:#fff4db;border:1px solid #ecd7a2;border-radius:13px;padding:12px 15px;margin:16px 0;color:#79562c}
+.demo-banner strong{display:block}
+.hero{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:20px 0}
+.demo-flag{background:#e8f2ff;border-radius:18px;padding:6px 11px;font-size:.78rem;color:#1e5285;font-weight:700}
+.demo-alert{padding:10px 12px;border-radius:10px;background:#f1f7ff;margin:7px 0;border:1px solid #dae9f9;font-size:.88rem}
+.demo-alert.warning{background:#fff8ed;border-color:#f0d9b1}
+.demo-field{margin:10px 0 14px}
+.demo-field textarea{display:block;width:100%;min-height:100px;border:1px solid #c5d1df;padding:12px;border-radius:11px;font:inherit}
+.demo-action{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:11px 0}
+.demo-action button{min-height:44px}
+.demo-note-box{background:#f7fafc;border:1px solid #e2eaf3;border-radius:12px;padding:13px}
+.demo-note-box p{margin:6px 0}
+.demo-headline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.demo-taskrow{display:flex;justify-content:space-between;gap:13px}
+.demo-taskrow>div{min-width:0}
+.demo-taskrow small{color:#667e90}
+.demo-taskrow button{white-space:nowrap}
+.demo-placeholder{padding:25px 12px;border:1px dashed #c8d6e4;border-radius:12px;color:#678;text-align:center}
+.demo-supplies{display:grid;gap:9px}
+.demo-supplies label{margin:0;display:flex;align-items:center;gap:9px;background:#f7faff;padding:12px;border-radius:11px}
+.demo-supplies input{width:20px;height:20px}
+.demo-schedule{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.demo-schedule>div{padding:12px;background:#f7fbff;border:1px solid #e2edf9;border-radius:11px}
+.demo-schedule b,.demo-schedule small{display:block}
+.demo-schedule small{color:#657e98;margin-top:4px}
+.demo-muted{color:#62778d;font-size:.85rem}
+.demo-counter{font-size:.76rem;padding:4px 8px;border-radius:20px;background:#eaf3ff;color:#326aa9}
+.demo-toast{position:fixed;bottom:17px;left:50%;transform:translateX(-50%);min-width:min(390px,90vw);max-width:90vw;background:#1e3451;color:#fff;padding:12px 17px;border-radius:11px;box-shadow:0 5px 20px #1d365144;z-index:10;text-align:center}
+.demo-picture{max-width:100%;max-height:240px;display:block;margin:10px auto;border-radius:11px}
+.demo-task-footer{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin-top:10px}
+.demo-task-footer input{width:90px!important}
+.demo-task-footer label{margin:0}
+.demo-tally{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.demo-tally>div{background:white;border-radius:12px;padding:14px;border:1px solid #dfe7f0}
+.demo-tally strong{display:block;font-size:1.55rem}
+.demo-tally span{font-size:.82rem;color:#62758b}
+[hidden]{display:none!important}
+@media(max-width:570px){.demo-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.demo-nav button{padding:9px 5px;font-size:.78rem}.demo-schedule{grid-template-columns:1fr}.hero h1{font-size:1.5rem}.demo-taskrow{display:block}.demo-tally{gap:6px}.demo-tally>div{padding:10px}.demo-tally strong{font-size:1.25rem}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="shell topbar"><div><span class="brand-mark" aria-hidden="true">✦</span><strong>우리아이 숙제관리</strong><div class="micro">v0.77 개발 화면 · 브라우저 체험</div></div><span class="stage-mark">가상 데이터 전용</span></div></header>
+<main class="shell">
+  <section class="demo-banner" role="note"><strong>실제 서비스가 아닌 공개 화면 시연판입니다.</strong> 실제 아이 이름·학교·학원 정보나 사진을 입력하지 마세요. 이 페이지는 가상 자료만 사용하며 서버·D1·Cloudflare 인증에 접속하지 않습니다. 화면 조작 내용은 새로고침하면 초기화됩니다.</section>
+  <div class="hero"><div><div class="eyebrow">STEP 01 · 직접 체험</div><h1>우리 가족 숙제 현황</h1><p class="demo-muted">보호자가 등록하고, 아이가 완료량을 체크하는 흐름을 시연합니다.</p></div><span class="demo-flag">개발 UI 기반 체험판</span></div>
+  <section class="panel" aria-labelledby="rolesHeading"><h2 id="rolesHeading">화면 역할 바꾸기</h2><div class="role-control" role="group" aria-label="가상 가족 역할"><button type="button" data-role="guardian1" aria-pressed="true">보호자 1</button><button type="button" data-role="guardian2" aria-pressed="false">보호자 2</button><button type="button" data-role="child" aria-pressed="false">아이</button></div><p class="micro" id="roleDescription">가상 보호자 1 화면입니다. 실제 로그인·법정대리인 확인은 연결되지 않았습니다.</p></section>
+  <nav class="demo-nav" aria-label="숙제관리 화면"><button type="button" data-screen="dashboard" aria-current="page">홈</button><button type="button" data-screen="homework">숙제</button><button type="button" data-screen="supplies">준비물</button><button type="button" data-screen="schedule">시간표</button><button type="button" data-screen="about">안내</button></nav>
+  <section data-page="dashboard">
+    <div class="app-head"><div><div class="eyebrow">STEP 02 · 가족 진행 상황</div><h2 id="dashTitle">숙제 대시보드</h2><p class="demo-muted">가상 가족의 숙제 데이터를 화면 역할 간 공유합니다.</p></div></div>
+    <div class="syncbar" role="status"><span class="status-dot"></span><span>체험 화면 내 상태 반영 중 · 서버 동기화 아님</span></div>
+    <div class="summary" aria-label="숙제 요약"><div><span>전체 숙제</span><strong data-count="total">0</strong></div><div><span>완료</span><strong data-count="done">0</strong></div><div><span>진행 중</span><strong data-count="active">0</strong></div></div>
+    <section class="panel" aria-labelledby="alertHead"><div class="demo-headline"><h2 id="alertHead">마감·준비물 알림</h2><span class="demo-counter">가상 알림</span></div><div id="demoAlerts"></div><p class="micro">실제 푸시 알림이 전송되지는 않습니다.</p></section>
+    <section class="task-section"><div class="section-head"><h2>오늘의 숙제·진도</h2><button type="button" class="quiet" data-screen="homework">전체 보기</button></div><div id="recentTasks" class="stack"></div></section>
+  </section>
+  <section data-page="homework" hidden>
+    <div class="demo-headline"><div><div class="eyebrow">숙제·진도 관리</div><h2>숙제 목록</h2></div><span class="demo-counter">체험 데이터</span></div>
+    <div class="panel only-guardian">
+      <h2>숙제 등록 <span class="demo-counter">보호자 전용</span></h2>
+      <form id="addDemoHomework" autocomplete="off">
+        <div class="two"><div><label for="demoProvider">등록처</label><input id="demoProvider" required value="가상 수학학원" maxlength="55"></div><div><label for="demoDue">제출일</label><input id="demoDue" type="date" required></div></div>
+        <div class="two"><div><label for="demoSubject">과목</label><select id="demoSubject"><option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option><option>기타</option></select></div><div><label for="demoUnit">단위</label><select id="demoUnit"><option>문제</option><option>쪽</option><option>단어</option><option>개</option><option>분</option></select></div></div>
+        <label for="demoTitle">숙제 내용</label><input id="demoTitle" maxlength="140" required placeholder="예: 연산 문제집 10문제">
+        <label for="demoQuantity">전체 분량</label><input id="demoQuantity" type="number" min="1" max="100000" required value="10">
+        <div class="photo-reference"><h3>공지 사진 참고하기</h3><p class="micro">기기 내 미리보기만 지원합니다. 이 공개 체험판에서는 OCR 서버·사진 업로드가 없습니다. 실제 공지를 사용하지 마세요.</p><input type="file" id="demoPhoto" accept="image/png,image/jpeg,image/webp" aria-label="가상 공지 사진 선택"><img id="photoPreview" class="demo-picture" hidden alt="선택한 사진의 로컬 미리보기"><button type="button" class="quiet" id="removePhoto">사진 지우기</button>
+          <div class="demo-field"><label for="demoNotice">공지 문구 붙여넣기 (가상 내용만)</label><textarea id="demoNotice" maxlength="1500" placeholder="수업 안내&#10;수학 숙제 10문제&#10;제출일: 2026-11-20"></textarea><div class="demo-action"><button type="button" class="quiet" id="extractAll">전체 문구 후보 추출</button><button type="button" class="quiet" id="extractSelection">선택한 문장만 숙제 후보로</button></div><p class="micro" id="candidateMessage" role="status">수업 일정과 숙제 제출일을 혼동하지 않도록 보호자가 확인합니다.</p></div>
+        </div>
+        <div class="review-final"><h3>최종 숙제 검토</h3><button type="button" class="quiet" id="prepareDemoReview">입력 내용 최종 검토</button><p class="review-summary" id="demoReviewSummary" hidden></p><label class="check"><input id="demoReviewed" type="checkbox" disabled> 입력한 숙제와 제출일·분량을 직접 확인했습니다.</label></div>
+        <button type="submit" class="primary">확인한 숙제 등록</button>
+      </form>
+    </div>
+    <div class="panel"><h2>숙제 진행 목록</h2><div class="two"><div><label for="demoSearch">검색</label><input id="demoSearch" type="search" placeholder="숙제 이름으로 검색"></div><div><label for="demoFilter">과목</label><select id="demoFilter"><option value="all">전체</option><option>수학</option><option>영어</option><option>국어</option><option>과학</option><option>사회</option></select></div></div><div class="stack" id="allTasks" style="margin-top:14px"></div></div>
+  </section>
+  <section data-page="supplies" hidden>
+    <div class="eyebrow">준비물</div><h2>오늘 챙길 준비물</h2>
+    <section class="panel"><p class="muted">아이는 챙김 표시를 할 수 있고, 보호자는 목록을 추가할 수 있습니다.</p><div class="demo-supplies" id="demoSupplies"></div><form id="addDemoSupply" class="only-guardian"><label for="supplyName">준비물 추가 (가상 내용만)</label><div class="demo-action"><input id="supplyName" maxlength="60" placeholder="예: 색종이" required style="flex:1;min-width:160px"><button type="submit" class="primary">추가</button></div></form></section>
+  </section>
+  <section data-page="schedule" hidden>
+    <div class="eyebrow">수업 일정</div><h2>학교·학원 시간표</h2>
+    <section class="panel"><p class="muted">수업일과 숙제 제출일은 별개입니다. 아래는 수정되지 않는 가상 예시입니다.</p><div class="demo-schedule"><div><b>월요일 · 수학</b><small>16:00 · 가상 수학학원</small></div><div><b>화요일 · 영어</b><small>17:00 · 가상 영어학원</small></div><div><b>수요일 · 수학</b><small>16:00 · 가상 수학학원</small></div><div><b>목요일 · 영어</b><small>17:00 · 가상 영어학원</small></div><div><b>금요일 · 독서</b><small>18:00 · 가정 활동</small></div></div></section>
+  </section>
+  <section data-page="about" hidden>
+    <div class="eyebrow">개발 현황</div><h2>이 미리보기에 관하여</h2>
+    <section class="panel"><h2>실제 개발본과 차이</h2><p>이 페이지는 내부개발 v0.77의 **화면 구성과 주요 사용자 흐름을 기반으로 제작한 독립 시연용 화면**입니다. 기존 앱의 Cloudflare 인증·D1·암호화 서버·실시간 다기기 통신은 들어 있지 않습니다.</p><p><strong>직접 가능한 체험:</strong> 보호자/아이 화면 전환, 숙제 등록 시 최종 확인, 진도 기록, 준비물 체크, 문자 후보 추출, 알림 표시.</p><p><strong>불가능한 작업:</strong> 실제 로그인·서버 저장·실시간 기기간 동기화·푸시 발송·OCR 정확도 검증·실제 사진 업로드.</p><p>내부개발 목표 완료율은 <strong>10/15(67%)</strong>입니다. 운영 서비스가 아니므로 가상 데이터 외의 개인정보를 입력하지 마세요.</p><div class="demo-action"><button id="demoReset" type="button" class="quiet">모든 가상 데이터 초기화</button></div></section>
+  </section>
+  <footer class="foot micro">우리아이 숙제관리 · 가상 UI 체험판 v0.77 · 실서비스·실데이터 아님</footer>
+</main>
+<div id="demoToast" role="status" class="demo-toast" hidden></div>
+<script>
+(function(){
+'use strict';
+var nextId=10, role='guardian1',screen='dashboard',reviewSignature=null,photoUrl=null,toastTimer=null;
+function at(id){return document.getElementById(id)}
+function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function dateAdd(days){var d=new Date(Date.now()+days*86400000),p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d).map(function(x){return [x.type,x.value]}));return p.year+'-'+p.month+'-'+p.day}
+function initialTasks(){return [{id:1,provider:'가상 수학학원',subject:'수학',title:'연산 문제집 20문제',due:dateAdd(1),qty:20,unit:'문제',done:6},{id:2,provider:'가상 영어학원',subject:'영어',title:'단어 15개 외우기',due:dateAdd(2),qty:15,unit:'단어',done:15},{id:3,provider:'가상 학교',subject:'국어',title:'독서록 2쪽 쓰기',due:dateAdd(3),qty:2,unit:'쪽',done:0}]}
+function initialSupplies(){return [{id:1,name:'체육복',checked:false},{id:2,name:'색연필',checked:true},{id:3,name:'실내화',checked:false}]}
+var tasks=initialTasks(),supplies=initialSupplies();
+function toast(message){var el=at('demoToast');el.textContent=message;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.hidden=true},3500)}
+function isGuardian(){return role!=='child'}
+function setScreen(s){screen=s;document.querySelectorAll('[data-page]').forEach(function(e){e.hidden=e.dataset.page!==s});document.querySelectorAll('nav [data-screen]').forEach(function(e){if(e.dataset.screen===s)e.setAttribute('aria-current','page');else e.removeAttribute('aria-current')});render()}
+function setRole(r){role=r;document.querySelectorAll('[data-role]').forEach(function(e){e.setAttribute('aria-pressed',String(e.dataset.role===role))});var label=role==='child'?'아이':role==='guardian2'?'보호자 2':'보호자 1';at('roleDescription').textContent='가상 '+label+' 화면입니다. 역할 전환은 UI 시연용이며 실제 인증이 아닙니다.';document.querySelectorAll('.only-guardian').forEach(function(e){e.classList.toggle('hidden',!isGuardian())});render();toast(label+' 화면으로 바꿨습니다.')}
+function card(t){var pct=Math.round(t.done/t.qty*100),done=t.done===t.qty;
+return '<article class="task"><div class="task-header"><span class="tag">'+esc(t.subject)+'</span><span class="due">제출일 '+esc(t.due)+'</span></div><h3>'+esc(t.title)+'</h3><p class="micro">'+esc(t.provider)+'</p><p class="progress-text">완료 '+t.done+' / '+t.qty+' '+esc(t.unit)+(done?' · 완료':' · 진행 중')+'</p><div class="track"><div class="fill" style="width:'+pct+'%"></div></div><div class="demo-task-footer"><form data-progress="'+t.id+'" class="inline-form"><label>완료량 <input type="number" min="0" max="'+t.qty+'" value="'+t.done+'" required aria-label="'+esc(t.title)+' 완료량"></label><button class="quiet" type="submit">진도 반영</button></form>'+(isGuardian()?'<button type="button" class="quiet" data-move="'+t.id+'">제출일 하루 미루기</button>':'')+'</div></article>'}
+function render(){var done=tasks.filter(function(t){return t.done===t.qty}).length;document.querySelectorAll('[data-count=total]').forEach(function(e){e.textContent=tasks.length});document.querySelectorAll('[data-count=done]').forEach(function(e){e.textContent=done});document.querySelectorAll('[data-count=active]').forEach(function(e){e.textContent=tasks.length-done});
+at('recentTasks').innerHTML=tasks.slice(0,3).map(card).join('')||'<div class="demo-placeholder">등록된 숙제가 없습니다.</div>';
+var text=at('demoSearch').value.toLowerCase(),filter=at('demoFilter').value;
+var filtered=tasks.filter(function(t){return (filter==='all'||t.subject===filter)&&(t.title+' '+t.provider).toLowerCase().includes(text)});
+at('allTasks').innerHTML=filtered.map(card).join('')||'<div class="demo-placeholder">조건에 맞는 숙제가 없습니다.</div>';
+var urgent=tasks.filter(function(t){return t.done<t.qty&&t.due<=dateAdd(1)});
+var alerts=urgent.map(function(t){return '<p class="demo-alert warning">'+esc(t.subject)+' 숙제 '+esc(t.title)+' · 제출일 '+esc(t.due)+'</p>'});
+alerts=alerts.concat(supplies.filter(function(s){return !s.checked}).map(function(s){return '<p class="demo-alert">준비물 '+esc(s.name)+' · 챙김 확인 필요</p>'}));
+at('demoAlerts').innerHTML=alerts.join('')||'<p class="demo-alert">급한 가상 숙제·준비물이 없습니다.</p>';
+at('demoSupplies').innerHTML=supplies.map(function(s){return '<label><input type="checkbox" data-supply="'+s.id+'" '+(s.checked?'checked':'')+'><span>'+esc(s.name)+'</span><span class="micro">'+(s.checked?'챙김 완료':'아직 안 챙김')+'</span></label>'}).join('')||'<p class="demo-placeholder">준비물이 없습니다.</p>';
+}
+function fields(){return {provider:at('demoProvider').value.trim(),title:at('demoTitle').value.trim(),subject:at('demoSubject').value,due:at('demoDue').value,qty:Number(at('demoQuantity').value),unit:at('demoUnit').value}}
+function invalidate(){reviewSignature=null;at('demoReviewed').checked=false;at('demoReviewed').disabled=true;at('demoReviewSummary').hidden=true}
+function parseNotice(text){var s=text.trim();if(!s){toast('먼저 가상 공지 문구를 입력하세요.');return}
+if(/수업\s*안내/.test(s)&&/숙제|과제|제출/.test(s)){toast('혼합 공지입니다. 숙제 문장만 선택해 주세요.');return}
+if(/수업\s*안내/.test(s)&&!/숙제|과제|제출/.test(s)){toast('수업 공지는 숙제로 자동 입력하지 않습니다.');return}
+var lines=s.split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean);
+var title=lines.find(function(x){return !/^(제출|마감|총\s*\d+|날짜)/.test(x)})||'';
+var dates=[...s.matchAll(/\b(20\d{2})[-./](\d{1,2})[-./](\d{1,2})\b/g)].map(function(x){var d=x[1]+'-'+x[2].padStart(2,'0')+'-'+x[3].padStart(2,'0');return !isNaN(Date.parse(d))?d:null}).filter(Boolean);
+var unique=[...new Set(dates)];if(title)at('demoTitle').value=title.slice(0,140);at('demoDue').value=unique.length===1?unique[0]:'';
+var qty=[...s.matchAll(/(\d{1,5})\s*(문제|쪽|단어|개|분)\b/g)];
+if(qty.length===1){at('demoQuantity').value=qty[0][1];at('demoUnit').value=qty[0][2]}else at('demoQuantity').value='';
+invalidate();at('candidateMessage').textContent='가상 문구에서 후보를 채웠습니다. 원문·제출일·분량을 직접 확인하세요.';toast('숙제 후보를 채웠습니다. 최종 확인 전 저장되지 않습니다.')}
+function resetAll(){tasks=initialTasks();supplies=initialSupplies();nextId=10;invalidate();at('addDemoHomework').reset();at('demoDue').value=dateAdd(2);at('demoNotice').value='';at('candidateMessage').textContent='수업 일정과 숙제 제출일을 혼동하지 않도록 보호자가 확인합니다.';setRole('guardian1');setScreen('dashboard');toast('가상 데이터가 초기화되었습니다.')}
+document.addEventListener('click',function(e){
+var b=e.target.closest('button');if(!b)return;
+if(b.dataset.role){setRole(b.dataset.role);return}
+if(b.dataset.screen){setScreen(b.dataset.screen);return}
+if(b.dataset.move){if(!isGuardian())return;var t=tasks.find(function(x){return x.id===Number(b.dataset.move)});if(t){var d=new Date(t.due+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+1);t.due=d.toISOString().slice(0,10);render();toast('가상 제출일을 하루 미뤘습니다.')}return}
+});
+document.addEventListener('submit',function(e){var f=e.target.closest('form[data-progress]');if(!f)return;e.preventDefault();var t=tasks.find(function(x){return x.id===Number(f.dataset.progress)});if(!t)return;var v=Number(f.querySelector('input').value);if(!Number.isInteger(v)||v<0||v>t.qty){toast('완료량 범위를 확인해 주세요.');return}t.done=v;render();toast('완료량을 가상 화면에 반영했습니다.')});
+document.addEventListener('change',function(e){if(e.target.dataset.supply){var s=supplies.find(function(x){return x.id===Number(e.target.dataset.supply)});if(s){s.checked=e.target.checked;render();toast('준비물 상태를 반영했습니다.')}}});
+at('demoSearch').addEventListener('input',render);at('demoFilter').addEventListener('change',render);
+at('addDemoHomework').addEventListener('input',invalidate);at('addDemoHomework').addEventListener('change',invalidate);
+at('prepareDemoReview').addEventListener('click',function(){if(!isGuardian())return;var f=fields();if(!f.provider||!f.title||!f.due||!Number.isInteger(f.qty)||f.qty<1||f.qty>100000){toast('제목·등록처·정확한 제출일·분량을 확인하세요.');return}reviewSignature=JSON.stringify(f);at('demoReviewSummary').textContent=f.provider+' · '+f.subject+'\n'+f.title+'\n제출일 '+f.due+' · '+f.qty+f.unit;at('demoReviewSummary').hidden=false;at('demoReviewed').disabled=false;at('demoReviewed').checked=false;toast('검토 요약을 확인하고 체크한 뒤 등록하세요.')});
+at('addDemoHomework').addEventListener('submit',function(e){e.preventDefault();if(!isGuardian()){toast('보호자 화면에서만 등록할 수 있습니다.');return}var f=fields();if(!at('demoReviewed').checked||reviewSignature!==JSON.stringify(f)){toast('입력 내용을 최종 확인해야 숙제를 등록할 수 있습니다.');return}tasks.unshift({id:nextId++,provider:f.provider,title:f.title,subject:f.subject,due:f.due,qty:f.qty,unit:f.unit,done:0});at('addDemoHomework').reset();at('demoDue').value=dateAdd(2);invalidate();render();toast('가상 숙제가 등록됐습니다. 서버 저장은 아닙니다.')});
+at('addDemoSupply').addEventListener('submit',function(e){e.preventDefault();if(!isGuardian())return;var name=at('supplyName').value.trim();if(!name)return;supplies.push({id:nextId++,name:name,checked:false});at('supplyName').value='';render();toast('가상 준비물이 추가됐습니다.')});
+at('extractAll').addEventListener('click',function(){parseNotice(at('demoNotice').value)});
+at('extractSelection').addEventListener('click',function(){var n=at('demoNotice'),s=n.value.slice(n.selectionStart,n.selectionEnd).trim();if(!s){toast('숙제 문장만 드래그해 선택하세요.');return}parseNotice(s)});
+at('demoReset').addEventListener('click',resetAll);
+at('demoPhoto').addEventListener('change',function(e){if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null}var f=e.target.files&&e.target.files[0];if(!f){at('photoPreview').hidden=true;return}if(f.size>5*1024*1024||!['image/png','image/jpeg','image/webp'].includes(f.type)){e.target.value='';toast('5MB 이하의 이미지 파일만 미리 볼 수 있습니다.');return}photoUrl=URL.createObjectURL(f);at('photoPreview').src=photoUrl;at('photoPreview').hidden=false;toast('기기에서만 미리 봅니다. 서버에 전송하지 않습니다.')});
+at('removePhoto').addEventListener('click',function(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;at('demoPhoto').value='';at('photoPreview').removeAttribute('src');at('photoPreview').hidden=true});
+window.addEventListener('pagehide',function(){if(photoUrl)URL.revokeObjectURL(photoUrl)});
+at('demoDue').value=dateAdd(2);setRole('guardian1');setScreen('dashboard');
+})();
+</script>
+</body>
+</html>
