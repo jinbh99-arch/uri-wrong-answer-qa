@@ -64,7 +64,7 @@ try{
  pass('문제 글자 없이 사진만 오답 저장, IndexedDB 이미지 바이트 검증');
  await p.reload({waitUntil:'domcontentloaded'});
  const reread=await state();
- assert.deepEqual(reread.photos,savedPhoto);
+ assert.deepEqual(reread.photos,[savedPhoto]);
  await p.locator('#nav-records').click();
  await p.locator('#records-list button.item').first().click();
  assert.equal(await p.locator('#page-detail').isVisible(),true);
