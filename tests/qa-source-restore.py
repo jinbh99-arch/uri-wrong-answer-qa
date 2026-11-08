@@ -86,7 +86,9 @@ def verify(source_zip: Path) -> dict:
                 "scripts/qa40-oidc-resolver.mjs", "tests/qa40-oidc-postgres.mjs",
                 "docs/QA40_G15_서명JWT_보호자RLS_연동검증_v0.1.md",
                 "scripts/qa41-signed-family-http.mjs", "tests/qa41-http-api.mjs",
-                "docs/QA41_G15_HTTP_JWT_RLS_통합검증_v1.0.md"}
+                "docs/QA41_G15_HTTP_JWT_RLS_통합검증_v1.0.md",
+                "scripts/qa42-app-http-bridge.mjs", "tests/qa42-native-app-http.mjs",
+                "docs/QA42_G15_실제앱_JWT_가족DB_수동교환_검증_v1.0.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
