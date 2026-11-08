@@ -31,7 +31,7 @@ try{
  for(const p of [A,B]){
   await p.goto('http://127.0.0.1:4173/qa-family-sync-lab.html');
   await p.locator('#lab-port').fill(new URL(gate.baseUrl).port);
-  await p.locator('#lab-family').fill('qa30-family-demo');
+  await p.locator('#lab-family').fill('qa-30-family-demo');
   await p.locator('#lab-password').fill(password);
  }
  await A.locator('#lab-register').click();
@@ -61,7 +61,7 @@ try{
  await B.locator('#lab-merge-approved').check();
  await B.locator('#lab-commit-merge').click();
  await B.getByText('승인된 충돌 없는 변경만 개정번호 3에 저장되었습니다.',{exact:false}).waitFor();
- const session=await api('/qa/login','POST',{familyKey:'qa30-family-demo',password});
+ const session=await api('/qa/login','POST',{familyKey:'qa-30-family-demo',password});
  assert.equal(session.status,200);
  const snapshot=await api('/qa/snapshot','GET',undefined,session.body.token);
  assert.equal(snapshot.body.revision,3);
