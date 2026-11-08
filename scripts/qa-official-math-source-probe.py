@@ -44,6 +44,8 @@ def run():
             result["media_type"] = response.headers.get("Content-Type")
         if not zipfile.is_zipfile(io.BytesIO(blob)):
             raise RuntimeError("Downloaded response is not a valid ZIP")
+        ephemeral = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "qa23-official-2022-subjects.zip"
+        ephemeral.write_bytes(blob)  # temporary runner only; deliberately not uploaded as artifact
         with zipfile.ZipFile(io.BytesIO(blob)) as archive:
             members = [
                 {"path": item.filename, "bytes": item.file_size, "extension": Path(item.filename).suffix.lower()}
