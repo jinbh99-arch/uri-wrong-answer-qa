@@ -70,6 +70,16 @@ on:
       - 'tests/qa43-postgres-recovery.mjs'
       - 'tests/qa43-mobile-release.mjs'
       - 'tests/qa43-docs-contract.mjs'
+      - 'scripts/qa44-supabase-auth-adapter.mjs'
+      - 'scripts/qa44-supabase-auth-lab.mjs'
+      - 'scripts/qa44-supabase-family-store.mjs'
+      - 'scripts/qa44-free-budget.mjs'
+      - 'db/qa44_supabase_staging_rls.sql'
+      - 'tests/qa44-supabase-auth.mjs'
+      - 'tests/qa44-supabase-postgres-rls.mjs'
+      - 'tests/qa44-supabase-family-store.mjs'
+      - 'tests/qa44-mobile-auth-ui.mjs'
+      - 'tests/qa44-free-budget.mjs'
       - 'docs/**'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
@@ -174,6 +184,20 @@ jobs:
         run: node tests/qa43-mobile-release.mjs
       - name: QA43 step 4 privacy guardian research and launch draft contract enforcement
         run: node tests/qa43-docs-contract.mjs
+      - name: QA44 Google/email SDK adapter, signup recovery logout and independent legal guardian consent gate
+        run: node tests/qa44-supabase-auth.mjs
+      - name: QA44 Supabase family and private photo policies in real ephemeral Postgres with mocked auth/storage schemas
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa44-supabase-postgres-rls.mjs
+      - name: QA44 verified server-only writer, signed backup, CAS, photo and guardian revocation
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa44-supabase-family-store.mjs
+      - name: QA44 free quota, no paid overage, SMTP secret reference and per-photo budget
+        run: node tests/qa44-free-budget.mjs
+      - name: QA44 actual app Settings synthetic Google/email sign-in in 320 and 390px Chromium
+        run: node tests/qa44-mobile-auth-ui.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation

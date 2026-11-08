@@ -177,3 +177,12 @@ if(location.origin===LOCAL_ORIGIN)
   const el=document.getElementById('qa34-status');
   if(el)el.textContent='QA42 시험 모듈을 불러오지 못했습니다. 기존 로컬 기록은 그대로 유지됩니다.';
  });
+
+
+// QA44: synthetic Supabase Auth SDK preview in the ACTUAL app Settings,
+// isolated to the exact loopback origin. No real network/cloud or child data.
+if(location.origin===LOCAL_ORIGIN)
+ import('./qa44-supabase-auth-lab.mjs').catch(()=>{
+  const el=document.getElementById('qa34-status');
+  if(el)el.textContent='QA44 로컬 로그인 연동 예시를 불러오지 못했습니다. 오답 원본은 그대로입니다.';
+ });
