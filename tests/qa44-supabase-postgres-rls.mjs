@@ -91,8 +91,11 @@ try{
  await admin.query('INSERT INTO storage.objects(bucket_id,name) VALUES($1,$2)',['qa44-family-photos',PB]);
  assert.deepEqual((await rows(UA,select,['qa44-family-photos'])).map(x=>x.name),[PA]);
  assert.deepEqual((await rows(UB,select,['qa44-family-photos'])).map(x=>x.name),[PB]);
- await denied(UA,'UPDATE storage.objects SET name=$1 WHERE name=$2',[PB,PA]);
- await denied(UA,'DELETE FROM storage.objects WHERE name=$1',[PA]);
+ // A PostgreSQL RLS policy with no UPDATE/DELETE rules normally filters
+ // the target rows and returns rowCount=0 instead of throwing SQLSTATE.
+ assert.equal((await asUser(UA,c=>c.query('UPDATE storage.objects SET name=$1 WHERE name=$2',[PB,PA]))).rowCount,0);
+ assert.equal((await asUser(UA,c=>c.query('DELETE FROM storage.objects WHERE name=$1',[PA]))).rowCount,0);
+ assert.deepEqual((await rows(UA,select,['qa44-family-photos'])).map(x=>x.name),[PA]);
  pass('사진 Storage 열람 가족 RLS, 직접 덮어쓰기·삭제 정책 없음');
  await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=now() WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
  assert.deepEqual(await rows(UA,'SELECT family_id FROM qa44.family_snapshots'),[]);
