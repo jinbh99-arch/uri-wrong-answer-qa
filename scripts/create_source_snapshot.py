@@ -90,7 +90,19 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "docs/QA43_4단계_개인정보처리방침_검토초안_v1.0.md",
                 "docs/QA43_4단계_법정대리인_동의문_검토초안_v1.0.md",
                 "docs/QA43_4단계_G16_학습효과_사전등록검토_v0.3.md",
-                "docs/QA43_4단계_출시승인_체크리스트_v1.0.md"}
+                "docs/QA43_4단계_출시승인_체크리스트_v1.0.md",
+                "scripts/qa44-supabase-auth-adapter.mjs",
+                "scripts/qa44-supabase-auth-lab.mjs",
+                "scripts/qa44-supabase-family-store.mjs",
+                "scripts/qa44-free-budget.mjs",
+                "db/qa44_supabase_staging_rls.sql",
+                "tests/qa44-supabase-auth.mjs",
+                "tests/qa44-supabase-postgres-rls.mjs",
+                "tests/qa44-supabase-family-store.mjs",
+                "tests/qa44-mobile-auth-ui.mjs",
+                "tests/qa44-free-budget.mjs",
+                "docs/QA44_무료Supabase_인증_가족DB_연동인계_v1.0.md",
+                "docs/QA44_아동개인정보_국내법령_검토대조_v1.0.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
