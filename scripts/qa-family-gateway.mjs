@@ -131,8 +131,33 @@ export async function createIsolatedQaFamilyGateway(options={}){
  if(process.env.QA_SYNTHETIC_FAMILY_ONLY!=='1')
   throw Error('QA_ONLY: explicit QA_SYNTHETIC_FAMILY_ONLY=1 required');
  const storage=createTestStorage(options),accounts=storage.accounts,tokens=new Map();
+ // QA33: bounded synthetic login-attempt rate limiting and session exhaustion.
+ // Still NOT secure hosting/authentication for actual families.
+ const clock=typeof options.now==='function'?options.now:Date.now;
+ const MAX_ATTEMPTS=5,LOCK_MS=60000,MAX_SESSIONS=5,MAX_TRACKED=256;
+ const loginAttempts=new Map();
+ const unknownSalt=randomBytes(16);
+ function reap(){
+  const now=clock();
+  for(const [token,session] of tokens)if(session.expiresAt<=now)tokens.delete(token);
+  for(const [key,item] of loginAttempts)
+   if(item.blockedUntil<=now&&now-item.lastFailedAt>=LOCK_MS)loginAttempts.delete(key);
+ }
+ function loginGuard(familyKey){
+  const now=clock(),failure=loginAttempts.get(familyKey);
+  if(failure?.blockedUntil>now)throw reject(429,'LOGIN_RATE_LIMITED');
+ }
+ function recordFailedLogin(familyKey){
+  const now=clock(),old=loginAttempts.get(familyKey);
+  const count=old&&now-old.lastFailedAt<LOCK_MS?old.count+1:1;
+  if(!loginAttempts.has(familyKey)&&loginAttempts.size>=MAX_TRACKED)
+   loginAttempts.delete(loginAttempts.keys().next().value);
+  loginAttempts.set(familyKey,{count,lastFailedAt:now,
+   blockedUntil:count>=MAX_ATTEMPTS?now+LOCK_MS:0});
+ }
  const server=createServer(async(req,res)=>{
   try{
+   reap();
    if(!req.socket.remoteAddress||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress))
     throw reject(403,'LOOPBACK_ONLY');
    // QA29: a dedicated local-only HTML client can contact this random loopback port.
@@ -165,11 +190,19 @@ export async function createIsolatedQaFamilyGateway(options={}){
    if(req.url==='/qa/login'&&req.method==='POST'){
     const {familyKey,password}=await jsonBody(req);
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(401,'CREDENTIALS_INVALID');
+    loginGuard(familyKey);
     const acct=accounts.get(familyKey);
-    if(!acct||!timingSafeEqual(acct.hashed,hash(password,acct.salt)))
+    // Do not short-circuit password hashing for unknown synthetic names.
+    const digest=hash(password,acct?.salt||unknownSalt);
+    if(!acct||!timingSafeEqual(acct.hashed,digest)){
+     recordFailedLogin(familyKey);
      throw reject(401,'CREDENTIALS_INVALID');
+    }
+    loginAttempts.delete(familyKey);
+    const count=[...tokens.values()].filter(x=>x.familyKey===familyKey).length;
+    if(count>=MAX_SESSIONS)throw reject(429,'SESSION_LIMIT_REACHED');
     const token=randomBytes(32).toString('hex');
-    tokens.set(token,{familyKey,expiresAt:Date.now()+600000});
+    tokens.set(token,{familyKey,expiresAt:clock()+600000});
     return reply(res,200,{token,expiresInSeconds:600,qaOnly:true,cloudReady:false});
    }
    if(req.url==='/qa/logout'&&req.method==='POST'){
@@ -187,7 +220,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
      throw reject(401,'AUTH_REQUIRED');
     const token=bearer.slice(7),session=tokens.get(token);
-    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    if(!session||session.expiresAt<=clock())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
     const acct=accounts.get(session.familyKey);
     if(!acct)throw reject(401,'SESSION_FAMILY_MISSING');
     const match=req.headers['if-match'];
@@ -208,7 +241,8 @@ export async function createIsolatedQaFamilyGateway(options={}){
     // If a second device changes the family after this request began,
     // refuse rather than reverting the state or reviving old credentials.
     const fresh=accounts.get(session.familyKey);
-    if(!fresh||fresh!==acct||tokens.get(token)!==session||fresh.revision!==acct.revision)
+    if(!fresh||fresh!==acct||tokens.get(token)!==session||fresh.revision!==acct.revision
+       ||session.expiresAt<=clock())
      throw reject(409,'STALE_OR_REVOKED_SESSION');
     const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
     const saved={...fresh,salt,hashed,revision:fresh.revision+1,
@@ -228,7 +262,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
      throw reject(401,'AUTH_REQUIRED');
     const token=bearer.slice(7),session=tokens.get(token);
-    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    if(!session||session.expiresAt<=clock())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
     const acct=accounts.get(session.familyKey);
     if(!acct)throw reject(401,'SESSION_FAMILY_MISSING');
     const match=req.headers['if-match'];
@@ -246,7 +280,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     // compare session identity and current revision again before commit.
     const fresh=accounts.get(session.familyKey);
     if(!fresh||fresh!==acct||fresh.revision!==acct.revision
-       ||tokens.get(token)!==session)
+       ||tokens.get(token)!==session||session.expiresAt<=clock())
      throw reject(409,'STALE_OR_REVOKED_SESSION');
     const candidate=new Map(accounts);candidate.delete(session.familyKey);
     storage.persist(candidate); // Atomic encrypted rewrite; failure keeps old family.
@@ -262,7 +296,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
      throw reject(401,'AUTH_REQUIRED');
     const session=tokens.get(bearer.slice(7));
-    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    if(!session||session.expiresAt<=clock())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
     const initial=accounts.get(session.familyKey);
     if(!initial||!initial.snapshot)throw reject(409,'BASELINE_NOT_STORED');
     const ifMatch=req.headers['if-match'];
@@ -276,8 +310,9 @@ export async function createIsolatedQaFamilyGateway(options={}){
     // A client-supplied base is NOT trusted. Compare it to encrypted server history
     // of a previously confirmed version to prevent fabricated merge ancestry.
     const fresh=accounts.get(session.familyKey);
-    if(!fresh||fresh.revision!==initial.revision||ifMatch!=='"'+fresh.revision+'"')
-     throw reject(409,'STALE_REVISION');
+    if(!fresh||fresh.revision!==initial.revision||ifMatch!=='"'+fresh.revision+'"'
+       ||tokens.get(bearer.slice(7))!==session||session.expiresAt<=clock())
+     throw reject(409,'STALE_OR_REVOKED_SESSION');
     const prior=(fresh.history||[]).find(h=>h.revision===body.baseRevision);
     const known=prior||(fresh.revision===body.baseRevision?{snapshot:fresh.snapshot}:null);
     if(!known||JSON.stringify(known.snapshot)!==JSON.stringify(body.base))
@@ -303,7 +338,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
      throw reject(401,'AUTH_REQUIRED');
     const session=tokens.get(bearer.slice(7));
-    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    if(!session||session.expiresAt<=clock())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
     const acct=accounts.get(session.familyKey);
     if(!acct||!acct.snapshot)throw reject(409,'BASELINE_NOT_STORED');
     const request=await jsonBody(req);
@@ -320,7 +355,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
      throw reject(401,'AUTH_REQUIRED');
     const session=tokens.get(bearer.slice(7));
-    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    if(!session||session.expiresAt<=clock())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
     const acct=accounts.get(session.familyKey);
     if(!acct)throw reject(401,'SESSION_FAMILY_MISSING');
     if(req.method==='GET')
@@ -346,7 +381,9 @@ export async function createIsolatedQaFamilyGateway(options={}){
     // A second request may commit while this request body is still streaming.
     // Recheck the shared revision immediately before the synchronous write.
     const fresh=accounts.get(session.familyKey);
-    if(!fresh||fresh.revision!==oldRev)throw reject(409,'STALE_REVISION');
+    if(!fresh||fresh.revision!==oldRev
+       ||tokens.get(bearer.slice(7))!==session||session.expiresAt<=clock())
+     throw reject(409,'STALE_OR_REVOKED_SESSION');
     const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
     const saved={...fresh,snapshot:structuredClone(doc),revision:oldRev+1,
       history:[...(fresh.history||[]),...(previous?[previous]:[])].slice(-12)};

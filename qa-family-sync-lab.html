@@ -36,7 +36,7 @@ a{color:#204fb3}small{font-size:12px}
 <label for="lab-family">가상 가족 ID</label><input id="lab-family" type="text" autocomplete="off" maxlength="35" value="qa-demo-family">
 <label for="lab-password">가상 비밀번호 (16자 이상)</label><input id="lab-password" type="password" autocomplete="new-password" placeholder="실제 사용하는 비밀번호를 넣지 마세요">
 <div class="flex"><button type="button" id="lab-register">가상 가족 만들기</button><button type="button" id="lab-login">로그인</button><button type="button" id="lab-logout" class="secondary">로그아웃</button></div>
-<p class="small">토큰과 비밀번호는 브라우저 메모리에서만 사용합니다. 새로고침하면 자동으로 로그아웃됩니다.</p>
+<p class="small">토큰과 비밀번호는 브라우저 메모리에서만 사용합니다. 새로고침하면 자동으로 로그아웃됩니다. 가상 비밀번호를 5회 잘못 입력하면 해당 가상 가족 ID의 로그인을 60초간 막으며, 동시에 유지할 수 있는 시험 로그인은 5개까지입니다. 서버 재시작 시 이 임시 로그인 제한 기록은 초기화됩니다.</p>
 <section aria-labelledby="lab-rotate-title">
 <h2 id="lab-rotate-title">가상 비밀번호 변경 및 모든 기기 로그아웃</h2>
 <p class="small">가상 가족 비밀번호를 변경하면 기존 모든 기기의 로그인은 즉시 폐기되며 다시 로그인해야 합니다. 서버 오답·사진은 유지됩니다. 운영 계정 복구 기능은 아닙니다.</p>
