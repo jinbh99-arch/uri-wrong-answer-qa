@@ -55,7 +55,7 @@ try{
  for(const [id,subject] of [[ID_A,USER_A],[ID_B,USER_B]]){
   await admin.query('INSERT INTO qa39.families(family_id) VALUES ($1)',[id]);
   await admin.query('INSERT INTO qa39.family_snapshots(family_id) VALUES ($1)',[id]);
-  const principal='oidc:'+createHash('sha256').update(ISSUER+'\\0'+subject).digest('hex');
+  const principal='oidc:'+createHash('sha256').update(ISSUER+'\0'+subject).digest('hex');
   await admin.query(`INSERT INTO qa39.guardian_memberships
    (family_id,principal_id,role,verified_at) VALUES ($1,$2,'guardian',now())`,
    [id,principal]);
