@@ -1,0 +1,50 @@
+{
+  "version": "qa22-2026-notice-lineage-v0.1",
+  "review_date": "2026-11-08",
+  "scope": "G14 public isolated QA; source-notice lineage, NOT verified learning-concept mapping",
+  "baseline": {
+    "id": "교육부 고시 제2022-33호",
+    "published": "2022-12-22",
+    "url": "https://www.moe.go.kr/boardCnts/viewRenew.do?boardID=141&boardSeq=93458&lev=0&statusYN=W",
+    "math_annex": "별책 8",
+    "attachment_file_hash": null,
+    "official_attachment_bytes_verified": false
+  },
+  "subsequent_amendments": [
+    {
+      "id": "국가교육위원회 고시 제2024-3호",
+      "published": "2024-08-16",
+      "effective": "2025-03-01",
+      "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000246226",
+      "math_annex_8_listed_as_amended": false,
+      "source_basis": "공개 개정 고시의 개정 대상 별책 열거"
+    },
+    {
+      "id": "국가교육위원회 고시 제2026-1호",
+      "published": "2026-01-21",
+      "effective": "2026-03-01",
+      "url": "https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000273516",
+      "cross_check_url": "https://ncic.re.kr/bbs/ncicnotice/view/1859.do?page=0&searchkey=&searchword=",
+      "amended_annex_numbers": [
+        1,
+        2,
+        3,
+        4,
+        15
+      ],
+      "math_annex_8_listed_as_amended": false,
+      "source_basis": "국가법령정보센터 고시 본문+국가교육과정정보센터 공지 교차 확인"
+    }
+  ],
+  "current_notice": "국가교육위원회 고시 제2026-1호",
+  "current_effective": "2026-03-01",
+  "primary_subject_notice_lineage_verified": true,
+  "math_annex_unamended_by_listed_amendments": true,
+  "source_2022_annex_binary_equal_to_user_pdf": null,
+  "official_2022_math_annex_text_independently_compared": false,
+  "candidate_mapping_count_expected": 13,
+  "candidate_mapping_source": "기존 시험용 HTML에 내장된 curriculum-candidate-data, 공급된 PDF와 내부 대조 13/13이라는 과거 기록만",
+  "academic_relationships_expert_reviewed": false,
+  "g14_final_completed": false,
+  "claim_limit": "국가법령정보센터 공고의 별책 범위 확인은 성취기준 13개 문장과 의미상 개념 연결의 공식 검증이 아니다"
+}
