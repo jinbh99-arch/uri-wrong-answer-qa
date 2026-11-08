@@ -115,7 +115,15 @@ def verify(source_zip: Path) -> dict:
                 "scripts/qa45-no-project-guard.mjs",
                 "data/qa45-free-no-project-plan.json",
                 "tests/qa45-no-project-guard.mjs",
-                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"}
+                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md",
+                "db/qa47_authenticated_guardian_status_rpc.sql",
+                "supabase/functions/qa47-auth-status/handler.js",
+                "supabase/functions/qa47-auth-status/index.ts",
+                "scripts/qa47-public-stage-config.mjs",
+                "scripts/qa47-live-auth-lab.mjs",
+                "tests/qa47-edge-auth-status.mjs",
+                "tests/qa47-live-auth-ui.mjs",
+                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
