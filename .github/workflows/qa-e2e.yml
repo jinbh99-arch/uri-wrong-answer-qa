@@ -61,6 +61,8 @@ on:
       - 'tests/qa40-oidc-postgres.mjs'
       - 'scripts/qa41-signed-family-http.mjs'
       - 'tests/qa41-http-api.mjs'
+      - 'scripts/qa42-app-http-bridge.mjs'
+      - 'tests/qa42-native-app-http.mjs'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -148,6 +150,10 @@ jobs:
         env:
           QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
         run: node tests/qa41-http-api.mjs
+      - name: QA42 G15 actual app signed JWT Postgres, 3 browsers, backup photos, offline conflict and role revocation
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa42-native-app-http.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
