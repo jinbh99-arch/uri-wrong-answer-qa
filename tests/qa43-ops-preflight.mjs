@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {validateQa43OperatingCandidate} from '../scripts/qa43-ops-preflight.mjs';
+const draft=JSON.parse(readFileSync(new URL('../data/qa43-operating-candidate.template.json',import.meta.url),'utf8'));
+let checks=0;
+const pass=x=>{checks++;console.log('PASS QA43 OPS',x)};
+const result=validateQa43OperatingCandidate(draft);
+assert.equal(result.status,'VALID_DRAFT_NOT_DEPLOYABLE');
+assert.equal(result.canDeploy,false);
+assert.equal(result.canCollectChildData,false);
+pass('운영 설정 초안 구조 통과, 실제 외부 배포·아동정보 수집 금지');
+const mutate=fn=>{
+ const x=structuredClone(draft);fn(x);
+ assert.throws(()=>validateQa43OperatingCandidate(x));
+};
+mutate(x=>x.mode='PRODUCTION');
+mutate(x=>x.deployment.publicExposure=true);
+mutate(x=>x.externalApprovals.releaseOwner='APPROVED');
+mutate(x=>x.privacy.childDataCollection=true);
+pass('생산 배포·외부 공개·자가 승인·아동 수집 선언은 실패');
+mutate(x=>x.publicAppOrigin='http://app.example.invalid');
+mutate(x=>x.apiOrigin='http://127.0.0.1:3333');
+mutate(x=>x.oidc.issuer='http://identity.example.invalid');
+mutate(x=>x.oidc.accessTokenOnly=false);
+pass('HTTPS 외부 출처/인증 제공자 및 API용 접근 토큰 요구');
+mutate(x=>x.database.network='PUBLIC');
+mutate(x=>x.database.rowLevelSecurity=false);
+mutate(x=>x.database.appRole='DB_OWNER');
+mutate(x=>x.photos.access='PUBLIC');
+mutate(x=>x.photos.encryption=false);
+pass('DB 공개·RLS 해제·DB 소유자 계정·사진 공개/평문 저장 거부');
+mutate(x=>x.secrets.databaseCredentials='password=plaintext');
+mutate(x=>x.secrets.oidcSigningKey='-----BEGIN PRIVATE KEY-----');
+mutate(x=>x.secrets.objectStoreCredentials='https://user:password@object.example.invalid/');
+pass('실제 비밀 문자열·개인키·URL 내 자격증명 포함 거부');
+mutate(x=>delete x.externalApprovals);
+mutate(x=>x.externalApprovals.realDevices='PASS');
+mutate(x=>x.oidc.tokenRevocationStrategy='NO_REVOCATION');
+pass('실기기 승인 누락·증빙 없는 자가 승인·토큰 철회 생략 거부');
+const gate=readFileSync(new URL('../scripts/qa41-signed-family-http.mjs',import.meta.url),'utf8');
+const app=readFileSync(new URL('../scripts/qa42-app-http-bridge.mjs',import.meta.url),'utf8');
+assert.ok(gate.includes("server.listen(0,'127.0.0.1'"));
+assert.ok(gate.includes("process.env.QA41_LOOPBACK_ONLY!=='1'"));
+assert.ok(app.includes("location.origin===ORIGIN"));
+assert.ok(app.includes('clear()'));
+pass('기존 합성 HTTP 서버·클라이언트 원점 격리 및 토큰 삭제 경계 유지');
+console.log('QA43_OPS_PREFLIGHT_RESULT='+JSON.stringify({
+ status:'PASS',checks,productionApproved:false,realCredentials:false,
+ guardianConsentApproved:false,realDeviceValidated:false
+}));
