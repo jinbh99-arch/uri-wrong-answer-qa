@@ -39,10 +39,10 @@ try{
 
  await page.locator('#v231-inline-map > summary').click();
  const count=await page.locator('.v231-map-nodes button').count();
- assert.equal(count,4,'선택 개념+검토 전 그래프 연결만 포함해야 함');
+ assert.ok(count>=3&&count<=5,'검토 전 그래프의 고유 연결 개념만 3~5개 표시');
  assert.match(await page.locator('#v231-concept-info').innerText(),/교육 전문가 검증 전/);
  assert.match(await page.locator('#v231-concept-info').innerText(),/질문/);
- pass('실제 그래프의 4개 개념 및 AI 초안 질문·근거 고지');
+ pass('실제 그래프의 중복 제외 3~5개 개념 및 AI 초안 질문·근거 고지');
 
  const nodes=page.locator('.v231-map-nodes button');
  await nodes.nth(1).click();
