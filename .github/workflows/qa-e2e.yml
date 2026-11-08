@@ -49,6 +49,8 @@ on:
       - 'tests/qa-family-delete.mjs'
       - 'tests/qa-family-password-rotation.mjs'
       - 'tests/qa-family-abuse-guard.mjs'
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
       - 'scripts/qa-family-threeway.mjs'
       - 'tests/qa-study-plan.mjs'
@@ -98,6 +100,8 @@ jobs:
         run: node tests/qa-cross-device-roundtrip.mjs
       - name: QA22 G16 synthetic study measurement and privacy readiness
         run: node tests/qa-learning-study-readiness.mjs
+      - name: QA34 G15 actual app settings direct exchange and two-browser consented backup-restore
+        run: node tests/qa-app-sync-bridge.mjs
       - name: QA33 G15 bounded login attempt guard, 5-session limit, expiry and two real browsers
         run: node tests/qa-family-abuse-guard.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
