@@ -60,7 +60,8 @@ try{
  await B.locator('#lab-synthetic').check();
  await B.locator('#lab-upload').click();
  await B.getByText('서버 응답 409: STALE_REVISION',{exact:false}).waitFor();
- const stored=await B.locator('#lab-refresh').click();
+ await B.locator('#lab-refresh').click();
+ await B.getByText('서버의 최신 개정번호를 다시 읽었습니다.',{exact:false}).waitFor();
  assert.match(await B.locator('#lab-revision').textContent(),/개정번호 2/);
  pass('서로 다른 두 브라우저의 오래된 개정번호 업로드는 409 차단, 서버 데이터 보존');
  const blocked=await browser.newPage();
