@@ -174,7 +174,7 @@ try{
  for(let i=0;i<expected.length;i++){
   await nodes.nth(i).click();
   assert.equal(await nodes.nth(i).getAttribute('aria-pressed'),'true');
-  assert.equal(await nodes.locator('[aria-pressed="true"]').count(),1);
+  assert.equal(await map.locator('.v231-map-nodes button[aria-pressed="true"]').count(),1);
   const inf=await page.locator('#v231-concept-info').innerText();
   assert.ok(inf.includes(concepts.get(expected[i]).definition),'Concept definition mismatch: '+expected[i]);
   assert.match(inf,/검증 전/);
