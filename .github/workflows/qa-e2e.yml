@@ -49,6 +49,7 @@ on:
       - 'tests/qa-family-delete.mjs'
       - 'tests/qa-family-password-rotation.mjs'
       - 'tests/qa-family-abuse-guard.mjs'
+      - 'tests/qa-family-lockout-restart.mjs'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -104,6 +105,8 @@ jobs:
         run: node tests/qa-app-sync-bridge.mjs
       - name: QA33 G15 bounded login attempt guard, 5-session limit, expiry and two real browsers
         run: node tests/qa-family-abuse-guard.mjs
+      - name: QA36 G15 encrypted login backoff persistent across restart and family deletion
+        run: node tests/qa-family-lockout-restart.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation

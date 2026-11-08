@@ -76,13 +76,15 @@ def verify(source_zip: Path) -> dict:
                 dest.write_bytes(data)
                 if sha256(dest.read_bytes()) != entry["sha256"]:
                     raise ValueError("Restored disk contents changed")
-            required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs"}
+            required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs",
+                "scripts/qa-family-gateway.mjs", "scripts/qa-inapp-sync-bridge.mjs",
+                "scripts/qa-family-merge-preflight.mjs"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
             if "<html lang=\"ko\">" not in index or 'id="page-home"' not in index:
                 raise ValueError("Restored index does not look like QA app")
-            js = list((root / "tests").glob("*.mjs"))
+            js = sorted([*(root / "tests").glob("*.mjs"), *(root / "scripts").glob("*.mjs")])
             if not js:
                 raise ValueError("No restored test scripts")
             for path in js:
