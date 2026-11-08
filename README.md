@@ -334,3 +334,13 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - [무료 연동 단계/공식 벤더 자료/운영자 계정 설정 인계](docs/QA44_무료Supabase_인증_가족DB_연동인계_v1.0.md), [국내 개인정보보호법 제22조의2·제38조 원문 대조](docs/QA44_아동개인정보_국내법령_검토대조_v1.0.md).
 
 **중요:** 현재 QA44는 로컬 합성 클라이언트와 임시 실제 PostgreSQL을 결합한 **개발·실험 준비**이지 실 Supabase·Google OAuth·Resend 서비스 연결, 실제 SMTP 전송, 법정대리인 확인, 운영 복구/무료 유지 보증이 아닙니다. 무료 Supabase는 사용량이 적으면 일시 중지될 수 있고 운영 PITR·SLA가 없음. 운영 전환 및 실아동 개인정보 처리는 별도 법적/운영/소유권 승인 필수. G15·G16 미완료, 전체 기술 QA 14/16(87.5%), 운영 승인 0/16 유지.
+
+
+## QA45 — 무료 Supabase 조직 실조회·프로젝트 미생성 유지 (2026-11-08)
+
+사용자 지시: **새 Supabase 프로젝트를 만들지 않는다. 유료 플랜·결제·실사용자/아동 데이터 수집·운영 사이트 변경을 하지 않는다.**
+
+- 연결된 Supabase 계정 실조회에서 조직 **`uri-level-test` / Free (tier_free)** 확인, 프로젝트 **0개** 확인. 실제 DB·Auth·Storage 서비스는 아직 없음.
+- [실행 순서/미완료 보안·계정 작업 표](docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md), [기계 판독 상태](data/qa45-free-no-project-plan.json), [fail-closed 승인 차단 검사](scripts/qa45-no-project-guard.mjs), [회귀검사](tests/qa45-no-project-guard.mjs).
+- 기존 QA44의 가족별 RLS SQL·Google+이메일 SDK·SMTP 후보·비공개 사진·임시 PostgreSQL/Chromium 합성테스트 **그대로 보존**. 실 Supabase DB에는 아직 SQL 적용 0회, 실 OAuth·SMTP 등록 0회, 실제 Storage 버킷 0개, 실서버 보안시험 0회.
+- 무료 프로젝트 생성이 명시적으로 허용될 때만 먼저 실환경 스키마와 벤더 정책을 감사한 뒤 적용. **일반적인 '진행' 지시는 프로젝트 생성 승인이 아니며**, 개인 계정 연결 권한도 생성 승인에 해당하지 않음.
