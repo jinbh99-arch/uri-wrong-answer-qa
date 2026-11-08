@@ -6,7 +6,6 @@ const root=document.getElementById('qa34-sync-bridge');
 if(root&&location.origin===LOCAL_ORIGIN){
  root.hidden=false;
  const $=id=>document.getElementById(id);
- const buttons=['qa34-login','qa34-logout','qa34-upload','qa34-pull'];
  let token='',revision=null,server='',busy=false;
  function status(message,error=false){
   $('qa34-status').textContent=message;
@@ -45,7 +44,12 @@ if(root&&location.origin===LOCAL_ORIGIN){
     mode:'cors',cache:'no-store',signal:controller.signal
    });
    const result=await response.json();
-   if(!response.ok)throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
+   if(!response.ok){
+    // A revoked/expired gateway session must not appear active in the app.
+    // Clear only ephemeral local credentials; never touch IndexedDB.
+    if(response.status===401&&token)clearSession();
+    throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
+   }
    return result;
   }finally{clearTimeout(timer)}
  }
@@ -110,6 +114,12 @@ if(root&&location.origin===LOCAL_ORIGIN){
   // Trigger THE APP'S existing lossless export (photos, history, profile,
   // hash, stale-tab guards). This also downloads a separate fallback JSON.
   const savedRevision=revision;
+  // QA35: fail before generating/downloading a new raw JSON backup if the
+  // server is newer, or if this session was revoked by another device.
+  // Keep CAS on the final PUT: a write may still race after this preflight.
+  const current=await request('/qa/snapshot');
+  if(current.revision!==savedRevision)
+   throw Error('서버 기록이 다른 기기에서 변경되어 전송을 중단했습니다. 먼저 최신본을 검토하세요.');
   status('오답노트 기존 백업 보호 검사 및 JSON 내보내기를 실행 중입니다.');
   const doc=await validatedAppBackup();
   if(!doc||doc.format!=='uriaimath-offline-backup-v02'||
@@ -144,7 +154,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
   field.files=dt.files;
   field.dispatchEvent(new Event('change',{bubbles:true}));
   setRevision(loaded.revision,doc);
-  status('개정번호 '+loaded.revision+'의 합성 백업을 기존 오답노트 복원 검사에 전달했습니다. **복원 확인창에서 직접 허용하기 전에는 자료가 바뀌지 않습니다.**');
+  status('개정번호 '+loaded.revision+'의 합성 백업을 기존 오답노트 복원 검사에 전달했습니다. 복원 확인창에서 직접 허용하기 전에는 자료가 바뀌지 않습니다.');
  }));
  state();
  status('127.0.0.1 로컬 전용 기능입니다. 실제 자녀 자료는 입력하지 마세요.');
