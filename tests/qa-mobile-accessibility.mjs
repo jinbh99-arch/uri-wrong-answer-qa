@@ -111,6 +111,8 @@ try{
  await page.locator('#clear-all').click();
  await page.locator('#confirm-dialog[open]').waitFor();
  await page.locator('#dlg-ok').click();
+ await page.locator('#page-home:visible').waitFor({timeout:20000});
+ await page.waitForFunction(()=>document.querySelector('#home-count')?.textContent==='0',null,{timeout:20000});
  stored=await countDB();
  assert.equal(stored.rows.length,0);
  assert.equal(stored.photos.length,0);
