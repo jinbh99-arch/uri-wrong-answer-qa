@@ -57,7 +57,7 @@ done('미래 날짜 관찰 제외');
 
 const csv=v227ReportCsv(weekly,'7');
 for(const expected of ['도움 필요→스스로 설명 관찰','스스로 설명→도움 필요 관찰',
- '관찰 횟수 부족 오답','학습효과를 증명하지 않음'])assert.ok(csv.includes(expected),expected);
+ '관찰 횟수 부족 오답','정답률을 증명하지 않음'])assert.ok(csv.includes(expected),expected);
 for(const secret of ['hidden-id-a','진짜 학습 효과 아닙니다','private solution should not leak','private memo']){
  assert.equal(csv.includes(secret),false,'CSV leaked raw/private text: '+secret);
 }
