@@ -85,6 +85,10 @@ try{
  assert.equal(unauth.status,401);
  const badToken=await send('/qa41/families','GET',tokenA.slice(0,-4)+'aaaa');
  assert.equal(badToken.status,401);
+ // QA43: a CORS-mode browser must observe the actual 401 and clear the
+ // synthetic session, not misreport it as a disconnected network.
+ assert.equal(badToken.headers.get('access-control-allow-origin'),ORIGIN);
+ assert.equal(wrongOrigin.headers.get('access-control-allow-origin'),null);
  assert.deepEqual((await send('/qa41/families','GET',tokenA)).data.families,[ID_A]);
  assert.deepEqual((await send('/qa41/families','GET',tokenB)).data.families,[ID_B]);
  assert.deepEqual((await send('/qa41/families','GET',tokenUnknown)).data.families,[]);
