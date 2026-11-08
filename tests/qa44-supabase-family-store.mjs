@@ -62,7 +62,7 @@ try{
  await assert.rejects(store.put(TOKEN_A,FA,1,make([])),/SILENT_RECORD_OR_PHOTO_LOSS/);
  const tampered=structuredClone(original);
  tampered.records[0].problemText='changed and not resigned';
- await assert.rejects(store.put(TOKEN_A,FA,1,tampered),/CHECKSUM/);
+ await assert.rejects(store.put(TOKEN_A,FA,1,tampered),/digest does not match|CHECKSUM/);
  assert.equal((await store.read(TOKEN_A,FA)).revision,1);
  pass('오래된 개정번호·사진/기록 손실·변조된 백업 차단, 서버 원본 유지');
 
