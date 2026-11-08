@@ -91,7 +91,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(password.length<16||password.length>160)throw Error('실제 비밀번호가 아닌 16~160자 가상 비밀번호가 필요합니다.');
   if(token)throw Error('이미 로그인했습니다. 먼저 로그아웃하세요.');
   const response=await request('/qa/login','POST',{familyKey,password});
-  token=response.token;server=address();
+  server=address();token=response.token;
   $('qa34-password').value='';
   try{
    const loaded=await request('/qa/snapshot');
