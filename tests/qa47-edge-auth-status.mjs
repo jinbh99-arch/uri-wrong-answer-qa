@@ -12,10 +12,22 @@ const svc={
  async getUser(){return {id:U,is_anonymous:false}},
  async findVerifiedFamilies(){return []}
 };
-let r=await handle(req({origin:'https://jinbh99-arch.github.io'}),svc);
+let r=await handle(req({origin:'https://evil.example'}),svc);
 assert.equal(r.status,403);
 assert.equal(r.headers.has('access-control-allow-origin'),false);
-pass('공개 GitHub Pages 등 다른 Origin은 사전 차단·CORS 없음');
+pass('모르는 Origin 사전 차단·CORS 없음');
+r=await handle(req({origin:'https://jinbh99-arch.github.io',method:'OPTIONS',token:null}),svc);
+assert.equal(r.status,204);
+assert.equal(r.headers.get('access-control-allow-origin'),'https://jinbh99-arch.github.io');
+pass('독립 QA GitHub Pages 출처는 읽기 전용 CORS 사전 요청 허용');
+r=await handle(req({origin:'https://jinbh99-arch.github.io',token:null}),svc);
+assert.equal(r.status,401);
+assert.equal(r.headers.get('access-control-allow-origin'),'https://jinbh99-arch.github.io');
+pass('허용된 QA 출처에서도 JWT 없이 보호자 정보 조회 금지');
+r=await handle(req({origin:'https://jinbh99-arch.github.io'}),svc);
+assert.equal(r.status,200);
+assert.equal((await r.json()).studentRecordsEnabled,false);
+pass('QA 출처에서도 검증된 JWT + 데이터 비노출 조건 유지');
 r=await handle(req({token:null}),svc);
 assert.equal(r.status,401);
 assert.equal((await r.json()).error,'AUTH_REQUIRED');
