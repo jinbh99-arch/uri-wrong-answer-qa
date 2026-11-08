@@ -27,7 +27,9 @@ def allowed(path: str) -> bool:
         return True
     if re.fullmatch(r"scripts/[A-Za-z0-9_.-]+\.py", path):
         return True
-    if re.fullmatch(r"data/[A-Za-z0-9_.-]+\.json", path):\n        return True\n    if re.fullmatch(r"docs/[A-Za-z0-9_.-]+\.md", path):
+    if re.fullmatch(r"data/[A-Za-z0-9_.-]+\.json", path):
+        return True
+    if re.fullmatch(r"docs/[A-Za-z0-9_.-]+\.md", path):
         return True
     if re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", path):
         return True
