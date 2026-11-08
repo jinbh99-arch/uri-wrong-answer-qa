@@ -142,7 +142,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(origin!=='http://127.0.0.1:4173')throw reject(403,'ORIGIN_NOT_ALLOWED');
     res.setHeader('Access-Control-Allow-Origin',origin);
     res.setHeader('Vary','Origin');
-    res.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type, If-Match');
     res.setHeader('Access-Control-Max-Age','0');
    }
@@ -176,6 +176,42 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const bearer=req.headers.authorization;
     if(typeof bearer==='string'&&bearer.startsWith('Bearer '))tokens.delete(bearer.slice(7));
     return reply(res,200,{loggedOut:true});
+   }
+   // QA31: delete only the current synthetic family. Logical deletion in the
+   // encrypted QA store, NOT forensic erasure of filesystem snapshots/backups.
+   if(req.url==='/qa/family'&&req.method==='DELETE'){
+    const bearer=req.headers.authorization;
+    if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
+     throw reject(401,'AUTH_REQUIRED');
+    const token=bearer.slice(7),session=tokens.get(token);
+    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    const acct=accounts.get(session.familyKey);
+    if(!acct)throw reject(401,'SESSION_FAMILY_MISSING');
+    const match=req.headers['if-match'];
+    if(typeof match!=='string'||!/^"\d+"$/.test(match))
+     throw reject(428,'IF_MATCH_REQUIRED');
+    if(match!=='"'+acct.revision+'"')throw reject(409,'STALE_REVISION');
+    const body=await jsonBody(req);
+    if(body.confirmation!=='DELETE_SYNTHETIC_FAMILY' || body.approved!==true)
+     throw reject(428,'DELETE_CONFIRMATION_REQUIRED');
+    if(body.familyKey!==session.familyKey||!safePassword(body.password))
+     throw reject(403,'CREDENTIALS_INVALID');
+    if(!timingSafeEqual(acct.hashed,hash(body.password,acct.salt)))
+     throw reject(403,'CREDENTIALS_INVALID');
+    // An older request body might finish after a parallel deletion or write:
+    // compare session identity and current revision again before commit.
+    const fresh=accounts.get(session.familyKey);
+    if(!fresh||fresh!==acct||fresh.revision!==acct.revision
+       ||tokens.get(token)!==session)
+     throw reject(409,'STALE_OR_REVOKED_SESSION');
+    const candidate=new Map(accounts);candidate.delete(session.familyKey);
+    storage.persist(candidate); // Atomic encrypted rewrite; failure keeps old family.
+    accounts.delete(session.familyKey);
+    for(const [sessionToken,entry] of tokens){
+     if(entry.familyKey===session.familyKey)tokens.delete(sessionToken);
+    }
+    return reply(res,200,{deleted:true,sessionsRevoked:true,qaOnly:true,
+      cloudReady:false,forensicEraseGuaranteed:false});
    }
    if(req.url==='/qa/sync-commit'&&req.method==='POST'){
     const bearer=req.headers.authorization;
