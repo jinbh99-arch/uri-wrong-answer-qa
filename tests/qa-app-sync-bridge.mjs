@@ -175,7 +175,7 @@ try{
  assert.equal(freshRemote.data.revision,3);
  assert.equal(freshRemote.data.snapshot.records.length,2);
  pass('타 기기 비밀번호 변경·전체 세션 폐기 후 업로드 사전 차단, 클라이언트 자동 로그아웃, 원본과 서버 기록 보존');
- console.log('QA_G15_REAL_APP_SETTINGS_BRIDGE_RESULT=+JSON.stringify({
+ console.log('QA_G15_REAL_APP_SETTINGS_BRIDGE_RESULT='+JSON.stringify({
   status:'PASS',checks,realAppContexts:2,
   allRecordBytesPreserved:true,manualConfirmation:true,staleUploadDenied:true,
   actualAppSettings:true,automaticSync:false,hostedCloud:false,realChildren:0
