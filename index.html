@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.28 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
+<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.29 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
 <style>
 :root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#1f3150;background:#f6f8fc;--blue:#305ee8;--deep:#183365;--muted:#61718a;--edge:#e1e7f1;--pink:#fdf1f2;--good:#16765a}
 *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #ffbc4e;outline-offset:2px}a{color:#2e5bd5;text-decoration:none}.hide{display:none!important}
@@ -243,19 +243,23 @@ body.v218-child .v218-parent-only{display:none!important}
 </section>
 <section data-page="" id="page-home">
 
-<div class="v09-runtime" id="v09-runtime-card" aria-live="polite">
-  <h2>🌐 실제 웹주소 · 사진 저장 상태</h2>
-  <p id="v09-runtime-status">접속 주소와 브라우저 저장 기능을 확인하는 중입니다.</p>
-  <p>ChatGPT의 파일 미리보기 링크는 공개 웹사이트 주소가 아닙니다. <strong>Netlify 등으로 배포한 HTTPS 주소</strong>에서 사용하세요. 기록은 로그인 계정이 아니라 현재 브라우저에만 저장됩니다.</p>
-  <a href="./check.html" id="v09-diagnostic-link">📷 사진·저장 기능 별도 진단하기 →</a>
-</div>
-
 <div class="v08-start" aria-labelledby="v08-start-title">
  <span class="v08-badge">가장 먼저 할 일</span>
  <h2 id="v08-start-title">📷 틀린 문제 사진부터 등록하세요</h2>
  <p>사진을 찍거나 갤러리에서 선택하세요. <strong>문제 글자를 입력하지 않고 사진만 저장할 수도 있습니다.</strong> 저장한 뒤 답·개념·복습을 추가할 수 있어요.</p>
  <button class="primary v08-start-btn" id="v08-home-add" type="button" data-route="add">📷 사진 촬영·등록 시작 →</button>
  <p class="small" style="margin-bottom:0">등록 화면의 맨 위에 촬영·사진 선택 버튼이 있습니다. 입력한 오답은 <b>오답 목록</b>에서 확인합니다.</p>
+</div>
+<section class="card v218-parent-only hide" id="qa9-next-action" aria-labelledby="qa9-next-title">
+ <h2 id="qa9-next-title">🧭 오늘 정리할 일 하나</h2>
+ <p id="qa9-next-desc" class="small" role="status" aria-live="polite">기존 오답에서 이어서 할 활동을 확인합니다. 부족한 개념을 자동 진단하지 않습니다.</p>
+ <button class="primary btn-wide" id="qa9-next-open" type="button">기록 확인하기</button>
+</section>
+<div class="v09-runtime" id="v09-runtime-card" aria-live="polite">
+  <h2>🌐 실제 웹주소 · 사진 저장 상태</h2>
+  <p id="v09-runtime-status">접속 주소와 브라우저 저장 기능을 확인하는 중입니다.</p>
+  <p>ChatGPT의 파일 미리보기 링크는 공개 웹사이트 주소가 아닙니다. <strong>Netlify 등으로 배포한 HTTPS 주소</strong>에서 사용하세요. 기록은 로그인 계정이 아니라 현재 브라우저에만 저장됩니다.</p>
+  <a href="./check.html" id="v09-diagnostic-link">📷 사진·저장 기능 별도 진단하기 →</a>
 </div>
 <section class="card v218-parent-only" id="v225-samples" aria-labelledby="v225-samples-title">
  <h2 id="v225-samples-title">🧪 처음 써보는 학부모를 위한 가상 학습 예시</h2>
@@ -3252,6 +3256,29 @@ $('v212-mixed-drill-run').onclick=async()=>{
   }
   const v29PreviousRenderHome=renderHome;
   renderHome=function(){v29PreviousRenderHome();v29RenderPractice()};
+
+  // QA9: offer exactly one next action for the parent; no new writes or diagnosis.
+  function qa9RenderOneAction(){
+    const card=$('qa9-next-action'),description=$('qa9-next-desc'),button=$('qa9-next-open');
+    if(!card||!description||!button)return;
+    if(!records.length){card.classList.add('hide');button.removeAttribute('data-record');return}
+    const ordered=[...records].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+    const today=localToday();
+    const photo=ordered.find(r=>r.hasPhoto&&!String(r.problemText||'').trim());
+    const ocr=ordered.find(r=>r.ocrStatus==='browser_ocr_unconfirmed');
+    const due=ordered.find(r=>r.studyPlan?.dueDate&&/^20\d\d-\d\d-\d\d$/.test(r.studyPlan.dueDate)&&r.studyPlan.dueDate<=today);
+    const target=photo||ocr||due||ordered[0];
+    const reason=photo?'사진만 저장한 문제의 내용을 확인해 주세요.':
+      ocr?'사진과 인식된 문장이 일치하는지 학부모가 확인해 주세요.':
+      due?'학부모가 지정한 복습일이 된 기록입니다.':
+      '최근 저장한 문제에서 개념 설명이나 재풀이를 이어갈 수 있습니다.';
+    description.textContent=reason+' 원인 진단이나 자동 알림이 아닙니다.';
+    button.textContent=(photo?'📷 사진 기록 이어서 정리하기':ocr?'🔍 OCR 기록 검토하기':due?'🗓 복습 기록 열기':'📚 최근 오답 학습 이어가기');
+    button.dataset.record=target.id;
+    card.classList.remove('hide');
+  }
+  const qa9PreviousRenderHome=renderHome;
+  renderHome=function(){qa9PreviousRenderHome();qa9RenderOneAction()};
 
   // v2.18: role-separated PRESENTATION on this device only. Never persist the mode.
   // This is not a password or access-control system; only approved parent controls are hidden.
