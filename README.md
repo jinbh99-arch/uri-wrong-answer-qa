@@ -321,3 +321,16 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 4. **법률·연구·출시 초안:** [개인정보처리방침](docs/QA43_4단계_개인정보처리방침_검토초안_v1.0.md) · [법정대리인 동의문](docs/QA43_4단계_법정대리인_동의문_검토초안_v1.0.md) · [G16 사전등록 검토본](docs/QA43_4단계_G16_학습효과_사전등록검토_v0.3.md) · [출시·외부 승인 체크리스트](docs/QA43_4단계_출시승인_체크리스트_v1.0.md). 문서 누락·허위 승인 방지 [검사](tests/qa43-docs-contract.mjs).
 
 **중요:** 위 단계는 **준비·합성 QA 코드와 문서 초안**이며 운영 승인이나 실제 인증·개인정보 동의·연구 승인·PITR 실증이 아닙니다. 실제 클라우드 공급자 미선정, 생산 HTTPS·실아동 데이터 미연결, 법정대리인 확인/동의 미구현, G16 실학생 0명·학습효과 미검증, Android/iOS 물리 기기 0대. 전체 16개 목표 중 QA 기술완료 **14/16(87.5%)**, G15/G16 미완료, 최종 제품 승인 **0/16**.
+
+
+## QA44 — 무료 Supabase·구글/이메일 인증 연동 준비 및 법령 대조 (2026-11-08)
+
+사용자가 결정한 기본 기준은 **비용 0원 우선, Google OAuth + 이메일 로그인/복구 모두 지원, 무료 저장소에서 가족/사진 엄격 격리, 실제 법정대리인 동의·관계검증 전 아동 데이터 금지**입니다.
+
+- [Supabase SDK Google·이메일 로그인/재설정/권한 분리 어댑터](scripts/qa44-supabase-auth-adapter.mjs)와 [실제 오답노트 설정 화면의 로컬 합성 로그인 시험](scripts/qa44-supabase-auth-lab.mjs). **실제 Google/Supabase 계정 접속 없음**.
+- [Supabase Auth`auth.uid()` 가족별 DB·사진 RLS migration](db/qa44_supabase_staging_rls.sql). 미승인·미동의 가족 거부, 사진 비공개 1MiB, 브라우저 직접 가족 등록/삭제/원본 덮어쓰기 금지. [서버 전용 조건부 CAS·사진 보존](scripts/qa44-supabase-family-store.mjs).
+- [Supabase/Resend 무료 한도·과금방지 예상 검사 및 SMTP 비밀관리 참조](scripts/qa44-free-budget.mjs).
+- [실제 임시 PostgreSQL의 Supabase auth/storage 역할 모의 테스트](tests/qa44-supabase-postgres-rls.mjs), [가상 Supabase getUser + 제한 서버 writer 실 PostgreSQL](tests/qa44-supabase-family-store.mjs), [Google/email mock](tests/qa44-supabase-auth.mjs), [320·390px 실브라우저 로그인 UI](tests/qa44-mobile-auth-ui.mjs), [무료 예산 테스트](tests/qa44-free-budget.mjs).
+- [무료 연동 단계/공식 벤더 자료/운영자 계정 설정 인계](docs/QA44_무료Supabase_인증_가족DB_연동인계_v1.0.md), [국내 개인정보보호법 제22조의2·제38조 원문 대조](docs/QA44_아동개인정보_국내법령_검토대조_v1.0.md).
+
+**중요:** 현재 QA44는 로컬 합성 클라이언트와 임시 실제 PostgreSQL을 결합한 **개발·실험 준비**이지 실 Supabase·Google OAuth·Resend 서비스 연결, 실제 SMTP 전송, 법정대리인 확인, 운영 복구/무료 유지 보증이 아닙니다. 무료 Supabase는 사용량이 적으면 일시 중지될 수 있고 운영 PITR·SLA가 없음. 운영 전환 및 실아동 개인정보 처리는 별도 법적/운영/소유권 승인 필수. G15·G16 미완료, 전체 기술 QA 14/16(87.5%), 운영 승인 0/16 유지.
