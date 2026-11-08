@@ -115,7 +115,7 @@ def verify(source_zip: Path) -> dict:
                 "scripts/qa45-no-project-guard.mjs",
                 "data/qa45-free-no-project-plan.json",
                 "tests/qa45-no-project-guard.mjs",
-                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"
+                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
