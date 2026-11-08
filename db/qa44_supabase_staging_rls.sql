@@ -1,5 +1,5 @@
--- QA44 Supabase FREE candidate migration. NOT applied to a real project.
--- Requires Supabase auth and storage schemas (mocked in ephemeral CI only).
+-- QA44 Supabase FREE schema source; first real empty-project application in QA46 (2026-11-08).
+-- CI mocks auth/storage in ephemeral PG; QA46 also verified migration in real Supabase PG17.
 -- The owner must VERIFY legal-guardian relationship + consent independently;
 -- neither OAuth sign-in nor an email address is legal guardian proof.
 BEGIN;
