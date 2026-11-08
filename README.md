@@ -189,3 +189,10 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - 교육부 고시 제2022-33호 각론 공식 ZIP을 GitHub의 **임시 러너에서 직접 다운로드**해 ZIP SHA-256 `b37a372a90d6d00bb3985888bbb41caae7a35f28877dc243a6f4b28861c53146`, 수학 별책8 HWP SHA-256 `aab8eed59ecf244223d04afad75f4cf5ac5085fadcfc3cf52c2f6d54ddfc7856`를 기록했습니다. 공식 HWP에서 직접 추출한 4,065개 문단을 기존 13개 성취기준 코드·문장과 전수 비교해 **13/13 일치**했습니다.
 - [검증증거](data/official-math-source-2022-33-attestation-v0.1.json) · [공식 원문 HWP 분석 Actions](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/42443478565) · [원문·고시 출처](data/curriculum-notice-lineage-v0.1.json).
 - **성취기준 원문 일치만 기술 검증 완료**이고, 13개 AI 개념 연결·학년 적합성·교육 효과는 전문가 미검증입니다. 독립 QA 원본은 실운영 서비스가 아니며 원래 16목표 최종승인은 0/16입니다.
+
+
+## QA25 / v2.44 — 합성 가족 2개·동시 세션 보존형 로컬 서버 시범
+
+- 외부에 배포하거나 사용자 로그인을 받지 않는 **127.0.0.1 한정** 메모리 인증·가족별 데이터 격리·조건부 저장·삭제/충돌 차단 테스트.
+- [G15 로컬 기술 실험·남은 필수 조건](QA25_G15_가족별가상서버_진행보고_20261108.md) · `scripts/qa-family-gateway.mjs`, `tests/qa-family-gateway.mjs`.
+- **실제 로그인·클라우드 동기화가 구현된 것은 아닙니다.** 운영 Netlify 미변경. G15 기술·최종 목표는 미완료이고 진짜 사용자 데이터로 테스트 금지.
