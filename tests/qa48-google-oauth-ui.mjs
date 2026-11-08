@@ -37,6 +37,7 @@ try{
       async signOut(){
        globalThis.__QA48_TEST_CALLS__.push({type:'logout'});
        sessionStorage.removeItem('qa48-test-session');
+       sessionStorage.removeItem('uri-qa48-owner-google-test-session');
        return {error:null}
       }
      },
@@ -64,6 +65,9 @@ try{
    const p=await ctx.newPage();
    await p.goto(BASE,{waitUntil:'domcontentloaded'});
    await p.locator('#google-login:enabled').waitFor();
+   await p.getByText('준비됐습니다. 파란색 Google 로그인 버튼을 눌러',{exact:false}).waitFor();
+   assert.equal(await p.evaluate(()=>globalThis.__QA48_TEST_CALLS__.length),0);
+   pass(width+'px first visit shows normal ready state without calling auth SDK, no false red error');
    assert.equal(await p.locator('#logout').isDisabled(),true);
    assert.equal(await p.locator('#verify').isDisabled(),true);
    assert.equal(await p.locator('input[type=file]').count(),0);
@@ -98,10 +102,11 @@ try{
    pass(width+'px user-triggered logout ends in-tab auth session');
    await p.evaluate(()=>{
     sessionStorage.setItem('qa48-test-session','active');
+    sessionStorage.setItem('uri-qa48-owner-google-test-session','synthetic-session-marker');
     sessionStorage.setItem('qa48-test-edge-fail','yes')
    });
    await p.reload({waitUntil:'domcontentloaded'});
-   await p.getByText('연결 확인에 실패했습니다.',{exact:false}).waitFor();
+   await p.getByText('Google 인증 이후 보호자 접근권한 확인에 실패했습니다.',{exact:false}).waitFor();
    assert.equal(await p.locator('#logout').isDisabled(),true);
    assert.equal(await p.evaluate(()=>sessionStorage.getItem('qa48-test-session')),null);
    pass(width+'px backend Edge failure fails closed, logs out, never grants records');

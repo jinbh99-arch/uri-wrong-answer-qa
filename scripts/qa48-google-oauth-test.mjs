@@ -13,6 +13,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const callbackKeys=['code','state','error','error_description','access_token','refresh_token','token_type'];
 const callbackHasParams=callbackKeys.some(k=>new URL(location.href).searchParams.has(k));
 let client=null,busy=false,active=false;
+const sessionKey='uri-qa48-owner-google-test-session';
 function say(message,state='neutral'){
  status.textContent=message;
  status.dataset.state=state;
@@ -34,16 +35,19 @@ async function supabaseClient(){
   cfg.allowStudentData!==false||cfg.allowProduction!==false)
   throw Error('QA48_STAGE_NOT_ALLOWED');
  const factory=isInjectedCi?globalThis.__QA48_TEST_CLIENT_FACTORY__:null;
- const create=typeof factory==='function'
-   ?factory
-   :(await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
+ let create;
+ if(typeof factory==='function')create=factory;
+ else try {
+  create=(await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
+ }catch {throw Error('SDK_IMPORT_FAILED')}
+ if(typeof create!=='function')throw Error('SDK_IMPORT_FAILED');
  const candidate=await create(cfg.projectUrl,cfg.publishableKey,{
   auth:{
    flowType:'pkce',
    detectSessionInUrl:true,
    persistSession:true,
    autoRefreshToken:false,
-   storageKey:'uri-qa48-owner-google-test-session',
+   storageKey:sessionKey,
    storage:window.sessionStorage
   }
  });
@@ -89,14 +93,23 @@ async function verify(){
   :'실제 Google 로그인 및 외부 보호자 검증 정보 확인 완료. 이 화면에서는 자녀 기록과 사진을 열거나 저장하지 않습니다.','success');
  return true;
 }
+function publicErrorMessage(e){
+ const code=String(e?.message||'');
+ if(code==='SDK_IMPORT_FAILED')return '로그인 도구를 불러오지 못했습니다. 일반 Chrome 브라우저에서 다시 시도해 주세요. Google·Supabase 설정은 변경하지 마세요.';
+ if(code==='SESSION_EXCHANGE_FAILED')return 'Google에서 돌아온 로그인 코드를 확인하지 못했습니다. 같은 브라우저 탭에서 다시 로그인해 주세요.';
+ if(code==='ACTUAL_USER_NOT_VERIFIED')return 'Google 로그인 사용자 확인에 실패했습니다. 로그인된 사용자 데이터는 열지 않았습니다.';
+ if(code==='FAMILY_RLS_UNVERIFIED'||code==='EDGE_JWT_UNVERIFIED')return 'Google 인증 이후 보호자 접근권한 확인에 실패했습니다. 학생 기록은 열지 않았습니다.';
+ if(code==='GOOGLE_OAUTH_START_FAILED')return 'Google 로그인 시작에 실패했습니다. Google 테스트 사용자와 계정 권한을 확인해 주세요.';
+ return '로그인 연결 확인에 실패했습니다. 계정 비밀번호나 비밀키는 보내지 마세요. 문제가 계속되면 이 화면을 보여주세요.';
+}
 async function safely(task){
  if(busy)return;
  busy=true;controls();
  try{await task()}
- catch{
+ catch(e){
   active=false;
   if(client)try{await client.auth.signOut()}catch{}
-  say('연결 확인에 실패했습니다. 개인 정보나 비밀키를 보내지 마세요. Google 테스트 사용자·Supabase Redirect URL·설정을 확인해 주세요.','error');
+  say(publicErrorMessage(e),'error');
  }finally{
   busy=false;stripCallbackUrl();controls();
  }
@@ -126,6 +139,14 @@ logout.addEventListener('click',()=>safely(async()=>{
 controls();
 if(!allowed){
  say('이 로그인 시험은 격리된 공식 QA 시험 주소에서만 실행할 수 있습니다.','error');
-}else{
- safely(verify);
+}else {
+ // Critical QA49 fix: a NEW visitor is not signed in. Do not attempt a
+ // network SDK import or call that will incorrectly show a red OAuth error.
+ // Only auto-exchange when returning with OAuth parameters, or validate a
+ // previously persisted session from this exact browser tab.
+ let hasStoredSession=false;
+ try{hasStoredSession=Boolean(window.sessionStorage.getItem(sessionKey))}
+ catch { /* Some in-app browsers block sessionStorage; login click reports it. */ }
+ if(callbackHasParams||hasStoredSession)safely(verify);
+ else say('준비됐습니다. 파란색 Google 로그인 버튼을 눌러 본인의 시험 계정을 선택하세요.');
 }

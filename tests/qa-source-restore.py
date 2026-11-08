@@ -127,7 +127,9 @@ def verify(source_zip: Path) -> dict:
                 "oauth-test.html",
                 "scripts/qa48-google-oauth-test.mjs",
                 "tests/qa48-google-oauth-ui.mjs",
-                "docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md"}
+                "docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md",
+                "tests/qa49-real-sdk-network-smoke.mjs",
+                "docs/QA49_Google로그인_최초오류_수정실측_v1.0.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")

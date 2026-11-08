@@ -91,6 +91,7 @@ on:
       - 'oauth-test.html'
       - 'scripts/qa48-google-oauth-test.mjs'
       - 'tests/qa48-google-oauth-ui.mjs'
+      - 'tests/qa49-real-sdk-network-smoke.mjs'
       - 'db/qa47_authenticated_guardian_status_rpc.sql'
       - 'docs/**'
       - 'scripts/qa-inapp-sync-bridge.mjs'
@@ -218,6 +219,8 @@ jobs:
         run: node tests/qa47-live-auth-ui.mjs
       - name: QA48 Google OAuth PKCE public QA-only callback, verification, sign-out, and denial (320/390px, SDK mock in CI)
         run: node tests/qa48-google-oauth-ui.mjs
+      - name: QA49 actual browser load of public Supabase CDN SDK and safely intercepted Google authorization (no user login)
+        run: node tests/qa49-real-sdk-network-smoke.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
