@@ -293,3 +293,11 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - 서명된 JWT라도 별도 보호자 승인이 없거나 DB 가족 권한이 철회되면 해당 기록을 읽거나 저장할 수 없습니다. 로컬 가상 사진/오답 JSON만 테스트합니다.
 - [검증기](scripts/qa40-oidc-resolver.mjs) · [JWT↔RLS 통합검사](tests/qa40-oidc-postgres.mjs) · [실인증 공급자 연결을 위한 수락조건](docs/QA40_G15_서명JWT_보호자RLS_연동검증_v0.1.md).
 - **실제 OIDC 공급자 연결·실보호자 확인·운영 클라우드·HTTPS·실기기 테스트는 미완료**입니다. 실행 전 `QA40_SYNTHETIC_JWKS_ONLY=1`이 필요한 로컬 합성 실험이며 운영 서비스로 연결하지 않았습니다. G15/G16 미완료, QA 기술완료 14/16(87.5%), 최종 제품 승인 0개.
+
+
+## QA41 — 서명 JWT·가족 DB·HTTP API까지 실제 통합검사 (2026-11-08)
+
+- **127.0.0.1 로컬에서만 실행되는** 합성 JWT 가족별 HTTP API가 `GET /qa41/families`, `GET/PUT .../snapshot`을 제공합니다.
+- 검증된 인증 JWT + PostgreSQL RLS + 사진 원본 확인 + `If-Match` 충돌 방지를 한 번에 적용하고, 390/320px 분리 Chromium 출처에서 CORS·가족 격리·권한 철회를 검사합니다.
+- [구현](scripts/qa41-signed-family-http.mjs) · [실제 브라우저·DB 통합검사](tests/qa41-http-api.mjs) · [운영 전제/한계](docs/QA41_G15_HTTP_JWT_RLS_통합검증_v1.0.md).
+- **실제 인증 공급자·HTTPS 운영 API·법정대리인 확인·물리 스마트폰·개인정보 운영 및 G16 학생 연구는 미완료**입니다. 합성 자료만 사용했으며 실제 서비스/Netlify에는 연결하지 않았습니다. QA 기술완료 14/16(87.5%), 제품 최종 승인 0개 유지.
