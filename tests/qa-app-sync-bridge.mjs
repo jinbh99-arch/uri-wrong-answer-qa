@@ -120,13 +120,16 @@ try{
  assert.deepEqual(remote.data.snapshot.photos,Object.fromEntries(Object.entries(remote.data.snapshot.photos)));
  assert.deepEqual(await state(A),beforeA);
  pass('기기 B에서 새 오답 추가 후 rev2 업로드, A의 데이터는 명시적 가져오기 전까지 유지');
+ const staleDownloads=[];
+ A.on('download',download=>staleDownloads.push(download));
  await A.locator('#qa34-upload').click();
- await A.getByText('서버 응답 409:',{exact:false}).waitFor();
+ await A.getByText('서버 기록이 다른 기기에서 변경되어 전송을 중단했습니다.',{exact:false}).waitFor();
+ assert.equal(staleDownloads.length,0,'stale revision should fail before downloading a raw backup');
  const unchanged=await api('/qa/snapshot','GET',undefined,tok);
  assert.equal(unchanged.data.revision,2);
  assert.equal(unchanged.data.snapshot.records.length,2);
  assert.deepEqual(await state(A),beforeA);
- pass('A의 오래된 rev1 전송은 409 차단, 서버 rev2와 A의 로컬 원본 모두 불변');
+ pass('A의 오래된 rev1 전송은 사전검사에서 차단, 원본 백업 추가 생성 없음, 서버 rev2와 로컬 원본 불변');
  await A.locator('#qa34-pull').click();
  await A.locator('#confirm-dialog[open]').waitFor({timeout:30000});
  assert.deepEqual(await state(A),beforeA);
@@ -145,7 +148,34 @@ try{
  await another.goto('http://localhost:4173/',{waitUntil:'domcontentloaded'});
  assert.equal(await another.locator('#qa34-sync-bridge').isHidden(),true);
  pass('127.0.0.1 이외 동일 서버 호스트에서 직접 교환 UI 숨김');
- console.log('QA_G15_REAL_APP_SETTINGS_BRIDGE_RESULT='+JSON.stringify({
+ // QA35: an out-of-band password rotation revokes B's active UI session.
+ // The next upload must fail at the preflight GET, before any raw JSON export,
+ // and log the UI out while preserving both the browser and server records.
+ const rotated=await api('/qa/password','POST',{
+  familyKey:FAMILY,oldPassword:PASSWORD,newPassword:PASSWORD+'-ROTATED',
+  confirmation:'ROTATE_SYNTHETIC_PASSWORD',approved:true
+ },tok,2);
+ assert.equal(rotated.status,200);
+ const remoteAfterRotation=await api('/qa/login','POST',{
+  familyKey:FAMILY,password:PASSWORD+'-ROTATED'
+ });
+ assert.equal(remoteAfterRotation.status,200);
+ const beforeRevoked=await state(B);
+ const revokedDownloads=[];
+ B.on('download',download=>revokedDownloads.push(download));
+ await B.locator('#qa34-upload').click();
+ await B.getByText('서버 응답 401:',{exact:false}).waitFor();
+ assert.equal(await B.locator('#qa34-upload').isDisabled(),true);
+ assert.equal(await B.locator('#qa34-login').isEnabled(),true);
+ assert.equal(await B.locator('#qa34-password').inputValue(),'');
+ assert.equal(revokedDownloads.length,0,'revoked session must not cause raw backup export');
+ assert.deepEqual(await state(B),beforeRevoked);
+ const freshRemote=await api('/qa/snapshot','GET',undefined,remoteAfterRotation.data.token);
+ assert.equal(freshRemote.status,200);
+ assert.equal(freshRemote.data.revision,3);
+ assert.equal(freshRemote.data.snapshot.records.length,2);
+ pass('타 기기 비밀번호 변경·전체 세션 폐기 후 업로드 사전 차단, 클라이언트 자동 로그아웃, 원본과 서버 기록 보존');
+ console.log('QA_G15_REAL_APP_SETTINGS_BRIDGE_RESULT=+JSON.stringify({
   status:'PASS',checks,realAppContexts:2,
   allRecordBytesPreserved:true,manualConfirmation:true,staleUploadDenied:true,
   actualAppSettings:true,automaticSync:false,hostedCloud:false,realChildren:0
