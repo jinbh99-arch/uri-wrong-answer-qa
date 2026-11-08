@@ -30,6 +30,10 @@ jobs:
     steps:
       - name: Checkout isolated QA repository
         uses: actions/checkout@v4
+      - name: Rebuild and restore public QA source ZIP in a temporary folder
+        run: |
+          python3 scripts/create_source_snapshot.py --output-dir source-snapshot-output
+          python3 tests/qa-source-restore.py --output-dir source-snapshot-output
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
