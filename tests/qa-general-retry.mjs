@@ -186,6 +186,14 @@ try{
  await page.locator('#clear-all').click();
  await page.locator('#confirm-dialog[open]').waitFor();
  await page.locator('#dlg-ok').click();
+ await page.waitForFunction(async name=>{
+  const req=indexedDB.open(name);
+  const database=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)});
+  try{
+   const q=database.transaction('mistakes','readonly').objectStore('mistakes').count();
+   return await new Promise((res,rej)=>{q.onsuccess=()=>res(q.result===0);q.onerror=()=>rej(q.error)});
+  }finally{database.close()}
+ },DB,{timeout:20000});
  assert.equal((await rows()).length,0);
  pass('시험용 로컬 데이터 정리 및 기존 기록 0건 확인');
  assert.deepEqual(problems,[]);
