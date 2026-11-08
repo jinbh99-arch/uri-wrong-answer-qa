@@ -31,7 +31,7 @@ def allowed(path: str) -> bool:
         return True
     if re.fullmatch(r"db/[A-Za-z0-9_.-]+\.sql", path):
         return True
-    if re.fullmatch(r"docs/[A-Za-z0-9_.-]+\.md", path):
+    if re.fullmatch(r"docs/[^/\x00]+\.md", path):
         return True
     if re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", path):
         return True
