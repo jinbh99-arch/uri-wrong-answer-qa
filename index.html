@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
-<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.29 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
+<meta content="light" name="color-scheme"/><title>우리아이 오답노트 v2.30 | 독립 시험 후보</title><meta name="robots" content="noindex,nofollow,noarchive">
 <style>
 :root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#1f3150;background:#f6f8fc;--blue:#305ee8;--deep:#183365;--muted:#61718a;--edge:#e1e7f1;--pink:#fdf1f2;--good:#16765a}
 *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #ffbc4e;outline-offset:2px}a{color:#2e5bd5;text-decoration:none}.hide{display:none!important}
@@ -792,10 +792,10 @@ const cv=$('crop-canvas');function draw(){if(!image)return;const sc=Math.min(950
 function xy(e){const r=cv.getBoundingClientRect();return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}}
 cv.onpointerdown=e=>{if(!image)return;v18InvalidateOcrAfterCrop();drag=xy(e);crop=null;cv.setPointerCapture(e.pointerId);e.preventDefault()};cv.onpointermove=e=>{if(!drag)return;const p=xy(e);crop={x:Math.min(p.x,drag.x),y:Math.min(p.y,drag.y),w:Math.abs(p.x-drag.x),h:Math.abs(p.y-drag.y)};draw();e.preventDefault()};function dragend(){drag=null;if(crop&&(crop.w<.03||crop.h<.03))crop=null;draw()}cv.onpointerup=dragend;cv.onpointercancel=dragend;
 function photoBlob(){return new Promise(resolve=>{if(!image)return resolve(null);const box=crop&&crop.w>.03&&crop.h>.03?crop:{x:0,y:0,w:1,h:1};const sw=Math.max(1,Math.round(box.w*image.naturalWidth)),sh=Math.max(1,Math.round(box.h*image.naturalHeight));const out=document.createElement('canvas'),scale=Math.min(1,1200/sw,1200/sh);out.width=Math.max(1,Math.round(sw*scale));out.height=Math.max(1,Math.round(sh*scale));out.getContext('2d').drawImage(image,Math.round(box.x*image.naturalWidth),Math.round(box.y*image.naturalHeight),sw,sh,0,0,out.width,out.height);out.toBlob(b=>resolve(b),'image/jpeg',.78)})}
-$('mistake-form').onsubmit=async e=>{e.preventDefault();$('form-error').classList.add('hide');if(!storageOk){$('form-error').textContent='브라우저 저장소를 사용할 수 없습니다. 데이터를 보관할 수 없습니다.';$('form-error').classList.remove('hide');return}const old=editId?records.find(r=>r.id===editId):null;const problemText=$('problem').value.trim().slice(0,3000),memo=$('memo').value.trim().slice(0,1000),studentAnswer=$('student-answer').value.trim().slice(0,1000);if(!problemText&&!image&&(!old?.hasPhoto||pendingRemove)){$('form-error').textContent='문제 사진 또는 직접 입력한 문제 내용이 필요합니다.';$('form-error').classList.remove('hide');return}if(!old&&records.length>=MAX_RECORDS){$('form-error').textContent='현재 시연판 최대 500건입니다. 백업 후 기록을 정리해주세요.';$('form-error').classList.remove('hide');return}const id=old?.id||('m'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12))),blob=image?await photoBlob():null;if(image&&!blob){$('form-error').textContent='사진을 저장 형식으로 변환하지 못했습니다.';$('form-error').classList.remove('hide');return}const rec={...(old||{}),id,subject:'math',childNickname:old?.childNickname||profile.nickname,gradeAtEntry:old?.gradeAtEntry||profile.grade,problemText,memo,studentAnswer,conceptId:$('concept').value,reason:$('reason').value,hasPhoto:blob?true:pendingRemove?false:!!old?.hasPhoto,createdAt:old?.createdAt||iso(),updatedAt:iso(),source:'local-demo',ocrStatus:(v18OcrStale||ocrApplied||['browser_ocr_unconfirmed','browser_ocr_reviewed'].includes(old?.ocrStatus))?($('ocr-reviewed').checked?'browser_ocr_reviewed':'browser_ocr_unconfirmed'):(old?.ocrStatus||'manual_only'),conceptVerified:false,checkHistory:old?.checkHistory||[],prerequisiteChecks:old?.prerequisiteChecks||[],studyPlan:old?.studyPlan||null,followupHistory:old?.followupHistory||[],practiceHistory:old?.practiceHistory||[]};let transactionDone=false;
+$('mistake-form').onsubmit=async e=>{e.preventDefault();$('form-error').classList.add('hide');if(!storageOk){$('form-error').textContent='브라우저 저장소를 사용할 수 없습니다. 데이터를 보관할 수 없습니다.';$('form-error').classList.remove('hide');return}const old=editId?records.find(r=>r.id===editId):null;const problemText=$('problem').value.trim().slice(0,3000),memo=$('memo').value.trim().slice(0,1000),studentAnswer=$('student-answer').value.trim().slice(0,1000);if(!problemText&&!image&&(!old?.hasPhoto||pendingRemove)){$('form-error').textContent='문제 사진 또는 직접 입력한 문제 내용이 필요합니다.';$('form-error').classList.remove('hide');return}if(!old&&records.length>=MAX_RECORDS){$('form-error').textContent='현재 시연판 최대 500건입니다. 백업 후 기록을 정리해주세요.';$('form-error').classList.remove('hide');return}const id=old?.id||('m'+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12))),blob=image?await photoBlob():null;if(image&&!blob){$('form-error').textContent='사진을 저장 형식으로 변환하지 못했습니다.';$('form-error').classList.remove('hide');return}const rec={...(old||{}),id,subject:'math',childNickname:old?.childNickname||profile.nickname,gradeAtEntry:old?.gradeAtEntry||profile.grade,problemText,memo,studentAnswer,conceptId:$('concept').value,reason:$('reason').value,hasPhoto:blob?true:pendingRemove?false:!!old?.hasPhoto,createdAt:old?.createdAt||iso(),updatedAt:iso(),source:'local-demo',ocrStatus:(v18OcrStale||ocrApplied||['browser_ocr_unconfirmed','browser_ocr_reviewed'].includes(old?.ocrStatus))?($('ocr-reviewed').checked?'browser_ocr_reviewed':'browser_ocr_unconfirmed'):(old?.ocrStatus||'manual_only'),conceptVerified:false,checkHistory:old?.checkHistory||[],prerequisiteChecks:old?.prerequisiteChecks||[],studyPlan:old?.studyPlan||null,followupHistory:old?.followupHistory||[],practiceHistory:old?.practiceHistory||[],generalRetryHistory:old?.generalRetryHistory||[]};let transactionDone=false;
 try{
   // v2.9: no normal edit may silently discard previously saved learning histories.
-  if(old && ['practiceHistory','checkHistory','prerequisiteChecks','followupHistory','studyPlan'].some(k=>
+  if(old && ['practiceHistory','generalRetryHistory','checkHistory','prerequisiteChecks','followupHistory','studyPlan'].some(k=>
     old[k]!==undefined && JSON.stringify(old[k])!==JSON.stringify(rec[k]))) {
     const err=new Error('수정 전 학습 이력이 보존되지 않았습니다. 저장을 중단합니다.');err.code='V29_HISTORY';throw err;
   }
@@ -1033,6 +1033,7 @@ for(const h of rawFollowups||[]){
  if(!h||typeof h!=='object'||Array.isArray(h)||!getConcept(h.conceptId)||!['explained','needs_help','not_checked'].includes(h.outcome)||!['completed_observation','needs_recheck'].includes(h.workflowState)||typeof h.at!=='string'||h.at.length>45||!Number.isFinite(Date.parse(h.at))||String(h.memo||'').length>500||String(h.method||'').length>50||!['explain','picture','example','question'].includes(h.method))return notify('복습 확인 이력에 유효하지 않은 항목이 있습니다.');
  cleanFollowups.push({conceptId:h.conceptId,outcome:h.outcome,workflowState:h.workflowState,at:h.at,memo:String(h.memo||''),method:h.method,by:'parent_observation'});
 }
+try{v230ValidateGeneralRetries([r])}catch{return notify('공통 재풀이 이력이 손상돼 복원을 중단했습니다.')}
 ids.add(r.id);items.push({...r,prerequisiteChecks:r.prerequisiteChecks||[],followupHistory:cleanFollowups,conceptId:getConcept(r.conceptId)?r.conceptId:'',problemText:String(r.problemText||''),memo:String(r.memo||''),studentAnswer:String(r.studentAnswer||''),checkHistory:r.checkHistory})}
 const p=data.profile;if(!/^[1-6]$/.test(String(p.grade))||String(p.nickname||'').length>20)return notify('학부모 프로필 규격이 올바르지 않습니다.');// v2.2: capture a consistent pre-confirmation state and refuse a restore if another tab changes it.
 let v22Baseline, v23PhotoBaseline;
@@ -1884,11 +1885,38 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
    }
   }
  }
+// v2.30 — Generic attempts, independently stored from arithmetic pilot history.
+// Accept old records with no generalRetryHistory; never guess whether an answer is right.
+const V230_GENERAL_LIMIT=40, V230_GENERAL_BYTES=48*1024;
+function v230ValidateGeneralRetries(rows){
+ if(!Array.isArray(rows))throw Error('공통 재풀이 목록의 구조가 잘못됐습니다.');
+ for(const r of rows){
+  if(!r||r.generalRetryHistory===undefined)continue;
+  const history=r.generalRetryHistory;
+  if(!Array.isArray(history)||history.length>V230_GENERAL_LIMIT||
+     new TextEncoder().encode(JSON.stringify(history)).length>V230_GENERAL_BYTES)
+   throw Error('공통 재풀이 기록의 건수·용량을 초과했습니다.');
+  for(const h of history){
+   if(!h||typeof h!=='object'||Array.isArray(h)||
+      Object.keys(h).some(k=>!['at','answer','explanation','review','reviewedAt'].includes(k))||
+      typeof h.at!=='string'||h.at.length>45||!Number.isFinite(Date.parse(h.at))||
+      typeof h.answer!=='string'||!h.answer.trim()||h.answer.length>500||
+      typeof h.explanation!=='string'||h.explanation.length>350||
+      !['not_checked','explained','needs_help'].includes(h.review)||
+      (h.review==='not_checked'&&h.reviewedAt!==undefined)||
+      (h.review!=='not_checked'&&(typeof h.reviewedAt!=='string'||h.reviewedAt.length>45||
+       !Number.isFinite(Date.parse(h.reviewedAt)))))
+    throw Error('공통 재풀이 항목의 형식이 올바르지 않습니다.');
+  }
+ }
+}
+
  async function v18CheckBackup(data){
   if(!data||data.format!=='uriaimath-offline-backup-v02'||!Array.isArray(data.records)||data.records.length>MAX_RECORDS||!data.profile||
      !data.photos||typeof data.photos!=='object'||Array.isArray(data.photos))throw Error('백업 규격·기록·사진 구조가 잘못됐습니다.');
   if(data.photosOmitted!==undefined&&data.photosOmitted!==0)throw Error('사진이 빠진 불완전 백업입니다.');
   v26CheckPracticeHistory(data.records);
+  v230ValidateGeneralRetries(data.records);
   const ids=new Set();
   for(const r of data.records){if(!r||typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.id)||ids.has(r.id))throw Error('중복되거나 올바르지 않은 기록 ID가 있습니다.');ids.add(r.id)}
   const pics=Object.keys(data.photos);
@@ -1919,6 +1947,7 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
      (p.subject!==undefined&&p.subject!=='math'))throw Error('학부모 설정을 손실 없이 복원할 수 없습니다.');
   const knownReason=new Set(['unknown','calculation','reading','concept','other']);
   const allowedFollowupKeys=new Set(['conceptId','outcome','workflowState','at','memo','method','by']);
+  v230ValidateGeneralRetries(data.records);
   for(const r of data.records){
    if(!r||r.subject!=='math'||!Number.isInteger(Number(r.gradeAtEntry))||Number(r.gradeAtEntry)<1||Number(r.gradeAtEntry)>6||
       !knownReason.has(r.reason)||!Array.isArray(r.checkHistory)||r.checkHistory.length>400)
@@ -2006,6 +2035,7 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
    throw Error('백업할 기록의 수 또는 형식이 잘못됐습니다.');
   // Fail closed if unsupported rows or unknown user settings would be silently lost.
   if(snapshot.records.some(r=>!r||r.subject!=='math'))throw Error('현재 화면에서 지원하지 않는 기록이 있어 일부만 백업하지 않습니다.');
+  v230ValidateGeneralRetries(snapshot.records);
   if(!v217SettingsRestorable(snapshot.settingsKeys)||!Array.isArray(snapshot.settingsValues)||snapshot.settingsKeys.length!==snapshot.settingsValues.length)throw Error('알 수 없는 설정 정보가 있어 완전한 복원이 보장되지 않습니다. 백업하지 않은 정보를 자동 누락하지 않습니다.');
   const stable=rows=>JSON.stringify(rows.map(r=>[String(r.id),JSON.stringify(r)]).sort((a,b)=>a[0].localeCompare(b[0])));
   if(stable(snapshot.records)!==stable(cachedRecords))
