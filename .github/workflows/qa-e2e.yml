@@ -54,6 +54,9 @@ on:
       - 'tests/qa-release-gates.mjs'
       - 'scripts/qa-release-readiness.mjs'
       - 'data/qa38-release-readiness-v0.1.json'
+      - 'db/qa39_family_rls.sql'
+      - 'scripts/qa39-tenant-store.mjs'
+      - 'tests/qa39-postgres-tenant.mjs'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -72,7 +75,21 @@ permissions:
 jobs:
   qa-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
+    services:
+      qa39_postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout isolated QA repository
         uses: actions/checkout@v4
@@ -86,7 +103,7 @@ jobs:
           node-version: '22'
       - name: Install Playwright for isolated Chromium
         run: |
-          npm install --no-save playwright@1.56.1
+          npm install --no-save playwright@1.56.1 pg@8.16.3
           npx playwright install --with-deps chromium
       - name: Start temporary local QA HTTP server
         run: |
@@ -115,6 +132,10 @@ jobs:
         run: node tests/qa-security-capacity.mjs
       - name: QA38 G15 G16 evidence based external-release blockers and no child data claims
         run: node tests/qa-release-gates.mjs
+      - name: QA39 G15 real isolated PostgreSQL RLS, guardian revocation and conditional family writes
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/qa39-postgres-tenant.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation

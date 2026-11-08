@@ -78,7 +78,11 @@ def verify(source_zip: Path) -> dict:
                     raise ValueError("Restored disk contents changed")
             required = {"index.html", "check.html", "README.md", "tests/qa-e2e.mjs",
                 "scripts/qa-family-gateway.mjs", "scripts/qa-inapp-sync-bridge.mjs",
-                "scripts/qa-family-merge-preflight.mjs"}
+                "scripts/qa-family-merge-preflight.mjs",
+                "db/qa39_family_rls.sql", "scripts/qa39-tenant-store.mjs",
+                "tests/qa39-postgres-tenant.mjs",
+                "docs/QA39_G15_PostgreSQL_가족격리_실운영인계_v0.1.md",
+                "docs/QA39_G16_학습효과_사전등록_검토본_v0.2.md"}
             if not required.issubset(registered):
                 raise ValueError("Missing important app/test files")
             index = (root / "index.html").read_text(encoding="utf-8")
