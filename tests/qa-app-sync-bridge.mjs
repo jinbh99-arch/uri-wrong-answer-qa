@@ -172,6 +172,10 @@ try{
    ||document.querySelector('#records-count')?.textContent?.includes('전체 2건'));
  assert.deepEqual(await state(B),Bnow);
  pass('사용자가 직접 재조회·복원 승인한 뒤 서버 최신본과 사진 원본을 유지');
+ // The app's successful restore navigates to Home; re-open Settings before
+ // testing subsequent session revocation against its visible upload button.
+ await B.locator('#nav-settings').click();
+ await B.locator('#qa34-upload:visible').waitFor();
  remote=await api('/qa/snapshot','GET',undefined,tok);
  assert.equal(remote.data.revision,2);
  assert.equal(remote.data.snapshot.records.length,2);
