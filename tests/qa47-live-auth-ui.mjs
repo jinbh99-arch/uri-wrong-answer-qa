@@ -26,11 +26,11 @@ try{
        }},
        async signOut(){calls.push('real-sdk-sign-out');logged=false;return {error:null}}
       },
-      async rpc(name){calls.push('rpc-'+name);assert.equal(name,'qa47_my_verified_family_ids');
+      async rpc(name){calls.push('rpc-'+name);if(name!=='qa47_my_verified_family_ids')throw Error('WRONG_RPC');
        return {data:approved?[F]:[],error:null}},
       functions:{
        async invoke(name,opts){calls.push('live-edge-'+name);
-        assert.equal(name,'qa47-auth-status');assert.equal(opts.method,'GET');
+        if(name!=='qa47-auth-status'||opts.method!=='GET')throw Error('WRONG_EDGE');
         return edgeFail?{error:Error('fail')}:{data:{
          authenticated:true,studentRecordsEnabled:false,
          syncWritesEnabled:false,verifiedFamilyCount:approved?1:0
