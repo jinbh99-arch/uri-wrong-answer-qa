@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>가족별 기록 교환 로컬 실험실 | 우리아이 오답노트 QA</title>
+<style>
+:root{font:16px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif;color:#21314c;background:#f4f7fc}
+*{box-sizing:border-box}body{margin:0}header{background:#233e79;color:white;padding:18px 16px}main{max-width:760px;margin:auto;padding:16px 14px 42px}
+h1{font-size:25px;margin:0}h2{font-size:19px;margin:0 0 10px}
+.card{background:white;border:1px solid #dce5f4;border-radius:18px;margin:14px 0;padding:18px;box-shadow:0 4px 14px #213f7910}
+p{margin:8px 0 12px}.small{font-size:13px;color:#536784}
+label{display:block;font-weight:680;margin-top:9px}
+input{display:block;width:100%;margin:5px 0 12px;min-height:43px;padding:9px 11px;border-radius:10px;border:1px solid #afbfdb;font:inherit}
+button{margin:5px 5px 5px 0;min-height:45px;padding:8px 16px;background:#234b94;color:white;border:none;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.48;cursor:not-allowed}
+button.secondary{background:#e6edfa;color:#233d68}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #ffb72e;outline-offset:2px}
+.notice{border:1px solid #ffcb87;border-radius:10px;background:#fff9ee;padding:10px 13px}
+#lab-status{min-height:45px;padding:10px;border-radius:10px;background:#eef3fb;white-space:pre-wrap;overflow-wrap:anywhere}
+#lab-status[data-error=true]{background:#fff0ef;color:#8e1f26}
+.flex{display:flex;flex-wrap:wrap;gap:5px}
+a{color:#204fb3}small{font-size:12px}
+</style>
+</head>
+<body>
+<header><div style="max-width:760px;margin:auto"><div style="font-size:12px">공개 시험용 · 합성자료만</div><h1>가족별 기록 교환 실험실</h1></div></header>
+<main>
+<div class="notice" role="alert"><strong>실제 자녀 정보 사용 금지</strong>
+<p>이 도구는 개발용 가상 기록만 연결합니다. 이 페이지는 로컬 <code>127.0.0.1:4173</code>에서만 실행할 수 있으며, GitHub Pages에서는 접속·업로드·다운로드 기능이 비활성화됩니다. 실제 가족 가입이나 운영 클라우드 동기화가 아닙니다.</p></div>
+<section class="card" aria-labelledby="lab-connection-heading">
+<h2 id="lab-connection-heading">1. 임시 로컬 서버 연결</h2>
+<p class="small">시험용 Node 서버 실행 시 표시되는 임시 포트를 입력하세요. 서버는 외부 인터넷에서 접속할 수 없으며, 기록은 시험용 파일에만 암호화 저장됩니다.</p>
+<label for="lab-port">임시 서버 포트</label><input id="lab-port" inputmode="numeric" type="number" min="1024" max="65535" placeholder="예: 45912">
+<label for="lab-family">가상 가족 ID</label><input id="lab-family" type="text" autocomplete="off" maxlength="35" value="qa-demo-family">
+<label for="lab-password">가상 비밀번호 (16자 이상)</label><input id="lab-password" type="password" autocomplete="new-password" placeholder="실제 사용하는 비밀번호를 넣지 마세요">
+<div class="flex"><button type="button" id="lab-register">가상 가족 만들기</button><button type="button" id="lab-login">로그인</button><button type="button" id="lab-logout" class="secondary">로그아웃</button></div>
+<p class="small">토큰과 비밀번호는 브라우저 메모리에서만 사용합니다. 새로고침하면 자동으로 로그아웃됩니다.</p>
+</section>
+<section class="card" aria-labelledby="lab-exchange-heading">
+<h2 id="lab-exchange-heading">2. 합성 데이터 수동 교환</h2>
+<p class="small">오답노트 <a href="index.html">설정 → 기록·사진 백업</a>에서 생성한 <strong>가상 데이터 JSON</strong>만 선택하세요. 서버에서 가져온 파일은 오답노트의 “백업 복원”에서 직접 불러와야 합니다. **자동 동기화는 제공하지 않습니다.**</p>
+<label for="lab-file">보내려는 합성 JSON 백업</label>
+<input type="file" id="lab-file" accept=".json,application/json">
+<label style="display:flex;align-items:flex-start;gap:9px;font-size:14px;font-weight:600">
+<input type="checkbox" id="lab-synthetic" style="width:20px;min-height:20px;margin:3px 0">
+이 파일에는 실제 어린이·가족 정보가 없으며 합성 시험자료임을 확인합니다.</label>
+<div class="flex"><button type="button" id="lab-refresh" class="secondary" disabled>서버 최신 번호 확인</button><button type="button" id="lab-upload" disabled>수동 업로드</button><button type="button" id="lab-download" class="secondary" disabled>최신 백업 다운로드</button></div>
+<p id="lab-revision" aria-live="polite">가상 가족 서버 미연결 · 개정번호 미확인</p>
+</section>
+<p id="lab-status" role="status" aria-live="polite">연결 대기 중입니다.</p>
+<p class="small">이 화면은 교육연구 또는 개인정보 보안 인증을 통과한 서비스가 아닙니다. 최신 개정번호가 바뀌면 자동 덮어쓰기를 차단합니다. 이 경우 원본 JSON을 보관하고 충돌 원인을 확인해야 합니다.</p>
+</main>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+let token='',revision=null,server='';
+const controls=['lab-register','lab-login','lab-logout','lab-refresh','lab-upload','lab-download'];
+const inLab=location.protocol==='http:'&&location.hostname==='127.0.0.1'&&location.port==='4173';
+const say=(value,error=false)=>{$('lab-status').textContent=value;$('lab-status').dataset.error=String(error)};
+if(!inLab){
+ controls.forEach(id=>$(id).disabled=true);
+ $('lab-port').disabled=true;$('lab-family').disabled=true;$('lab-password').disabled=true;
+ $('lab-file').disabled=true;$('lab-synthetic').disabled=true;
+ say('공개 사이트에서는 작동하지 않습니다. 가상 로컬 실험실(127.0.0.1:4173) 전용입니다.',true);
+ return;
+}
+function address(){
+ const port=Number($('lab-port').value);
+ if(!Number.isInteger(port)||port<1024||port>65535)throw Error('임시 포트를 정확하게 입력하세요.');
+ return 'http://127.0.0.1:'+port;
+}
+function credentials(){
+ const familyKey=$('lab-family').value.trim(),password=$('lab-password').value;
+ if(!/^qa-[a-z0-9-]{4,32}$/.test(familyKey))throw Error('가족 ID는 qa-로 시작하는 영어 소문자·숫자 형식이어야 합니다.');
+ if(password.length<16||password.length>160)throw Error('가상 비밀번호는 16~160자로 입력하세요.');
+ return {familyKey,password};
+}
+async function request(path,method='GET',payload,expectedRevision){
+ const url=address();
+ if(server&&server!==url&&token)throw Error('서버 포트를 바꾸려면 로그아웃하세요.');
+ const headers={};
+ if(token)headers.Authorization='Bearer '+token;
+ if(expectedRevision!==undefined&&expectedRevision!==null)headers['If-Match']='"'+expectedRevision+'"';
+ if(payload!==undefined)headers['Content-Type']='application/json';
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),6500);
+ try{
+  const res=await fetch(url+path,{method,headers,
+   body:payload===undefined?undefined:JSON.stringify(payload),cache:'no-store',signal:controller.signal,mode:'cors'});
+  const data=await res.json();
+  if(!res.ok)throw Error('서버 응답 '+res.status+': '+(data.error||'요청 실패'));
+  return data;
+ }finally{clearTimeout(timeout)}
+}
+function loginState(auth){
+ for(const id of ['lab-refresh','lab-upload','lab-download'])$(id).disabled=!auth;
+ if(!auth){token='';revision=null;server='';$('lab-revision').textContent='로그아웃됨 · 개정번호 미확인'}
+}
+async function refresh(){
+ const data=await request('/qa/snapshot');
+ revision=data.revision;
+ $('lab-revision').textContent='서버 개정번호 '+revision+' · 서버 기록 '+(data.snapshot?.records?.length??0)+'건 · 사진 '+Object.keys(data.snapshot?.photos||{}).length+'장';
+ return data;
+}
+async function operation(task){
+ controls.forEach(id=>$(id).disabled=true);
+ try{await task()}catch(err){say('작업 중단: '+String(err.message||err).slice(0,200),true)}
+ finally{
+  $('lab-register').disabled=false;$('lab-login').disabled=false;$('lab-logout').disabled=false;
+  const auth=Boolean(token);for(const id of ['lab-refresh','lab-upload','lab-download'])$(id).disabled=!auth;
+ }
+}
+$('lab-register').onclick=()=>operation(async()=>{
+ const data=await request('/qa/register','POST',credentials());
+ say(data.created?'가상 가족을 만들었습니다. 이제 로그인하세요.':'가족 등록 응답을 확인하세요.');
+});
+$('lab-login').onclick=()=>operation(async()=>{
+ const data=await request('/qa/login','POST',credentials());
+ token=data.token;server=address();$('lab-password').value='';
+ await refresh();
+ say('가상 가족 로그인 성공. 등록한 계정이 아닌 실사용 계정은 절대 입력하지 마세요.');
+});
+$('lab-logout').onclick=()=>operation(async()=>{
+ try{if(token)await request('/qa/logout','POST')}finally{loginState(false)}
+ say('실험용 로그인 세션이 종료되었습니다.');
+});
+$('lab-refresh').onclick=()=>operation(async()=>{
+ await refresh();say('서버의 최신 개정번호를 다시 읽었습니다. 기존 파일은 변경하지 않았습니다.');
+});
+$('lab-upload').onclick=()=>operation(async()=>{
+ if(!token||revision===null)throw Error('먼저 로그인하여 서버 개정번호를 확인하세요.');
+ if(!$('lab-synthetic').checked)throw Error('합성 자료 확인에 체크해야 합니다.');
+ const file=$('lab-file').files[0];
+ if(!file)throw Error('JSON 파일을 선택하세요.');
+ if(file.size>1000000)throw Error('로컬 실습 파일은 1MB 이하여야 합니다.');
+ const data=JSON.parse(await file.text());
+ if(data.format!=='uriaimath-offline-backup-v02'||!Array.isArray(data.records)||typeof data.profile!=='object')
+  throw Error('오답노트 전체 백업 형식이 아닙니다.');
+ const saved=await request('/qa/snapshot','PUT',data,revision);
+ revision=saved.revision;
+ $('lab-revision').textContent='서버 개정번호 '+revision+' · 합성 백업 업로드 확인';
+ say('개정번호 '+revision+'로 합성 백업을 저장했습니다. 충돌이 있으면 서버는 업로드를 거부합니다.');
+});
+$('lab-download').onclick=()=>operation(async()=>{
+ if(!token)throw Error('로그인이 필요합니다.');
+ const data=await refresh();
+ if(!data.snapshot)throw Error('서버에 저장된 합성 백업이 아직 없습니다.');
+ const blob=new Blob([JSON.stringify(data.snapshot,null,2)],{type:'application/json'});
+ const href=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=href;a.download='qa-family-synthetic-rev-'+revision+'.json';
+ a.click();setTimeout(()=>URL.revokeObjectURL(href),4000);
+ say('개정번호 '+revision+' 합성 백업을 내려받았습니다. 오답노트 설정에서 직접 복원하세요.');
+});
+say('로컬 전용 실험실이 활성화되었습니다. 임시 포트와 가상 가족 ID를 입력하세요.');
+})();
+</script>
+</body></html>

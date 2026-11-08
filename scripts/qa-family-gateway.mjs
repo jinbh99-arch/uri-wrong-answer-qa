@@ -126,6 +126,22 @@ export async function createIsolatedQaFamilyGateway(options={}){
   try{
    if(!req.socket.remoteAddress||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress))
     throw reject(403,'LOOPBACK_ONLY');
+   // QA29: a dedicated local-only HTML client can contact this random loopback port.
+   // Never accept an arbitrary Origin (including a public GitHub Pages origin).
+   const origin=req.headers.origin;
+   if(origin!==undefined){
+    if(origin!=='http://127.0.0.1:4173')throw reject(403,'ORIGIN_NOT_ALLOWED');
+    res.setHeader('Access-Control-Allow-Origin',origin);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type, If-Match');
+    res.setHeader('Access-Control-Max-Age','0');
+   }
+   if(req.method==='OPTIONS'){
+    if(origin!== 'http://127.0.0.1:4173')throw reject(403,'ORIGIN_NOT_ALLOWED');
+    res.writeHead(204,{'cache-control':'no-store'});return res.end();
+   }
+   if(origin===undefined&&req.headers['sec-fetch-site']==='cross-site')throw reject(403,'CROSS_SITE_FORBIDDEN');
    if(req.url==='/qa/register'&&req.method==='POST'){
     const {familyKey,password}=await jsonBody(req);
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
