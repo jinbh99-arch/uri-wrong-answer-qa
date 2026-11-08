@@ -50,6 +50,10 @@ on:
       - 'tests/qa-family-password-rotation.mjs'
       - 'tests/qa-family-abuse-guard.mjs'
       - 'tests/qa-family-lockout-restart.mjs'
+      - 'tests/qa-security-capacity.mjs'
+      - 'tests/qa-release-gates.mjs'
+      - 'scripts/qa-release-readiness.mjs'
+      - 'data/qa38-release-readiness-v0.1.json'
       - 'scripts/qa-inapp-sync-bridge.mjs'
       - 'tests/qa-app-sync-bridge.mjs'
       - 'qa-family-sync-lab.html'
@@ -107,6 +111,10 @@ jobs:
         run: node tests/qa-family-abuse-guard.mjs
       - name: QA36 G15 encrypted login backoff persistent across restart and family deletion
         run: node tests/qa-family-lockout-restart.mjs
+      - name: QA38 G15 limiter capacity fail closed, restart and account saturation
+        run: node tests/qa-security-capacity.mjs
+      - name: QA38 G15 G16 evidence based external-release blockers and no child data claims
+        run: node tests/qa-release-gates.mjs
       - name: QA32 G15 password rotation, all-device session revocation, AES restart and slow PUT race
         run: node tests/qa-family-password-rotation.mjs
       - name: QA31 G15 authenticated family deletion, revocation, encrypted restart, in-flight race and browser confirmation
