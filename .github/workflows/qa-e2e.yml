@@ -2,6 +2,8 @@ name: Isolated QA browser tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -15,6 +17,7 @@ on:
       - 'tests/qa-history-continuation.mjs'
       - 'tests/qa-parent-report.mjs'
       - 'tests/qa-ocr-preprocess.mjs'
+      - 'tests/qa-workflow-ux.mjs'
       - '.github/workflows/qa-e2e.yml'
 
 permissions:
@@ -56,6 +59,8 @@ jobs:
         run: node tests/qa-parent-report.mjs
       - name: QA8 temporary OCR image rotation/contrast and manual fallback
         run: node tests/qa-ocr-preprocess.mjs
+      - name: QA9 focused learning navigation and unsaved draft safeguards
+        run: node tests/qa-workflow-ux.mjs
       - name: Keep screenshot on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -69,4 +74,5 @@ jobs:
             qa-archive-failure.png
             qa-parent-report-failure.png
             qa-ocr-preprocess-failure.png
+            qa-workflow-ux-failure.png
           if-no-files-found: ignore
