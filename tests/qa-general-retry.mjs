@@ -204,7 +204,6 @@ try{
  pass('앱 실제 가져오기 UI에서 일반 재풀이·부모 관찰·원본 사진 복원 후 동일성');
  await page.locator('#nav-home').click();
  assert.match(await page.locator('#v227-evidence').innerText(),/일반 재풀이 3회/);
- await page.locator('#nav-settings').click();
  const [csvDownload]=await Promise.all([
   page.waitForEvent('download',{timeout:30000}),page.locator('#v227-export').click()
  ]);
