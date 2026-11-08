@@ -68,11 +68,11 @@ try{
    await page.locator('#save-btn').click();
    await page.locator('#v09-save-confirm:not(.hide)').waitFor();
    await page.locator('#nav-records').click();
-   await page.getByText('QA43 offline arithmetic '+width,{exact:false}).first().waitFor();
+   await page.locator('#records-list:visible').getByText('QA43 offline arithmetic '+width,{exact:false}).first().waitFor();
    await ctx.setOffline(false);
    await page.reload({waitUntil:'domcontentloaded'});
    await page.locator('#nav-records').click();
-   await page.getByText('QA43 offline arithmetic '+width,{exact:false}).first().waitFor();
+   await page.locator('#records-list:visible').getByText('QA43 offline arithmetic '+width,{exact:false}).first().waitFor();
    pass(width+'px 서버 오프라인에서도 IndexedDB 오답 작성·재접속/새로고침 후 원본 보존');
 
    await page.locator('#nav-settings').click();
