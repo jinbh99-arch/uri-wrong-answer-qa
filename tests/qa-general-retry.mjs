@@ -68,6 +68,7 @@ try{
  await page.reload();
  await selectRecord(page,'시범 문제:');
  assert.equal(await page.locator('.v230-history summary').count(),1);
+ await page.locator('.v230-history summary').click();
  assert.match(await page.locator('.v230-history').innerText(),/직각은 90도/);
  pass('새로고침 후 일반 재풀이 이력 유지');
 
