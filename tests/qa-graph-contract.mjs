@@ -47,7 +47,7 @@ function check(g,mapping) {
   schemaCheck(g,schema);
   const ids = new Set();
   for (const c of g.concepts) {
-    assert.ok(/^math\\.[a-z0-9.]+$/.test(c.concept_id),'invalid concept ID');
+    assert.ok(/^math\.[a-z0-9._]+$/.test(c.concept_id),'invalid concept ID');
     assert.ok(!ids.has(c.concept_id),'duplicate concept ID');
     ids.add(c.concept_id);
   }
