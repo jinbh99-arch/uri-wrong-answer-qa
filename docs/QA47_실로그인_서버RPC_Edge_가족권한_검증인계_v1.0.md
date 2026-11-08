@@ -6,6 +6,7 @@
 
 - **실제 적용 완료:** Supabase Auth에 연결 가능한 **공개용 publishable 키** 확인, 인증 완료 상태를 조회하는 `qa47-auth-status` Edge Function **실배포 ACTIVE v1 / verify_jwt=true**, 공개 스키마에 **SECURITY INVOKER 읽기전용 RPC** `qa47_my_verified_family_ids` 실제 마이그레이션 성공, 성인 시험용 로컬 로그인 UI 소스 및 실제 Supabase JS SDK 호출 경로 연동.
 - **실제 PostgreSQL 검증 완료:** 두 가구 합성 `auth.users`, `qa44`, `storage.objects`를 **트랜잭션 안에서 임시 작성 후 전부 ROLLBACK**; 인가된 A의 자체 보호자 1/스냅샷 1/사진 메타 1, 타가족 스냅샷·사진 메타 0, 동의 없는 B 0, 철회한 A 0. `qa47_my_verified_family_ids` 실제 DB에서 A에게 자기 가족 UUID만 1개 반환. 실제 DB에서 익명 RPC 실행권한 false, 로그인 계정 true, SECURITY DEFINER false. 재조회 후 실 가입자·가족·오답·사진 메타 **0**.
+- **추가 DB 사진 쓰기 정책 실측:** 실제 Supabase PG17의 `authenticated` 역할에 합성 A의 서버 검증된 역할 GUC를 부여한 롤백 트랜잭션에서 `storage.objects` 정책이 허용하는 A 경로의 메타데이터 **INSERT 1건 성공**, 타가족 메타데이터 0건 확인. 실 Storage REST API의 원본 파일 업로드/다운로드·이미지 크기 검증은 별도 미실시. 재조회 결과 `storage.objects=0`, `auth.users=0`.
 - **아직 실제로 완료하지 못한 것:** Google Cloud OAuth Client ID/Secret 등록·최종 사용자 Google 로그인, 실제 이메일 계정 가입/확인·메일 발송/수신, 실제 Supabase 로그인으로 얻은 JWT의 Edge/RPC 다중 사용자 종단간 테스트, Storage REST API 실제 JPEG 업로드·다운로드, 보호자 신원·동의 실증, 운영 동기화 Writer 연결/충돌·재시도·백업 복구, Android/iOS 실기기 검수. 아래 코드·CI는 이 항목들의 실검증 증빙을 대신하지 않는다.
 
 ## 서비스 API 적용 상태
