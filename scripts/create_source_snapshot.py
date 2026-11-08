@@ -90,7 +90,7 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "docs/QA43_4단계_개인정보처리방침_검토초안_v1.0.md",
                 "docs/QA43_4단계_법정대리인_동의문_검토초안_v1.0.md",
                 "docs/QA43_4단계_G16_학습효과_사전등록검토_v0.3.md",
-                "docs/QA43_4단계_출시승인_체크리스트_v1.0.md"
+                "docs/QA43_4단계_출시승인_체크리스트_v1.0.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
