@@ -21,6 +21,9 @@ from datetime import datetime, timezone
 def allowed(path: str) -> bool:
     if path in {"index.html", "check.html", "README.md"}:
         return True
+    if path in {"supabase/functions/qa47-auth-status/handler.js",
+                "supabase/functions/qa47-auth-status/index.ts"}:
+        return True
     if re.fullmatch(r"QA[0-9]+[^/]*\.md", path):
         return True
     if re.fullmatch(r"tests/[A-Za-z0-9_.-]+\.(?:mjs|py)", path):
@@ -106,7 +109,15 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "scripts/qa45-no-project-guard.mjs",
                 "data/qa45-free-no-project-plan.json",
                 "tests/qa45-no-project-guard.mjs",
-                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md"}
+                "docs/QA45_실프로젝트_미생성_무료운영_실행계획_v1.0.md",
+                "db/qa47_authenticated_guardian_status_rpc.sql",
+                "supabase/functions/qa47-auth-status/handler.js",
+                "supabase/functions/qa47-auth-status/index.ts",
+                "scripts/qa47-public-stage-config.mjs",
+                "scripts/qa47-live-auth-lab.mjs",
+                "tests/qa47-edge-auth-status.mjs",
+                "tests/qa47-live-auth-ui.mjs",
+                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)
