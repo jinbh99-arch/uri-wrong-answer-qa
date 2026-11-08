@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 
 def allowed(path: str) -> bool:
-    if path in {"index.html", "check.html", "README.md"}:
+    if path in {"index.html", "check.html", "oauth-test.html", "README.md"}:
         return True
     if path in {"supabase/functions/qa47-auth-status/handler.js",
                 "supabase/functions/qa47-auth-status/index.ts"}:
@@ -117,7 +117,11 @@ def collect(root: Path) -> list[tuple[str, bytes]]:
                 "scripts/qa47-live-auth-lab.mjs",
                 "tests/qa47-edge-auth-status.mjs",
                 "tests/qa47-live-auth-ui.mjs",
-                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md"}
+                "docs/QA47_실로그인_서버RPC_Edge_가족권한_검증인계_v1.0.md",
+                "oauth-test.html",
+                "scripts/qa48-google-oauth-test.mjs",
+                "tests/qa48-google-oauth-ui.mjs",
+                "docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md"}
     if not required.issubset(names):
         raise RuntimeError("Required application/test files missing: " + str(required - names))
     return sorted(result)

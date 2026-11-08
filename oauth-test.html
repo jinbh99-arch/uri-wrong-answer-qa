@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://esm.sh; connect-src https://hnpbwxgpwpellgeusjim.supabase.co https://esm.sh; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<title>우리아이 오답노트 · Google 로그인 연결 시험</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;background:#f7f8fc;color:#19213b}
+*{box-sizing:border-box}body{margin:0}main{max-width:560px;margin:4vh auto;padding:24px}
+header{margin-bottom:18px}.tag{display:inline-block;font-weight:700;color:#235bb6;background:#e8efff;border-radius:20px;padding:6px 12px;font-size:13px}
+h1{font-size:clamp(23px,6vw,31px);line-height:1.3;margin:12px 0}p{line-height:1.7;color:#3e4864}
+article{background:white;border:1px solid #e0e6f1;border-radius:17px;padding:25px;box-shadow:0 5px 30px rgba(31,45,87,.06)}
+button{display:flex;justify-content:center;align-items:center;gap:12px;width:100%;min-height:48px;margin-top:12px;border-radius:9px;padding:11px 17px;background:#174ea6;color:white;border:1px solid #174ea6;font:600 16px/1.5 inherit;cursor:pointer}
+button.secondary{background:white;color:#174ea6}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,a:focus-visible{outline:3px solid #f4a425;outline-offset:2px}
+.status{margin:18px 0;padding:15px;border-radius:10px;background:#eef3fb;color:#233957;line-height:1.7;min-height:60px}
+.status[data-state=success]{background:#e8f8ee;color:#15552c}
+.status[data-state=error]{background:#fff0ec;color:#923529}
+.small{font-size:14px}.muted{color:#626e85}
+footer{margin:24px 0;text-align:center;font-size:14px}
+a{color:#174ea6}
+@media(max-width:480px){main{margin:0 auto;padding:16px}article{padding:18px}}
+</style>
+</head>
+<body>
+<main>
+<header><span class="tag">개발자용 · 실계정 로그인 시험</span>
+<h1>우리아이 오답노트<br>Google 로그인 확인</h1>
+<p>설정한 Google 계정으로 실제 로그인되는지 확인하는 <strong>별도 시험 화면</strong>입니다. 운영 서비스가 아니며 아동정보를 입력받지 않습니다.</p>
+</header>
+<article aria-label="Google 인증 시험">
+<h2>Google 계정 연결 시험</h2>
+<p class="small">Google Cloud의 <strong>테스트 사용자</strong>로 등록한 본인 계정으로 로그인하세요. 로그인되더라도 보호자 확인 전에는 자녀 기록·사진을 열 수 없습니다.</p>
+<button id="google-login" type="button" disabled><span aria-hidden="true">G</span> Google 계정으로 로그인 시험</button>
+<button id="verify" class="secondary" type="button" disabled>로그인·보호자 권한 다시 확인</button>
+<button id="logout" class="secondary" type="button" disabled>시험 종료 · 로그아웃</button>
+<p id="status" class="status" role="status" aria-live="polite">안전한 시험 환경을 확인하고 있습니다.</p>
+<p class="small muted">시험에서는 이름·이메일·접속 토큰을 화면에 표시하지 않으며, 사진 업로드·학습기록 저장·운영 배포 기능은 사용하지 않습니다.</p>
+</article>
+<footer><a href="./">← 오답노트 시험 사이트로 돌아가기</a></footer>
+</main>
+<script type="module" src="./scripts/qa48-google-oauth-test.mjs"></script>
+</body>
+</html>
