@@ -83,13 +83,22 @@ function createTestStorage(options={}){
    if(salt.length!==16||hashed.length!==32||!Number.isSafeInteger(e.revision)||e.revision<0)
     throw Error('QA_ONLY: invalid account credential/revision');
    if(e.snapshot!==null)checkBackup(e.snapshot);
-   accounts.set(e.familyKey,{salt,hashed,revision:e.revision,snapshot:e.snapshot});
+   const history=e.history===undefined?[]:e.history;
+   if(!Array.isArray(history)||history.length>12)throw Error('QA_ONLY: invalid version history');
+   for(const h of history){
+    if(!Number.isSafeInteger(h?.revision)||h.revision<0||h.revision>=e.revision||!h.snapshot)
+     throw Error('QA_ONLY: invalid historical revision');
+    checkBackup(h.snapshot);
+   }
+   if(new Set(history.map(h=>h.revision)).size!==history.length)
+    throw Error('QA_ONLY: duplicate history revision');
+   accounts.set(e.familyKey,{salt,hashed,revision:e.revision,snapshot:e.snapshot,history});
   }
  }
  function persist(candidate){
   const entries=Array.from(candidate,([familyKey,a])=>({
    familyKey,salt:a.salt.toString('base64'),hashed:a.hashed.toString('base64'),
-   revision:a.revision,snapshot:a.snapshot
+   revision:a.revision,snapshot:a.snapshot,history:a.history||[]
   }));
   if(entries.length>100)throw Error('QA_ONLY: at most 100 synthetic families allowed');
   const payload=Buffer.from(JSON.stringify({accounts:entries}),'utf8');
@@ -147,7 +156,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
     if(accounts.has(familyKey))throw reject(409,'ALREADY_REGISTERED');
     const salt=randomBytes(16);
-    const created={salt,hashed:hash(password,salt),revision:0,snapshot:null};
+    const created={salt,hashed:hash(password,salt),revision:0,snapshot:null,history:[]};
     const candidate=new Map(accounts);candidate.set(familyKey,created);
     storage.persist(candidate);
     accounts.set(familyKey,created);
@@ -167,6 +176,47 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const bearer=req.headers.authorization;
     if(typeof bearer==='string'&&bearer.startsWith('Bearer '))tokens.delete(bearer.slice(7));
     return reply(res,200,{loggedOut:true});
+   }
+   if(req.url==='/qa/sync-commit'&&req.method==='POST'){
+    const bearer=req.headers.authorization;
+    if(typeof bearer!=='string'||!bearer.startsWith('Bearer '))
+     throw reject(401,'AUTH_REQUIRED');
+    const session=tokens.get(bearer.slice(7));
+    if(!session||session.expiresAt<Date.now())throw reject(401,'SESSION_MISSING_OR_EXPIRED');
+    const initial=accounts.get(session.familyKey);
+    if(!initial||!initial.snapshot)throw reject(409,'BASELINE_NOT_STORED');
+    const ifMatch=req.headers['if-match'];
+    if(typeof ifMatch!=='string'||!/^"\d+"$/.test(ifMatch))
+     throw reject(428,'IF_MATCH_REQUIRED');
+    if(ifMatch!=='"'+initial.revision+'"')throw reject(409,'STALE_REVISION');
+    const body=await jsonBody(req);
+    if(body.approved!==true)throw reject(428,'EXPLICIT_REVIEW_APPROVAL_REQUIRED');
+    if(!Number.isSafeInteger(body.baseRevision)||body.baseRevision<1||!body.base||!body.local)
+     throw reject(422,'MISSING_VERSIONED_BASE_OR_LOCAL');
+    // A client-supplied base is NOT trusted. Compare it to encrypted server history
+    // of a previously confirmed version to prevent fabricated merge ancestry.
+    const fresh=accounts.get(session.familyKey);
+    if(!fresh||fresh.revision!==initial.revision||ifMatch!=='"'+fresh.revision+'"')
+     throw reject(409,'STALE_REVISION');
+    const prior=(fresh.history||[]).find(h=>h.revision===body.baseRevision);
+    const known=prior||(fresh.revision===body.baseRevision?{snapshot:fresh.snapshot}:null);
+    if(!known||JSON.stringify(known.snapshot)!==JSON.stringify(body.base))
+     throw reject(409,'BASE_REVISION_NOT_CONFIRMED');
+    let plan;
+    try{plan=previewThreeWay(known.snapshot,body.local,fresh.snapshot)}
+    catch(e){throw reject(422,e instanceof SyncPreflightError?e.code:'INVALID_THREE_WAY_BACKUP')}
+    if(!plan.candidate||plan.outcome!=='NON_CONFLICTING_DRAFT')
+     throw reject(409,'MERGE_REQUIRES_HUMAN_CONFLICT_REVIEW');
+    // No await after the second revision verification: synchronous atomic write.
+    const previous={revision:fresh.revision,snapshot:fresh.snapshot};
+    const saved={...fresh,snapshot:structuredClone(plan.candidate),revision:fresh.revision+1,
+      history:[...(fresh.history||[]),previous].slice(-12)};
+    const candidate=new Map(accounts);candidate.set(session.familyKey,saved);
+    storage.persist(candidate);
+    accounts.set(session.familyKey,saved);
+    return reply(res,200,{stored:true,revision:saved.revision,
+      records:saved.snapshot.records.length,qaOnly:true,cloudReady:false,
+      approvedManualMerge:true},{etag:'"'+saved.revision+'"'});
    }
    if(req.url==='/qa/sync-preview'&&req.method==='POST'){
     const bearer=req.headers.authorization;
@@ -213,7 +263,13 @@ export async function createIsolatedQaFamilyGateway(options={}){
       throw reject(409,'SILENT_RECORD_OR_PHOTO_LOSS');
     }
     // In-memory atomic commit; revision increment, separate family storage.
-    const saved={...acct,snapshot:structuredClone(doc),revision:oldRev+1};
+    // A second request may commit while this request body is still streaming.
+    // Recheck the shared revision immediately before the synchronous write.
+    const fresh=accounts.get(session.familyKey);
+    if(!fresh||fresh.revision!==oldRev)throw reject(409,'STALE_REVISION');
+    const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
+    const saved={...fresh,snapshot:structuredClone(doc),revision:oldRev+1,
+      history:[...(fresh.history||[]),...(previous?[previous]:[])].slice(-12)};
     const candidate=new Map(accounts);candidate.set(session.familyKey,saved);
     // Synchronous atomic write: no acknowledgement before verified disk commit.
     storage.persist(candidate);
