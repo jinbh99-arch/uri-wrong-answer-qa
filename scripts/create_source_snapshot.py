@@ -23,7 +23,7 @@ def allowed(path: str) -> bool:
         return True
     if re.fullmatch(r"QA[0-9]+[^/]*\.md", path):
         return True
-    if re.fullmatch(r"tests/[A-Za-z0-9_.-]+\.mjs", path):
+    if re.fullmatch(r"tests/[A-Za-z0-9_.-]+\.(?:mjs|py)", path):
         return True
     if re.fullmatch(r"scripts/[A-Za-z0-9_.-]+\.py", path):
         return True
