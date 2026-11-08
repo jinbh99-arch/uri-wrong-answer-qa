@@ -365,3 +365,10 @@ GitHub Pages의 프로젝트 사이트들은 같은 `github.io` 웹 출처(origi
 - 사용자 등록된 Google OAuth **테스트 사용자**만 시험. Google Cloud Client Secret은 GitHub에 없고 Supabase에만 보관. 브라우저에서 사용하는 건 공개 가능한 `sb_publishable_` 키뿐.
 - **필수 선행 설정:** Supabase `Authentication > URL Configuration > Redirect URLs`에 `https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html`을 정확히 한 번 추가하세요. 기존 `127.0.0.1` 주소와 Google Cloud의 Supabase 콜백은 그대로 두세요.
 - [QA48 수행·검증·미완료 조건](docs/QA48_실Google로그인_공개QA_안전검증_v1.0.md): CI 가상 OAuth 검사와 실제 개인 Google 계정 로그인은 구분합니다. 본인 실로그인 검증/법정대리인 동의/실아동 데이터·운영 서비스 연결은 별도로 승인받을 때까지 미완료입니다.
+
+## QA49 — Google 시험 페이지 최초 진입의 잘못된 빨간 오류 수정 (2026-11-09)
+
+- 실제 사용자 화면에서 Supabase 허용 리디렉션 주소 2개 모두 정확히 등록된 것을 확인. 최초 방문에 로그인하지 않았는데도 "연결 실패"로 표시하던 **성급한 자동검증 구조를 수정**. 미로그인 방문은 SDK·네트워크 호출 없이 'Google 로그인 버튼을 누르세요'로 표시합니다.
+- 기존 Google OAuth PKCE → 서버 사용자 검증 → 가족별 RLS → JWT Edge → 로그아웃 체계는 유지. 로그인 전부터 오류로 표시하는 상황과 OAuth 진짜 인증·세션 교환 실패를 구분합니다.
+- Playwright SDK 모의 모바일 회귀와 **실제 CDN Supabase JS SDK 브라우저 로딩·Google authorize URL 생성** 자동검사를 분리. 실제 Google 계정 로그인/실JWT 성공 검증은 **아직 아님**.
+- [사용자용 실제 Google 로그인 시험 페이지](https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html) · [QA49 원인 분석·수정·미검증 보고](docs/QA49_Google로그인_최초오류_수정실측_v1.0.md). 이미 추가한 Supabase URL 두 개를 변경하거나 Secret을 재발급하지 마세요.
