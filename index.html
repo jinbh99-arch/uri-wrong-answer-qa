@@ -506,7 +506,7 @@ function readAll(store){return new Promise((resolve,reject)=>{if(!db)return reje
 async function saveMistake(rec,blob,dropPhoto=false){await transaction(['mistakes','photos'],'readwrite',tx=>{tx.objectStore('mistakes').put(rec,rec.id);if(dropPhoto)tx.objectStore('photos').delete(rec.id);else if(blob)tx.objectStore('photos').put(blob,rec.id)})}
 async function removeMistake(id){await transaction(['mistakes','photos'],'readwrite',tx=>{tx.objectStore('mistakes').delete(id);tx.objectStore('photos').delete(id)})}
 async function clearLegacy(){let ok=true;try{localStorage.removeItem(LEGACY_RECORDS);localStorage.removeItem(LEGACY_PROFILE)}catch{ok=false}if(typeof indexedDB.deleteDatabase==='function'){try{const deleted=await new Promise(resolve=>{const req=indexedDB.deleteDatabase(LEGACY_DB);req.onsuccess=()=>resolve(true);req.onerror=()=>resolve(false);req.onblocked=()=>resolve(false)});ok=ok&&deleted}catch{ok=false}}return ok}
-async function restoreState(){records=(await readAll('mistakes')).filter(r=>r&&r.subject==='math'&&typeof r.id==='string');const saved=await readOne('settings','profile');if(saved&&/^[1-6]$/.test(String(saved.grade)))profile={nickname:String(saved.nickname||'우리 아이').slice(0,20),grade:Number(saved.grade),subject:'math'};records.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))}
+async function restoreState(){const all=await readAll('mistakes');if(all.some(r=>!r||!wrong007AllowedSubject(r.subject)||!wrong007NonmathSafe(r)||typeof r.id!=='string'))throw Error('알 수 없는 과목 또는 수학 전용 이력이 있어 일부 기록을 숨기지 않고 불러오기를 중단했습니다.');records=all;const saved=await readOne('settings','profile');if(saved&&/^[1-6]$/.test(String(saved.grade)))profile={nickname:String(saved.nickname||'우리 아이').slice(0,20),grade:Number(saved.grade),subject:'math'};records.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))}
 // v2.19: legacy migration must NEVER quietly omit an old row or a photo.
 // This preflight is independent of IDB and runs before any writes to the active DB.
 function v219ValidateLegacyInput(raw,legacyProfile,photoPairs){
@@ -699,7 +699,7 @@ function v221CheckLiveSnapshot(snap){
  const ids=new Set();
  for(let i=0;i<snap.records.length;i++){
   const row=snap.records[i],key=snap.recordKeys[i];
-  if(!row||row.subject!=='math'||typeof row.id!=='string'||
+  if(!row||!wrong007AllowedSubject(row.subject)||!wrong007NonmathSafe(row)||typeof row.id!=='string'||
      !/^[A-Za-z0-9_-]{1,100}$/.test(row.id)||key!==row.id||ids.has(row.id))
    throw Error('화면에서 보이지 않는 미지원·손상 오답이 있어 새 저장을 중단했습니다.');
   ids.add(row.id);
@@ -1207,7 +1207,7 @@ function blobData(blob){return new Promise((resolve,reject)=>{const reader=new F
 function dataBlob(data){const m=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(data));if(!m)return null;const str=atob(m[2]);if(str.length>2.5*1024*1024)return null;const arr=new Uint8Array(str.length);for(let i=0;i<str.length;i++)arr[i]=str.charCodeAt(i);return new Blob([arr],{type:m[1]})}
 $('export-json').onclick=async()=>{if(!storageOk)return notify('저장소를 사용할 수 없습니다.');try{const photos={};let omitted=0;for(const r of records){if(!r.hasPhoto)continue;const b=await readOne('photos',r.id);if(b instanceof Blob&&b.size<2.5*1024*1024)photos[r.id]=await blobData(b);else omitted++}const data={format:'uriaimath-offline-backup-v02',exportedAt:iso(),profile,records,photos,photosOmitted:omitted,notice:'로컬 학습 기록·사진이 포함되어 있으므로 백업 파일을 안전하게 보관하세요.'};const file=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download='우리아이오답노트_로컬백업_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500);notify(omitted?`백업 다운로드 시작. 사진 ${omitted}개는 크기 제한으로 제외됩니다.`:'사진을 포함한 백업 다운로드를 시작했습니다.')}catch{notify('백업을 생성하지 못했습니다.')}};
 $('import-json').onclick=()=>{$('import-file').click()};
-$('import-file').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!storageOk)return notify('저장소를 사용할 수 없습니다.');if(file.size>30*1024*1024)return notify('백업 파일은 30MB 이하로 제한합니다.');let data;try{data=JSON.parse(await file.text())}catch{return notify('올바른 JSON 파일이 아닙니다.')}if(data?.format!=='uriaimath-offline-backup-v02'||!Array.isArray(data.records)||data.records.length>MAX_RECORDS||!data.profile||typeof data.photos!=='object'||data.photos===null||Array.isArray(data.photos))return notify('이 시연판의 백업 규격과 일치하지 않습니다.');const knownReason=new Set(['unknown','calculation','reading','concept','other']),ids=new Set(),items=[];for(const r of data.records){try{wrong006ValidateReasonCandidates(r)}catch{return notify('복수 이유 후보 형식과 기존 단일 값이 일치하지 않아 복원을 중단했습니다.')}if(!r||typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.id)||ids.has(r.id)||r.subject!=='math'||String(r.problemText||'').length>3000||String(r.memo||'').length>1000||String(r.studentAnswer||'').length>1000||!Number.isInteger(Number(r.gradeAtEntry))||Number(r.gradeAtEntry)<1||Number(r.gradeAtEntry)>6||!knownReason.has(r.reason)||!Array.isArray(r.checkHistory)||r.checkHistory.length>400||(r.prerequisiteChecks!==undefined&&(!Array.isArray(r.prerequisiteChecks)||r.prerequisiteChecks.length>100))||(r.studyPlan!==undefined&&r.studyPlan!==null&&(!r.studyPlan||typeof r.studyPlan!=='object'||Array.isArray(r.studyPlan)||!getConcept(r.studyPlan.conceptId)||!['explain','picture','example','question'].includes(r.studyPlan.method)||!/^(20\d\d)-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(String(r.studyPlan.dueDate||''))||String(r.studyPlan.note||'').length>500)))return notify('백업에 유효하지 않은 기록이 있습니다.');for(const c of r.checkHistory){if(!c||typeof c.status!=='string'||String(c.memo||'').length>1000)return notify('확인 이력의 형식이 올바르지 않습니다.')}for(const c of r.prerequisiteChecks||[]){if(!c||!getConcept(c.conceptId)||!['not_checked','explained','needs_help'].includes(c.status)||String(c.at||'').length>80)return notify('기초 개념 관찰 기록의 형식이 올바르지 않습니다.')}const rawFollowups=r.followupHistory;
+$('import-file').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(!storageOk)return notify('저장소를 사용할 수 없습니다.');if(file.size>30*1024*1024)return notify('백업 파일은 30MB 이하로 제한합니다.');let data;try{data=JSON.parse(await file.text())}catch{return notify('올바른 JSON 파일이 아닙니다.')}if(data?.format!=='uriaimath-offline-backup-v02'||!Array.isArray(data.records)||data.records.length>MAX_RECORDS||!data.profile||typeof data.photos!=='object'||data.photos===null||Array.isArray(data.photos))return notify('이 시연판의 백업 규격과 일치하지 않습니다.');const knownReason=new Set(['unknown','calculation','reading','concept','other']),ids=new Set(),items=[];for(const r of data.records){try{wrong007RecordValid(r);wrong006ValidateReasonCandidates(r)}catch{return notify('복수 이유 후보 형식과 기존 단일 값이 일치하지 않아 복원을 중단했습니다.')}if(!r||typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.id)||ids.has(r.id)||!wrong007AllowedSubject(r.subject)||!wrong007NonmathSafe(r)||String(r.problemText||'').length>3000||String(r.memo||'').length>1000||String(r.studentAnswer||'').length>1000||!Number.isInteger(Number(r.gradeAtEntry))||Number(r.gradeAtEntry)<1||Number(r.gradeAtEntry)>6||!knownReason.has(r.reason)||!Array.isArray(r.checkHistory)||r.checkHistory.length>400||(r.prerequisiteChecks!==undefined&&(!Array.isArray(r.prerequisiteChecks)||r.prerequisiteChecks.length>100))||(r.studyPlan!==undefined&&r.studyPlan!==null&&(!r.studyPlan||typeof r.studyPlan!=='object'||Array.isArray(r.studyPlan)||!getConcept(r.studyPlan.conceptId)||!['explain','picture','example','question'].includes(r.studyPlan.method)||!/^(20\d\d)-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(String(r.studyPlan.dueDate||''))||String(r.studyPlan.note||'').length>500)))return notify('백업에 유효하지 않은 기록이 있습니다.');for(const c of r.checkHistory){if(!c||typeof c.status!=='string'||String(c.memo||'').length>1000)return notify('확인 이력의 형식이 올바르지 않습니다.')}for(const c of r.prerequisiteChecks||[]){if(!c||!getConcept(c.conceptId)||!['not_checked','explained','needs_help'].includes(c.status)||String(c.at||'').length>80)return notify('기초 개념 관찰 기록의 형식이 올바르지 않습니다.')}const rawFollowups=r.followupHistory;
 if(rawFollowups!==undefined&&(!Array.isArray(rawFollowups)||rawFollowups.length>200))return notify('복습 확인 기록의 형식이 올바르지 않습니다.');
 const cleanFollowups=[];
 for(const h of rawFollowups||[]){
@@ -1720,7 +1720,7 @@ async function v07AuditBackup(){
  const snap=await v214CaptureBackupSnapshot();
  const ids=new Map();let invalidRecords=0;
  for(const r of snap.records){
-  if(!r||typeof r.id!=='string'||ids.has(r.id)||r.subject!=='math')invalidRecords++;
+  if(!r||typeof r.id!=='string'||ids.has(r.id)||!wrong007AllowedSubject(r.subject)||!wrong007NonmathSafe(r))invalidRecords++;
   else ids.set(r.id,r);
  }
  const photos=new Map();let orphan=0,oversized=0,invalid=0,bytes=0,missing=0;
@@ -2103,7 +2103,7 @@ function v230ValidateGeneralRetries(rows){
   if(data.photosOmitted!==undefined&&data.photosOmitted!==0)throw Error('사진이 빠진 불완전 백업입니다.');
   v26CheckPracticeHistory(data.records);
   v230ValidateGeneralRetries(data.records);
-  for(const r of data.records)wrong006ValidateReasonCandidates(r);
+  for(const r of data.records){wrong007RecordValid(r);wrong006ValidateReasonCandidates(r);}
   const ids=new Set();
   for(const r of data.records){if(!r||typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.id)||ids.has(r.id))throw Error('중복되거나 올바르지 않은 기록 ID가 있습니다.');ids.add(r.id)}
   const pics=Object.keys(data.photos);
@@ -2136,8 +2136,9 @@ function v230ValidateGeneralRetries(rows){
   const allowedFollowupKeys=new Set(['conceptId','outcome','workflowState','at','memo','method','by']);
   v230ValidateGeneralRetries(data.records);
   for(const r of data.records){
+   wrong007RecordValid(r);
    wrong006ValidateReasonCandidates(r);
-   if(!r||r.subject!=='math'||!Number.isInteger(Number(r.gradeAtEntry))||Number(r.gradeAtEntry)<1||Number(r.gradeAtEntry)>6||
+   if(!r||!wrong007AllowedSubject(r.subject)||!wrong007NonmathSafe(r)||!Number.isInteger(Number(r.gradeAtEntry))||Number(r.gradeAtEntry)<1||Number(r.gradeAtEntry)>6||
       !knownReason.has(r.reason)||!Array.isArray(r.checkHistory)||r.checkHistory.length>400)
     throw Error('오답 기록이 현재 복원 규격과 일치하지 않습니다.');
    for(const [field,max] of [['problemText',3000],['studentAnswer',1000],['memo',1000]]){
@@ -2222,9 +2223,9 @@ function v230ValidateGeneralRetries(rows){
   if(!snapshot||!Array.isArray(snapshot.records)||!Array.isArray(snapshot.recordKeys)||snapshot.recordKeys.length!==snapshot.records.length||!Array.isArray(snapshot.photos)||snapshot.records.length>MAX_RECORDS)
    throw Error('백업할 기록의 수 또는 형식이 잘못됐습니다.');
   // Fail closed if unsupported rows or unknown user settings would be silently lost.
-  if(snapshot.records.some(r=>!r||r.subject!=='math'))throw Error('현재 화면에서 지원하지 않는 기록이 있어 일부만 백업하지 않습니다.');
+  if(snapshot.records.some(r=>!r||!wrong007AllowedSubject(r.subject)||!wrong007NonmathSafe(r)))throw Error('현재 화면에서 지원하지 않는 기록이 있어 일부만 백업하지 않습니다.');
   v230ValidateGeneralRetries(snapshot.records);
-  for(const r of snapshot.records)wrong006ValidateReasonCandidates(r);
+  for(const r of snapshot.records){wrong007RecordValid(r);wrong006ValidateReasonCandidates(r);}
   if(!v217SettingsRestorable(snapshot.settingsKeys)||!Array.isArray(snapshot.settingsValues)||snapshot.settingsKeys.length!==snapshot.settingsValues.length)throw Error('알 수 없는 설정 정보가 있어 완전한 복원이 보장되지 않습니다. 백업하지 않은 정보를 자동 누락하지 않습니다.');
   const stable=rows=>JSON.stringify(rows.map(r=>[String(r.id),JSON.stringify(r)]).sort((a,b)=>a[0].localeCompare(b[0])));
   if(stable(snapshot.records)!==stable(cachedRecords))
