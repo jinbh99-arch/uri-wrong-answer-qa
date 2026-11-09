@@ -188,8 +188,9 @@ try {
   db.close();return rows.find(x=>Array.isArray(x.reasonCandidates)&&x.reasonCandidates.length===2&&x.reasonCandidates[0]===x.reasonCandidates[1])?.id;
  });
  assert.equal(warning,idMulti);
+ const blockedDownload=B.waitForEvent('download',{timeout:1500});
  await B.locator('#export-json').click();
- await B.waitForTimeout(300);
+ await assert.rejects(blockedDownload,/Timeout/,'손상된 후보가 있는 기록은 전체 백업을 내려받을 수 없어야 합니다.');
  assert.equal((await snapshot(B)).records.length,3);
  // Restore the original clean authenticated backup, then verify no corrupt value persisted.
  await restore(B,bytes);
