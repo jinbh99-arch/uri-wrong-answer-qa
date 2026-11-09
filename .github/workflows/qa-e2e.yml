@@ -20,6 +20,7 @@ on:
       - 'tests/qa-workflow-ux.mjs'
       - 'tests/wrong002-core-journey.mjs'
       - 'tests/wrong003-first-use-photo-flow.mjs'
+      - 'tests/wrong004-two-browser-journey.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -187,6 +188,10 @@ jobs:
         env:
           QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
         run: node tests/qa42-native-app-http.mjs
+      - name: WRONG-004 actual app 390px parent / 320px child-view signed synthetic JWT family lifecycle
+        env:
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: node tests/wrong004-two-browser-journey.mjs
       - name: QA43 step 1 release config, role, secrets, OIDC and guardian approval fail closed
         run: node tests/qa43-ops-preflight.mjs
       - name: QA43 step 2 AES-GCM family backups, PostgreSQL disaster restore, CAS, deletion, revocation
