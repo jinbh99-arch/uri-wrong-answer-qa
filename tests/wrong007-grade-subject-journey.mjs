@@ -134,6 +134,8 @@ try{
  assert.equal(pick(blocked,mathId).subject,'math');assert.equal(pick(blocked,mathId).gradeAtEntry,4);
  assert.deepEqual(blocked.photos,first.photos);
  await A.locator('#cancel-edit').click();
+ await A.locator('#confirm-dialog[open]').waitFor({timeout:10000});
+ await A.locator('#dlg-ok').click(); // explicit discard of the unsaved subject edit
  pass('기존 수학 개념·부모 관찰이 있는 오답을 영어로 변경하면 무손실 사전 차단');
 
  await A.locator('#nav-records').click();
