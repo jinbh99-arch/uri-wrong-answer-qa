@@ -39,6 +39,13 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
  const DB='uriaimath-github-qa-v224-only';
  const idOkay=id=>/^[A-Za-z0-9_-]{1,100}$/.test(String(id||''));
  const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ // The original importer reconstructs followupHistory entries with a different
+ // property order. Check EVERY field/value, array order and photo SHA-256 while
+ // ignoring only JSON object key insertion order; server CAS remains unchanged.
+ const canonicalJson=value=>JSON.stringify(value,(_,v)=>
+  v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype
+   ?Object.fromEntries(Object.keys(v).sort().map(key=>[key,v[key]]))
+   :v);
  async function sha(bytes){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)))}
  // Read all app stores in ONE readonly transaction; no writes or downloaded
  // raw JSON, so failed preflight cannot clobber a local family record.
@@ -67,9 +74,9 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
     throw Error('기존 기록·사진·설정 검사 실패: 미지원 저장 상태');
    return {empty:rows.length===0&&keys.length===0,
     signature:JSON.stringify({
-     records:rows.map(r=>[String(r.id),JSON.stringify(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
+     records:rows.map(r=>[String(r.id),canonicalJson(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
      photos:await Promise.all(keys.map(async(k,i)=>[String(k),blobs[i]?.type,await sha(await blobs[i].arrayBuffer())])).then(a=>a.sort((x,y)=>x[0].localeCompare(y[0]))),
-     profile:JSON.stringify(profile||{nickname:'우리 아이',grade:3,subject:'math'})
+     profile:canonicalJson(profile||{nickname:'우리 아이',grade:3,subject:'math'})
     })};
   }finally{db.close()}
  }
@@ -83,9 +90,9 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
    photos.push([String(id),m[1],await sha(bytes)]);
   }
   return JSON.stringify({
-   records:doc.records.map(r=>[String(r.id),JSON.stringify(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
+   records:doc.records.map(r=>[String(r.id),canonicalJson(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
    photos:photos.sort((a,b)=>a[0].localeCompare(b[0])),
-   profile:JSON.stringify(doc.profile||null)
+   profile:canonicalJson(doc.profile||null)
   });
  }
  function targetOptions(doc){
