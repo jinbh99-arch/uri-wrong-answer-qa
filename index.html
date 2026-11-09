@@ -4452,7 +4452,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     await wrong008PreviousDetail();
     if(route!=='detail')return;
     const record=records.find(x=>x.id===detailId);
-    if(record?.subject!=='math')wrong008RenderManualRecheck(record);
+    if(record&&record.subject!=='math')wrong008RenderManualRecheck(record);
   };
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
