@@ -993,7 +993,11 @@ try{
   $('form-error').classList.remove('hide');
 }};
 $('cancel-edit').onclick=()=>{editId=null;navigate('records')};
-async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===detailId),e=$('detail-card');e.replaceChildren();if(!r){e.append(make('div','card','해당 기록이 없습니다.'));return}const card=make('div','card');card.innerHTML=`<div class="row spread"><span class="chip">${safe(cname(r.conceptId))}</span><span class="small">${safe(date(r.createdAt))}</span></div><h2>문제 내용</h2><p id="detail-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><div id="detail-image" class="record-photo hide"></div><h3>아이가 적은 답 또는 풀이 (학부모 직접 입력)</h3><p id="detail-student-answer" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>학부모 메모</h3><p id="detail-memo" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>틀린 이유 후보 (추정·미확정, 복습 관찰 아님)</h3><p id="detail-reason" class="small"></p><div class="row"><button id="detail-concept" class="primary">📚 현재 교과 개념 설명</button><button id="detail-edit" class="secondary v218-parent-only">수정</button><button id="detail-delete" class="danger v218-parent-only">삭제</button></div><section class="v218-parent-only"><hr class="line"><h2>🔎 복습 후 확인 기록</h2><div class="callout small" id="detail-learning-aid" aria-live="polite"></div><p class="small">질문을 해 본 후 학부모가 관찰한 결과만 기록합니다. 자동 숙련도 판정은 하지 않습니다.</p><label class="field" for="check-status">이번에 관찰한 내용</label><select id="check-status" class="control"><option value="explained">아이 스스로 설명했음</option><option value="needs_help">도움이 필요했음</option><option value="mistake">계산·표기 실수로 보임</option><option value="not_checked">아직 확인하지 못함</option></select><label class="field" for="check-memo">확인 내용 또는 다음 질문 (선택)</label><textarea id="check-memo" class="control notes" maxlength="1000" placeholder="예: 1/2과 2/4가 같은 크기임을 그림으로 설명함"></textarea><div class="row"><button id="check-save" class="secondary">이번 확인 기록 저장</button></div><h3>확인 이력</h3><div id="check-history" class="list"></div></section>`;e.append(card);$('detail-text').textContent=r.problemText||'(사진으로만 등록한 문제)';$('detail-student-answer').textContent=r.studentAnswer||'(미입력)';$('detail-memo').textContent=r.memo||'(없음)';renderLearningAid(r);$('detail-reason').textContent=wrong006CandidateSummary(r);
+async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===detailId),e=$('detail-card');e.replaceChildren();if(!r){e.append(make('div','card','해당 기록이 없습니다.'));return}const card=make('div','card');card.innerHTML=`<div class="row spread"><span class="chip">${safe(cname(r.conceptId))}</span><span class="small">${safe(date(r.createdAt))}</span></div><h2>문제 내용</h2><p id="detail-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><div id="detail-image" class="record-photo hide"></div><h3>아이가 적은 답 또는 풀이 (학부모 직접 입력)</h3><p id="detail-student-answer" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>학부모 메모</h3><p id="detail-memo" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>틀린 이유 후보 (추정·미확정, 복습 관찰 아님)</h3><p id="detail-reason" class="small"></p><div class="row"><button id="detail-concept" class="primary">📚 현재 교과 개념 설명</button><button id="detail-edit" class="secondary v218-parent-only">수정</button><button id="detail-delete" class="danger v218-parent-only">삭제</button></div><section class="v218-parent-only"><hr class="line"><h2>🔎 복습 후 확인 기록</h2><div class="callout small" id="detail-learning-aid" aria-live="polite"></div><p class="small">질문을 해 본 후 학부모가 관찰한 결과만 기록합니다. 자동 숙련도 판정은 하지 않습니다.</p><label class="field" for="check-status">이번에 관찰한 내용</label><select id="check-status" class="control"><option value="explained">아이 스스로 설명했음</option><option value="needs_help">도움이 필요했음</option><option value="mistake">계산·표기 실수로 보임</option><option value="not_checked">아직 확인하지 못함</option></select><label class="field" for="check-memo">확인 내용 또는 다음 질문 (선택)</label><textarea id="check-memo" class="control notes" maxlength="1000" placeholder="예: 1/2과 2/4가 같은 크기임을 그림으로 설명함"></textarea><div class="row"><button id="check-save" class="secondary">이번 확인 기록 저장</button></div><h3>확인 이력</h3><div id="check-history" class="list"></div></section>`;e.append(card);$('detail-text').textContent=r.problemText||'(사진으로만 등록한 문제)';$('detail-student-answer').textContent=r.studentAnswer||'(미입력)';$('detail-memo').textContent=r.memo||'(없음)';renderLearningAid(r);
+ const context=make('p','callout small','과목: '+wrong007SubjectName(r.subject)+' · 초등 '+r.gradeAtEntry+'학년 (학부모 수동 기록, 공식 학년군 아님)');
+ context.id='wrong007-record-context';$('detail-text').before(context);
+ $('detail-concept').classList.toggle('hide',r.subject!=='math');
+ $('detail-reason').textContent=wrong006CandidateSummary(r);
  const semantic=make('section','callout small');
  semantic.id='wrong005-semantic-separation';
  semantic.setAttribute('aria-label','개념, 원인 후보, 복습 관찰의 의미 구분');
@@ -1105,6 +1109,7 @@ function renderTree(id){
 
 function renderLearningAid(r){
  const box=$('detail-learning-aid');if(!box)return;box.replaceChildren();
+ if(r.subject!=='math'){box.append(make('p','small',wrong007SubjectName(r.subject)+'에는 수학 개념·성취기준·자동 확인 질문을 적용하지 않습니다. 학부모가 직접 설명을 듣고 관찰을 기록해주세요.'));return}
  const id=r.conceptId;if(!id){box.append(make('p','small','관련 개념이 아직 선택되지 않았습니다. 개념을 수동으로 정한 뒤 관련 설명을 확인할 수 있습니다.'));return}
  box.append(make('strong',null,`부모와 함께 확인하기: ${cname(id)}`));
  const selected=questions.filter(q=>q.concept_id===id);
@@ -1549,7 +1554,7 @@ const renderHome_v04=renderHome;
 renderHome=function(){renderHome_v04();renderConceptDashboard()};
 function relatedConceptIds(id){return [id,...edges.filter(e=>e.to_concept_id===id&&['prerequisite_required','prerequisite_supportive'].includes(e.relation_type)).map(e=>e.from_concept_id)].filter((v,i,a)=>getConcept(v)&&a.indexOf(v)===i)}
 function renderFollowUpPanel(){
-  const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail')return;
+  const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail'||r.subject!=='math')return;
   const before=parent.querySelector('#v05-followup');if(before)before.remove();
   const card=make('section','card v218-parent-only');card.id='v05-followup';
   card.append(make('h2',null,'🗓️ 이 오답에서 다음 복습을 정하기'));
@@ -1631,7 +1636,7 @@ function v06RenderHomeReviews(){
 const renderHome_v05=renderHome;
 renderHome=function(){renderHome_v05();v06RenderHomeReviews()};
 function v06FollowupPanel(){
- const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail')return;
+ const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail'||r.subject!=='math')return;
  parent.querySelector('#v06-review-cycle')?.remove();
  const card=make('section','card v218-parent-only');card.id='v06-review-cycle';
  card.append(make('h2',null,'✅ 복습 후 결과 기록하기'));
@@ -1849,6 +1854,7 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
  });
  function v11DetailNextSteps(){
    const r=records.find(x=>x.id===detailId);if(!r)return;
+   if(r.subject!=='math'){const p=$('detail-card');if(p)p.append(make('p','callout small',wrong007SubjectName(r.subject)+'에는 수학과 성취기준·수학 개념 연결을 제공하지 않습니다. 일반 재풀이와 학부모 확인을 이용하세요.'));return}
    const parent=$('detail-card');if(!parent)return;
    if(v11PhotoOnly(r)){
      const box=make('div','v11-guide');box.append(make('h3',null,'✅ 사진은 저장됐습니다. 다음은 언제든 이어서 할 수 있어요.'));
@@ -3414,8 +3420,9 @@ function v230RenderGenericRetry(box,r){
   '위쪽 저장된 사진을 보면서 답을 적어 보세요. 문제 글자를 인식하지 않아도 사용할 수 있습니다.':
   '위에 보이는 원래 문제를 다시 풀어보세요. 이 유형은 자동 풀이·채점을 제공하지 않습니다.');
  card.append(intro);
- v231LearningSupport(card,r);
- if(r.conceptId&&getConcept(r.conceptId)){
+ if(r.subject==='math')v231LearningSupport(card,r);
+ else card.append(make('p','small','이 과목에는 수학 개념 지도·문제 유형의 정답 판정이 제공되지 않습니다. 답과 설명만 기록합니다.'));
+ if(r.subject==='math'&&r.conceptId&&getConcept(r.conceptId)){
   const go=make('button','secondary','📚 학부모가 선택한 관련 개념 살펴보기');
   go.type='button';
   go.onclick=()=>{$('concept-select').value=r.conceptId;navigate('concepts')};
@@ -3512,6 +3519,11 @@ function v230RenderGenericRetry(box,r){
 }
 const v230OriginalRenderLearning=renderV25LearningPanel;
 renderV25LearningPanel=function(){
+ const r=records.find(x=>x.id===detailId);
+ if(route==='detail'&&r&&r.subject!=='math'){
+  const box=$('v25-learning-flow');if(box)v230RenderGenericRetry(box,r);
+  return;
+ }
  v230OriginalRenderLearning();
  if(route!=='detail')return;
  const row=records.find(x=>x.id===detailId),area=$('v25-learning-flow');
