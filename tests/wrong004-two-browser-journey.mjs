@@ -178,7 +178,7 @@ try{
  await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'));
  await A.locator('#v230-review').selectOption('needs_help');
  await A.locator('#v230-review-save').click();
- await A.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help');
+ await A.waitForFunction(()=>document.querySelector('#wrong008-next-review')?.textContent?.includes('부모 도움이 필요했다고 기록'));
  const wrong008Day=await A.evaluate(()=>{
   const d=new Date();d.setDate(d.getDate()+5);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
