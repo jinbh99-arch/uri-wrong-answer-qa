@@ -7,6 +7,7 @@ import {createQa39TenantStore} from './qa39-tenant-store.mjs';
 const SITE_ORIGIN='http://127.0.0.1:4173';
 const BODY_LIMIT=1024*1024;
 const UUID_PATH=/^\/qa41\/families\/([0-9a-fA-F-]{36})\/snapshot$/;
+const LEARNING_PATH=/^\/qa41\/families\/([0-9a-fA-F-]{36})\/learning-commit$/;
 const HEADERS={
  'cache-control':'no-store, max-age=0',
  pragma:'no-cache',
@@ -27,7 +28,9 @@ function statusFor(err){
  if(code==='FAMILY_NOT_ACCESSIBLE')return [404,'NOT_FOUND'];
  if(code==='STALE_REVISION'||code==='STALE_OR_UNAUTHORIZED_COMMIT'||
     code==='SILENT_RECORD_OR_PHOTO_LOSS'||code==='RECORD_CONFLICT'||
-    code==='PROFILE_CONFLICT'||code==='PHOTO_CONFLICT')return [409,'CONFLICT'];
+    code==='PROFILE_CONFLICT'||code==='PHOTO_CONFLICT'||code==='LEARNING_CHANGE_UNSAFE'||code==='BASE_SNAPSHOT_MISMATCH')return [409,'CONFLICT'];
+ if(code==='APPROVAL_REQUIRED')return [428,'APPROVAL_REQUIRED'];
+ if(code==='NO_NEW_LEARNING_EVIDENCE')return [422,'INVALID_LEARNING_CHANGE'];
  if(code==='CHECKSUM'||code==='ORPHAN'||code==='FORMAT'||
     code==='PROFILE'||code==='COUNT'||code==='ROW'||code==='PHOTOS'||
     code==='DUPLICATE'||code==='KEY'||code==='CAPACITY'||code==='SIZE')
@@ -57,12 +60,12 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
    }
    const cors={
     'access-control-allow-origin':SITE_ORIGIN,
-    'access-control-allow-methods':'GET, PUT, OPTIONS',
+    'access-control-allow-methods':'GET, PUT, POST, OPTIONS',
     'access-control-allow-headers':'Authorization, Content-Type, If-Match',
     'access-control-max-age':'300'
    };
    if(req.method==='OPTIONS'){
-    if(req.url==='/qa41/families'||UUID_PATH.test(req.url||'')){
+    if(req.url==='/qa41/families'||UUID_PATH.test(req.url||'')||LEARNING_PATH.test(req.url||'')){
      res.writeHead(204,{...HEADERS,...cors});res.end();
     }else output(res,404,{error:'NOT_FOUND'},cors);
     return;
@@ -70,15 +73,16 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
    if(!req.url||req.url.length>200||req.url.includes('?')){
     output(res,404,{error:'NOT_FOUND'},cors);return;
    }
-   const familyMatch=UUID_PATH.exec(req.url);
+   const familyMatch=UUID_PATH.exec(req.url),learningMatch=LEARNING_PATH.exec(req.url);
    const isFamilyList=req.url==='/qa41/families';
-   if(!familyMatch&&!isFamilyList){
+   if(!familyMatch&&!learningMatch&&!isFamilyList){
     output(res,404,{error:'NOT_FOUND'},cors);return;
    }
    if((isFamilyList&&req.method!=='GET')||
-      (familyMatch&&!['GET','PUT'].includes(req.method))){
+      (familyMatch&&!['GET','PUT'].includes(req.method))||
+      (learningMatch&&req.method!=='POST')){
     output(res,405,{error:'METHOD_NOT_ALLOWED'},
-     {...cors,allow:isFamilyList?'GET, OPTIONS':'GET, PUT, OPTIONS'});return;
+     {...cors,allow:isFamilyList?'GET, OPTIONS':'GET, PUT, POST, OPTIONS'});return;
    }
    const authorization=req.headers.authorization;
    const bearer=(typeof authorization==='string'&&
@@ -92,7 +96,7 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
     const families=await store.families(ctx);
     output(res,200,{families},cors);return;
    }
-   const id=familyMatch[1];
+   const id=(familyMatch||learningMatch)[1];
    if(req.method==='GET'){
     const result=await store.read(ctx,id);
     if(!result){output(res,404,{error:'NOT_FOUND'},cors);return}
@@ -116,11 +120,22 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
      {error:err.code==='BODY_TOO_LARGE'?'BODY_TOO_LARGE':'MALFORMED_JSON'},cors);
     return;
    }
-   if(!body||Array.isArray(body)||typeof body!=='object'||
-      Object.keys(body).length!==1||!Object.hasOwn(body,'snapshot')){
+   if(!body||Array.isArray(body)||typeof body!=='object'){
     output(res,400,{error:'INVALID_REQUEST_BODY'},cors);return;
    }
-   const result=await store.put(ctx,id,Number(ifMatch.slice(1,-1)),body.snapshot);
+   let result;
+   if(learningMatch){
+    if(Object.keys(body).length!==3||!Object.hasOwn(body,'base')||
+       !Object.hasOwn(body,'local')||body.approved!==true){
+      output(res,428,{error:'APPROVAL_REQUIRED'},cors);return;
+    }
+    result=await store.commitLearning(ctx,id,Number(ifMatch.slice(1,-1)),body.base,body.local,body.approved);
+   }else{
+    if(Object.keys(body).length!==1||!Object.hasOwn(body,'snapshot')){
+      output(res,400,{error:'INVALID_REQUEST_BODY'},cors);return;
+    }
+    result=await store.put(ctx,id,Number(ifMatch.slice(1,-1)),body.snapshot);
+   }
    output(res,200,result,{...cors,etag:'"'+result.revision+'"'});
   }catch(err){
    const [status,code]=statusFor(err);
@@ -130,7 +145,7 @@ export async function createQa41LoopbackFamilyApi({pool,resolveAuthenticatedPrin
    // Never grant a CORS header to an untrusted or absent Origin.
    const safeCors=req.headers.origin===SITE_ORIGIN?{
     'access-control-allow-origin':SITE_ORIGIN,
-    'access-control-allow-methods':'GET, PUT, OPTIONS',
+    'access-control-allow-methods':'GET, PUT, POST, OPTIONS',
     'access-control-allow-headers':'Authorization, Content-Type, If-Match',
     'access-control-max-age':'300'
    }:{};
