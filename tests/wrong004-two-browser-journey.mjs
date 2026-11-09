@@ -273,8 +273,25 @@ try{
  assert.equal(await outside.locator('#wrong004-handoff').count(),0);
  assert.deepEqual(errors,[]);
  for(const [page,width] of [[A,390],[B,320]]){
-  const {scroll,inner}=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,inner:innerWidth}));
-  assert.ok(scroll<=inner+2,'horizontal overflow '+width);
+  const {scroll,inner,offenders}=await page.evaluate(()=>{
+   const inner=innerWidth,scroll=document.documentElement.scrollWidth;
+   const offenders=Array.from(document.querySelectorAll('body *'))
+    .filter(el=>{
+     if(el.closest('.hide,[hidden]'))return false;
+     const style=getComputedStyle(el);
+     if(style.display==='none'||style.visibility==='hidden')return false;
+     const rect=el.getBoundingClientRect();
+     return rect.width>0&&(rect.right>inner+2||rect.left < -2)&&
+      rect.right>0&&rect.left<inner;
+    })
+    .slice(0,15).map(el=>{
+     const r=el.getBoundingClientRect();
+     return {tag:el.tagName,id:el.id,classes:String(el.className).slice(0,60),
+      left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)};
+    });
+   return {scroll,inner,offenders};
+  });
+  assert.ok(scroll<=inner+2,'horizontal overflow '+width+' actual scroll '+scroll+'/'+inner+' candidates '+JSON.stringify(offenders));
  }
  pass('다른 가족·비인가 origin·320/390px 모바일 넘침·브라우저 오류 없음');
  console.log('WRONG004_PARENT_CHILD_RESULT='+JSON.stringify({
