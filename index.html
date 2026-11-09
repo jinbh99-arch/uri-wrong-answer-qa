@@ -803,12 +803,12 @@ $('dlg-ok').onclick=()=>settle(true);$('dlg-cancel').onclick=()=>settle(false);$
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
-function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 재확인 ${r.checkHistory?.length||0}회`);b.append(title,foot);box.append(b)}}
+function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);box.append(b)}}
 function renderHome(){renderObservationSummary();renderWeeklyStats();const sorted=[...records].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));$('home-count').textContent=records.length;$('home-concepts').textContent=new Set(records.map(x=>x.conceptId).filter(Boolean)).size;$('home-last').textContent=sorted[0]?date(sorted[0].createdAt):'—';$('home-profile').textContent=`👧 ${profile.nickname} · 기본 ${profile.grade}학년 · 기록별 학년·과목 입력 (이 기기 내 기록)`;list('home-recent',sorted.slice(0,4),'아직 등록된 오답이 없습니다. 첫 오답을 기록해 보세요.');const repeated=Object.entries(groupCount()).filter(([k,n])=>k!=='미분류'&&n>=2).sort((a,b)=>b[1]-a[1]);const box=$('home-repeat');box.replaceChildren();if(!repeated.length){box.append(make('p','small','아직 2회 이상 등록된 관련 개념이 없습니다.'))}for(const [k,n] of repeated.slice(0,3))box.append(make('div','tagline',`${cname(k)} — 오답 등록 ${n}건 (이해 부족 확정 아님)`))}
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
  const n={explained:0,needs_help:0,mistake:0,not_checked:0};
- for(const r of records)for(const c of r.checkHistory||[])if(Object.prototype.hasOwnProperty.call(n,c.status))n[c.status]++;
+ for(const r of records)for(const c of r.checkHistory||[])if(!wrong008ManualDate(c)&&Object.prototype.hasOwnProperty.call(n,c.status))n[c.status]++;
  for(const [key,title] of Object.entries({explained:'스스로 설명함',needs_help:'도움이 필요했음',mistake:'실수로 보임',not_checked:'확인 전'})){
   const item=make('div','mini-stat');item.append(make('strong',null,String(n[key])),make('span','small',title));box.append(item)
  }
@@ -1004,11 +1004,11 @@ async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===d
  semantic.append(make('strong',null,'이 오답에 저장된 서로 다른 3가지 정보'));
  semantic.append(make('p',null,'① 문제 관련 개념(학부모 수동 분류): '+(r.subject==='math'?(r.conceptId?cname(r.conceptId):'미분류·확인 전'):'비수학 개념 연결 미지원·미분류')));
  semantic.append(make('p',null,'② 틀린 이유 후보(학부모 추정·미확정): '+$('detail-reason').textContent));
- semantic.append(make('p',null,'③ 복습 후 학부모 관찰(실제 기록): 오답 확인 '+(r.checkHistory?.length||0)+'회 · 복습 후 '+(r.followupHistory?.length||0)+'회. 기록 없음은 원인 판정이나 이해도 판정이 아닙니다.'));
+ semantic.append(make('p',null,'③ 복습 후 학부모 관찰(실제 기록): 오답 확인 '+wrong008ObservedCheckCount(r)+'회 · 복습 후 '+(r.followupHistory?.length||0)+'회. 기록 없음은 원인 판정이나 이해도 판정이 아닙니다.'));
  $('detail-reason').after(semantic);
 $('detail-concept').onclick=()=>{$('concept-select').value=r.conceptId||'math.fraction.meaning';navigate('concepts')};$('detail-edit').onclick=()=>{editId=r.id;navigate('add')};$('detail-delete').onclick=async()=>{if(!await confirmBox('이 오답을 삭제할까요?','문제 기록·사진·확인 이력을 모두 삭제합니다.'))return;try{await v20RemoveMistakeGuarded(r.id,JSON.stringify(r));await restoreState();notify('오답과 사진을 삭제했습니다.');navigate('records')}catch{notify('삭제하지 못했습니다.')}};
 $('check-save').onclick=async()=>{if(!storageOk)return notify('저장소를 사용할 수 없습니다.');const fresh=records.find(x=>x.id===r.id);if(!fresh)return;const status=$('check-status').value,memo=$('check-memo').value.trim().slice(0,1000);const copy={...fresh,updatedAt:iso(),checkHistory:[...(fresh.checkHistory||[]),{at:iso(),status,memo,by:'parent_observation'}]};try{await v20SaveMistakeGuarded(copy,null,false,JSON.stringify(fresh));await restoreState();notify('학부모 관찰 결과를 저장했습니다.');renderDetail()}catch{notify('확인 기록 저장에 실패했습니다.')}};
-function renderHistory(){const el=$('check-history');el.replaceChildren();const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));for(const c of entries){const box=make('div','tagline');box.append(make('strong',null,`${date(c.at)} · ${labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)}}renderHistory();
+function renderHistory(){const el=$('check-history');el.replaceChildren();const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));for(const c of entries){const box=make('div','tagline');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)}}renderHistory();
 if(r.hasPhoto){try{const b=await readOne('photos',r.id);if(token!==loadToken||route!=='detail'||detailId!==r.id)return;if(b instanceof Blob){const url=URL.createObjectURL(b),im=new Image();im.alt='기기에 저장된 문제 부분 사진';im.src=url;im.onload=()=>URL.revokeObjectURL(url);$('detail-image').append(im);$('detail-image').classList.remove('hide')}else{$('detail-image').append(make('p','small','사진 기록이 있으나 저장된 파일을 찾을 수 없습니다.'));$('detail-image').classList.remove('hide')}}catch{$('detail-image').append(make('p','small','사진을 읽지 못했습니다.'))}}}
 const curriculumCandidates=JSON.parse($('curriculum-candidate-data').textContent);
 function renderCurriculumCandidates(id){
@@ -4016,6 +4016,10 @@ $('v212-mixed-drill-run').onclick=async()=>{
           if(!h||typeof h!=='object')continue;
           const ms=timestamp(h.at);
           if(!allowed(ms))continue;
+          // WRONG-008: an explicit future-date memo is NOT a completed parent observation.
+          const wrong008Note=key==='checkHistory'&&h.status==='not_checked'&&
+            typeof h.memo==='string'&&/^다음 확인 메모: 20\d{2}-\d{2}-\d{2}(?: ·|$)/.test(h.memo);
+          if(wrong008Note){addEvent(ms,row,'다음 확인 수동 메모','학부모가 예정일만 기록함 · 실제 확인/자동 알림·완료 아님');continue}
           out.parentRecorded++;
           const observed=key==='checkHistory'?h.status:h.outcome;
           if(observed==='explained')out.parentExplained++;
@@ -4121,7 +4125,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
         const semantic=make('p','small',
           '현재 분류 · 과목: '+wrong007SubjectName(linked.subject)+' · 초등 '+linked.gradeAtEntry+'학년(학부모 입력) / 문제 관련 개념(수동): '+(linked.subject==='math'?(linked.conceptId?cname(linked.conceptId):'미분류'):'비수학 미지원·미분류')+
           ' / 틀린 이유 후보(추정·미확정): '+reasonLabel+
-          ' / 복습 후 학부모 관찰(기록): 오답 확인 '+(linked.checkHistory?.length||0)+
+          ' / 복습 후 학부모 관찰(기록): 오답 확인 '+wrong008ObservedCheckCount(linked)+
           '회, 복습 후 '+(linked.followupHistory?.length||0)+'회. 현재 분류와 과거 활동 시점은 다를 수 있습니다.');
         semantic.classList.add('wrong005-report-semantic');
         semantic.dataset.recordId=linked.id;
@@ -4172,7 +4176,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const attempts=(Array.isArray(record.practiceHistory)?record.practiceHistory.length:0)
       +(Array.isArray(record.generalRetryHistory)?record.generalRetryHistory.length:0);
     const observations=(Array.isArray(record.followupHistory)?record.followupHistory.length:0)
-      +(Array.isArray(record.checkHistory)?record.checkHistory.length:0);
+      +wrong008ObservedCheckCount(record);
     const state=make('p','small',
       '저장된 오답 1건 · 다시 푼 기록 '+attempts+'회 · 학부모 관찰 '+observations+
       '회 · 복습 계획 '+(record.studyPlan?.dueDate||'미설정'));
@@ -4338,6 +4342,118 @@ $('v212-mixed-drill-run').onclick=async()=>{
       card.append(make('p','small','🔒 아이 보기/부모 보기는 화면 표시만 구분합니다. 실제 학생 계정·가족 권한 검증이 아닙니다. 127.0.0.1 시험 환경 외에서는 제공하지 않습니다.'));
     };
   }
+
+
+  // WRONG-008: non-math manual recheck is a HUMAN-READABLE NOTE in the
+  // EXISTING checkHistory [{at,status:'not_checked',memo,by}] contract.
+  // It is not the math studyPlan/followupHistory, a scheduler, notification,
+  // completion event or a new wire/backup field.
+  function wrong008ValidDay(value){
+    if(typeof value!=='string'||!/^20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/.test(value))return false;
+    const [y,m,d]=value.split('-').map(Number),day=new Date(y,m-1,d,12);
+    return Number.isFinite(day.getTime())&&day.getFullYear()===y&&day.getMonth()===m-1&&day.getDate()===d;
+  }
+  function wrong008ManualDate(h){
+    if(h?.status!=='not_checked'||typeof h?.memo!=='string')return null;
+    const match=/^다음 확인 메모: (20\d{2}-\d{2}-\d{2})(?: ·|$)/.exec(h.memo);
+    return match&&wrong008ValidDay(match[1])?match[1]:null;
+  }
+  function wrong008ObservedCheckCount(r){
+    return (Array.isArray(r?.checkHistory)?r.checkHistory:[]).filter(h=>!wrong008ManualDate(h)).length;
+  }
+  function wrong008RenderManualRecheck(r){
+    const area=$('v25-learning-flow');
+    if(!area||r.subject==='math'||route!=='detail')return;
+    const hasAttempt=Array.isArray(r.generalRetryHistory)&&r.generalRetryHistory.length>0;
+    const panel=make('section','card v218-parent-only');
+    panel.id='wrong008-next-review';
+    panel.append(make('h3',null,'④ 다음에 다시 확인할 날짜를 메모하기'));
+    panel.append(make('p','small',
+      '이 과목의 개념·정답을 자동 판정하지 않습니다. 아이가 일반 재풀이를 한 뒤 학부모가 직접 관찰하고, 다음 확인 희망일을 남길 수 있습니다. 기존 오답 확인 이력의 ‘확인 전’ 메모를 그대로 이용하며 자동 알림·일정 예약·완료 판정은 없습니다.'));
+    if(!hasAttempt){
+      panel.append(make('p','callout small','먼저 위쪽에서 아이가 이 문제를 다시 풀고 기록을 저장해주세요. 사진·문항·기존 오답 ID는 바뀌지 않습니다.'));
+      area.append(panel);
+      return;
+    }
+    const last=r.generalRetryHistory[r.generalRetryHistory.length-1];
+    const parentObserved=last.review==='explained'?'아이가 스스로 설명했다고 부모가 기록':
+      last.review==='needs_help'?'부모 도움이 필요했다고 기록':'아직 학부모 관찰 전';
+    panel.append(make('p','callout small','가장 최근 일반 재풀이: '+date(last.at)+' · '+parentObserved+' (자동 진단 아님)'));
+    const existing=(r.checkHistory||[]).filter(h=>wrong008ManualDate(h));
+    const latest=existing[existing.length-1];
+    const state=make('p','small');
+    state.id='wrong008-last-manual-note';
+    state.setAttribute('role','status');
+    if(latest){
+      const day=wrong008ManualDate(latest);
+      state.textContent='마지막 학부모 수동 예정 메모: '+day+' · 상태: 아직 확인 전으로 기록됨. '+
+       (day<localToday()?'입력한 날짜가 지났지만 확인 완료로 자동 변경하지 않았습니다.':
+          '이 날짜의 실제 확인 여부는 학부모가 직접 확인해야 합니다.')+
+       ' · 이후 새 관찰·새 예정일은 별도 이력으로 남습니다.';
+    }else state.textContent='아직 다음 확인 예정 메모가 없습니다. 이 기록은 자동 일정이나 알림이 아닙니다.';
+    panel.append(state);
+    const lab=make('label','field','다음 확인 희망일 (학부모 선택)');lab.htmlFor='wrong008-next-date';panel.append(lab);
+    const input=make('input','control');
+    input.id='wrong008-next-date';input.type='date';input.min=localToday();input.max='2099-12-31';
+    input.value=latest&&wrong008ManualDate(latest)>=localToday()?wrong008ManualDate(latest):localToday();
+    panel.append(input);
+    const noteLabel=make('label','field','다음에 확인할 질문/방법 (선택)');
+    noteLabel.htmlFor='wrong008-next-question';panel.append(noteLabel);
+    const note=make('textarea','control notes');note.id='wrong008-next-question';
+    note.maxLength=250;note.rows=2;
+    note.placeholder='예: 글의 중심 내용을 아이 말로 한 문장 설명해 보기';
+    panel.append(note);
+    const action=make('button','secondary','날짜를 확인 전 상태로 메모 저장');
+    action.type='button';action.id='wrong008-save-note';
+    const result=make('p','small');result.id='wrong008-note-status';result.setAttribute('role','status');
+    result.textContent='저장 시 기존 오답 확인 이력에 날짜가 읽을 수 있는 메모로만 추가됩니다. 학부모가 실제로 관찰한 결과는 위의 기존 학부모 확인/관찰 버튼에서 따로 기록하세요.';
+    action.onclick=async()=>{
+      if(action.disabled)return;
+      const chosen=input.value;
+      if(!wrong008ValidDay(chosen)||chosen<localToday()||chosen>'2099-12-31'){
+        result.textContent='오늘 이후의 올바른 날짜를 선택해주세요. 저장하지 않았습니다.';input.focus();return;
+      }
+      if(!storageOk){result.textContent='브라우저 저장소에 접근할 수 없어 메모하지 않았습니다.';return}
+      if((r.checkHistory||[]).length>=400){result.textContent='기존 확인 이력 400건 한도에 도달해 메모를 추가하지 않았습니다.';return}
+      const noteText='다음 확인 메모: '+chosen+' · 학부모 질문: '+(note.value.trim()||'날짜만 수동 입력')+
+       ' · 아직 확인 전/자동 알림 없음';
+      if(noteText.length>1000){result.textContent='메모 길이가 허용 범위를 벗어났습니다.';return}
+      const next={...r,updatedAt:iso(),checkHistory:[...(r.checkHistory||[]),
+       {at:iso(),status:'not_checked',memo:noteText,by:'parent_observation'}]};
+      try{wrong007RecordValid(next);wrong006ValidateReasonCandidates(next);v230ValidateGeneralRetries([next]);v230TotalTextBudget(next)}
+      catch(e){result.textContent='기존 이력·형식 확인에 실패해 저장하지 않았습니다: '+String(e.message||e).slice(0,100);return}
+      action.disabled=true;result.textContent='저장 후 다시 읽어 확인 중입니다.';
+      let wrote=false;
+      try{
+        await v20SaveMistakeGuarded(next,null,false,JSON.stringify(r));wrote=true;
+        const checked=await readOne('mistakes',r.id);
+        if(JSON.stringify(checked)!==JSON.stringify(next))throw Error('메모 저장 후 전체 기록 재읽기가 일치하지 않습니다.');
+        await restoreState();await renderDetail();
+        notify('다음 확인 날짜를 확인 전 상태의 수동 메모로 기록했습니다. 자동 알림·완료는 없습니다.');
+      }catch(e){
+        result.textContent=wrote?'저장 동작 후 재읽기를 확인하지 못했습니다. 중복 저장 전에 목록을 확인하세요.':
+          e?.code==='V20_STALE'?'다른 탭에서 이 오답이 변경되어 덮어쓰지 않았습니다. 새로 열고 재입력하세요.':
+          '메모 저장 실패. 원래 오답·사진·관찰 이력은 변경하지 않았습니다.';
+        action.disabled=false;
+      }
+    };
+    panel.append(action,result);
+    area.append(panel);
+    const controls=$('wrong002-actions');
+    if(controls){
+      const go=make('button','secondary v218-parent-only','④ 다음 확인 날짜 메모');
+      go.id='wrong008-jump-note';go.type='button';
+      go.onclick=()=>{panel.scrollIntoView({block:'start',behavior:'auto'});input.focus({preventScroll:true})};
+      controls.append(go);
+    }
+  }
+  const wrong008PreviousDetail=renderDetail;
+  renderDetail=async function(){
+    await wrong008PreviousDetail();
+    if(route!=='detail')return;
+    const record=records.find(x=>x.id===detailId);
+    if(record?.subject!=='math')wrong008RenderManualRecheck(record);
+  };
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
