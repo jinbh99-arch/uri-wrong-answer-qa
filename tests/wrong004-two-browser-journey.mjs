@@ -95,7 +95,20 @@ async function pull(p,id){
  const verify=await p.locator('#v18-verify-result').innerText();
  assert.equal(await p.locator('#confirm-dialog[open]').count(),1,'GET/pull blocked: '+status+'; import='+verify);
  await p.locator('#dlg-ok').click();
- await p.locator('#wrong004-handoff:visible').waitFor({timeout:25000});
+ await p.locator('#wrong004-handoff:visible').waitFor({timeout:10000}).catch(async err=>{
+  const evidence=await p.evaluate(()=>({
+   qa42Status:document.querySelector('#qa42-status')?.textContent,
+   qa42Error:document.querySelector('#qa42-status')?.dataset.error,
+   restoreCheck:document.querySelector('#v18-verify-result')?.textContent,
+   toast:document.querySelector('#toast')?.textContent,
+   visiblePages:Array.from(document.querySelectorAll('[data-page]')).filter(el=>!el.classList.contains('hide')).map(el=>el.id),
+   detailExists:Boolean(document.querySelector('#detail-card #detail-text')),
+   handoffExists:Boolean(document.querySelector('#wrong004-handoff')),
+   chosenId:document.querySelector('#qa42-target')?.value,
+   openDialog:Boolean(document.querySelector('#confirm-dialog[open]'))
+  }));
+  throw Error('WRONG004_AFTER_RESTORE_DIAGNOSTIC='+JSON.stringify(evidence)+' | '+String(err));
+ });
  assert.equal(await p.locator('#detail-edit').getAttribute('data-record')===id,false); // detail is selected by app, not a URL query
  assert.equal(await p.locator('#wrong004-cross-device').isVisible(),true);
 }
