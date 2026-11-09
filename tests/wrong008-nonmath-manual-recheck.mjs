@@ -118,7 +118,7 @@ try{
 
  await A.locator('#wrong008-jump-note').click();
  assert.equal(await A.evaluate(()=>document.activeElement?.id),'wrong008-next-date');
- await A.locator('#wrong008-next-date').fill('2025-02-30');
+ await A.locator('#wrong008-next-date').fill('2025-02-28');
  // Invalid calendar date: no new record, no silent normalization.
  await A.locator('#wrong008-save-note').click();
  assert.equal(find(await stored(A),koreanId).checkHistory.length,0);
