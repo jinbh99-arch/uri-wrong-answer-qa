@@ -213,7 +213,10 @@ try{
  assert.equal(observed.records[0].id,id);
  assert.equal(observed.records[0].generalRetryHistory.length,1);
  assert.equal(observed.records[0].followupHistory.length,1);
- assert.equal(observed.records[0].studyPlan.dueDate,'2026-11-15');
+ // Existing v06 review completion explicitly clears the active plan while
+ // retaining its dated history; requiring dueDate here was a stale test oracle.
+ assert.equal(observed.records[0].studyPlan,null);
+ assert.equal(observed.records[0].followupHistory[0].workflowState,'completed_observation');
  assert.deepEqual(observed.photos,initial.photos);
  await B.reload({waitUntil:'domcontentloaded'});
  await B.locator('#nav-records').click();
