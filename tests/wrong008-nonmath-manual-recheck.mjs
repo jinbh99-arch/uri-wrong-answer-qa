@@ -44,6 +44,10 @@ async function detail(p,id){
  await p.locator('#nav-records').click();
  await p.locator('#records-list button[data-record="'+id+'"]').click();
  await p.locator('#wrong007-record-context:visible').waitFor({timeout:20000});
+ // The detail page reads an attached photo asynchronously. Its context label
+ // is not the readiness signal for the non-math manual note panel.
+ const record=(await stored(p)).records.find(x=>x.id===id);
+ if(record?.subject!=='math')await p.locator('#wrong008-next-review:visible').waitFor({timeout:20000});
 }
 async function plusDays(p,days){
  return p.evaluate(d=>{
