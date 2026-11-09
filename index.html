@@ -814,7 +814,22 @@ function renderObservationSummary(){
  }
 }
 function groupCount(){const a={};for(const r of records){const k=r.conceptId||'미분류';a[k]=(a[k]||0)+1}return a}
-function renderRecords(){const sel=$('filter-concept').value.trim(),subject=$('wrong007-filter-subject').value,q=$('search').value.toLocaleLowerCase('ko');const filtered=records.filter(r=>(!subject||r.subject===subject)&&(!sel||r.conceptId===sel)&&(`${r.problemText||''} ${r.studentAnswer||''} ${r.memo||''}`).toLocaleLowerCase('ko').includes(q)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));$('records-count').textContent=`전체 ${records.length}건 중 ${filtered.length}건 표시 (오답률 아님)`;list('records-list',filtered,'조건에 맞는 오답이 없습니다.');const e=$('concept-counts');e.replaceChildren();const counts=Object.entries(groupCount()).sort((a,b)=>b[1]-a[1]);if(!counts.length)e.append(make('p','small','등록된 관련 개념이 아직 없습니다.'));for(const [c,n] of counts){const a=make('div','tagline'),line=make('div','row spread');line.append(make('strong',null,c==='미분류'?'미분류':cname(c)),make('span',null,n+'건'));const b=make('div','bar'),i=make('i');i.style.width=`${Math.round(n/Math.max(1,records.length)*100)}%`;b.append(i);a.append(line,b);e.append(a)}}
+function renderRecords(){
+ // WRONG-009: the math concept selector must not silently exclude non-math
+ // records or suggest math concept classification for other subjects.
+ const subject=$('wrong007-filter-subject').value;
+ const nonmath=Boolean(subject)&&subject!=='math';
+ if(nonmath)$('filter-concept').value='';
+ $('filter-concept').closest('div')?.classList.toggle('hide',nonmath);
+ $('concept-counts').closest('.card')?.classList.toggle('hide',nonmath);
+ let context=$('wrong009-nonmath-list-context');
+ if(!context){
+  context=make('p','callout small','이 과목의 수학 전용 개념 필터/집계는 적용하지 않습니다. 아래에는 선택한 과목의 실제 오답 기록만 표시합니다. 원인 후보는 미확정이며 자동 진단하지 않습니다.');
+  context.id='wrong009-nonmath-list-context';
+  $('records-count').before(context);
+ }
+ context.classList.toggle('hide',!nonmath);
+ const sel=$('filter-concept').value.trim(),q=$('search').value.toLocaleLowerCase('ko');const filtered=records.filter(r=>(!subject||r.subject===subject)&&(!sel||r.conceptId===sel)&&(`${r.problemText||''} ${r.studentAnswer||''} ${r.memo||''}`).toLocaleLowerCase('ko').includes(q)).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));$('records-count').textContent=`전체 ${records.length}건 중 ${filtered.length}건 표시 (오답률 아님)`;list('records-list',filtered,'조건에 맞는 오답이 없습니다.');const e=$('concept-counts');e.replaceChildren();const counts=Object.entries(groupCount()).sort((a,b)=>b[1]-a[1]);if(!counts.length)e.append(make('p','small','등록된 관련 개념이 아직 없습니다.'));for(const [c,n] of counts){const a=make('div','tagline'),line=make('div','row spread');line.append(make('strong',null,c==='미분류'?'미분류':cname(c)),make('span',null,n+'건'));const b=make('div','bar'),i=make('i');i.style.width=`${Math.round(n/Math.max(1,records.length)*100)}%`;b.append(i);a.append(line,b);e.append(a)}}
 $('filter-concept').onchange=renderRecords;$('wrong007-filter-subject').onchange=renderRecords;$('search').oninput=renderRecords;
 // WRONG-006: optional additive multi-candidate contract, without migration or re-key.
 const WRONG006_CODES=['calculation','reading','concept','other'];
@@ -1840,8 +1855,8 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
  const v11RenderRecordsBase=renderRecords;
  renderRecords=function(){
    v11RenderRecordsBase();const state=$('v11-filter-status')?.value||'all';if(state==='all')return;
-   const sel=$('filter-concept').value.trim(),q=$('search').value.toLocaleLowerCase('ko');
-   const chosen=records.filter(r=>(!sel||r.conceptId===sel)&&(`${r.problemText||''} ${r.studentAnswer||''} ${r.memo||''}`).toLocaleLowerCase('ko').includes(q) && (state==='photo_only'?v11PhotoOnly(r):Boolean(notempty(r.problemText)))).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+   const sel=$('filter-concept').value.trim(),subject=$('wrong007-filter-subject').value,q=$('search').value.toLocaleLowerCase('ko');
+   const chosen=records.filter(r=>(!subject||r.subject===subject)&&(!sel||r.conceptId===sel)&&(`${r.problemText||''} ${r.studentAnswer||''} ${r.memo||''}`).toLocaleLowerCase('ko').includes(q) && (state==='photo_only'?v11PhotoOnly(r):Boolean(notempty(r.problemText)))).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
    $('records-count').textContent=`전체 ${records.length}건 중 ${chosen.length}건 · ${state==='photo_only'?'사진만 저장한 기록':'문제 내용을 작성한 기록'} (학습 능력·오답률 아님)`;
    list('records-list',chosen,'이 조건에 해당하는 기록이 없습니다.');
  };
@@ -4254,6 +4269,9 @@ $('v212-mixed-drill-run').onclick=async()=>{
     button.onclick=()=>{editId=null;navigate('add');$('problem').focus()};
     empty.append(button);target.append(empty);
   };
+  // The subject select was bound BEFORE v11 and WRONG-003 wrapped renderRecords.
+  // Route it through the final subject+photo-status+empty-state renderer.
+  $('wrong007-filter-subject').onchange=renderRecords;
   // Existing v1.3 saved-photo preview is retained and reused.
   const wrong003AddBase=renderAdd;
   renderAdd=function(){
