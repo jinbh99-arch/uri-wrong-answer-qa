@@ -6,6 +6,7 @@ import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const BASE='http://127.0.0.1:4173/',DB='uriaimath-github-qa-v224-only';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
+const PNG2=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNk6P7PwMDAxMDAwMDAAAARowGO5mIn6QAAAABJRU5ErkJggg==','base64');
 let checks=0,browser;
 function pass(name){checks++;console.log('PASS WRONG005 '+name)}
 async function stored(p){
@@ -88,6 +89,20 @@ try{
  assert.deepEqual(row(edited,idB),row(base,idB));assert.deepEqual(row(edited,idC),row(base,idC));
  pass('동일 사진 오답 ID의 텍스트 수정에도 사진 바이트·원인·개념·다른 오답 불변');
 
+ // Explicitly replace the test photograph, then track the NEW original bytes
+ // through the rest of the journey; sibling IDs must not inherit the photo.
+ await A.locator('#detail-edit').click();
+ await A.locator('#choose-photo').setInputFiles({name:'wrong005-replacement-2px.png',mimeType:'image/png',buffer:PNG2});
+ await A.waitForFunction(()=>document.querySelector('#v08-photo-ready')?.textContent?.includes('사진 선택 완료'));
+ await A.locator('#save-btn').click();
+ await A.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:25000});
+ const swapped=await stored(A);
+ assert.equal(swapped.rows.length,3);assert.equal(swapped.photos.length,1);
+ assert.equal(swapped.photos[0].id,idA);assert.notDeepEqual(swapped.photos,base.photos);
+ assert.equal(row(swapped,idA).conceptId,'math.natural.addition');assert.equal(row(swapped,idA).reason,'unknown');
+ assert.deepEqual(row(swapped,idB),row(base,idB));assert.deepEqual(row(swapped,idC),row(base,idC));
+ pass('실제 가상 사진 교체 후 새 사진만 동일 ID에 저장, 다른 두 기록은 불변');
+
  await A.locator('#check-status').selectOption('explained');
  await A.locator('#check-memo').fill('가상 학부모 직접 확인: 설명 성공, 원인 후보는 계속 미확정');
  await A.locator('#check-save').click();
@@ -111,7 +126,7 @@ try{
  assert.equal(a.followupHistory.length,1);assert.equal(a.followupHistory[0].outcome,'needs_help');
  assert.equal(a.generalRetryHistory.length,1);assert.equal(a.studyPlan,null);
  assert.deepEqual(row(learned,idB),row(base,idB));assert.deepEqual(row(learned,idC),row(base,idC));
- assert.deepEqual(learned.photos,base.photos);
+ assert.deepEqual(learned.photos,swapped.photos);
  pass('실제 재풀이·부모의 서로 다른 두 관찰이 추정 원인 필드/타 오답/사진에 영향 없음');
 
  await detail(A,idB);
