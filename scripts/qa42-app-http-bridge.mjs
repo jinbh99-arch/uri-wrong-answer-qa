@@ -15,9 +15,16 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
  '<label for="qa42-family">인증된 가상 가족</label>',
  '<select id="qa42-family" disabled><option value="">미연결</option></select>',
  '<p id="qa42-revision" class="small" aria-live="polite">서버 개정번호 미확인</p>',
+ '<label for="qa42-target">같은 오답으로 돌아갈 기록 선택 (가상 ID)</label>',
+ '<select id="qa42-target" aria-label="돌아갈 오답 ID" disabled><option value="">연결 후 오답 선택</option></select>',
+ '<button id="qa42-open-record" type="button" class="secondary" disabled>선택한 오답 상세로 돌아가기</button>',
+ '<p class="small" id="qa42-safety-note">로컬에 독립 변경사항이 있으면 서버 기록으로 자동 덮어쓰지 않습니다. 충돌은 백업을 보존한 뒤 수동 검토하세요.</p>',
  '<label style="display:flex;gap:9px;align-items:flex-start">',
  '<input id="qa42-synthetic" type="checkbox" style="flex:none;width:20px;margin-top:4px"/>',
  '모든 오답·사진·설정은 실제 아동이 없는 합성 시험자료임을 확인합니다.</label>',
+ '<label style="display:flex;gap:9px;align-items:flex-start">',
+ '<input id="qa42-learning-approve" type="checkbox" style="flex:none;width:20px;margin-top:4px"/>',
+ '기존 동일 오답의 재풀이·복습·학부모 관찰 이력 추가를 서버에 수동 반영하는 것을 별도로 승인합니다. 문제 원문·사진 변경은 허용되지 않습니다.</label>',
  '<button id="qa42-upload" type="button" disabled>기록 원본 확인 후 수동 전송</button>',
  '<button id="qa42-pull" type="button" class="secondary" disabled>서버 최신본 → 앱 복원 확인창</button>',
  '<p id="qa42-status" role="status" aria-live="polite">테스트 전용 연결입니다.</p>',
@@ -26,6 +33,84 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
  document.getElementById('qa34-sync-bridge').insertAdjacentHTML('afterend',html);
  const $=id=>document.getElementById(id);
  let bearer='',base='',revision=null,familyId='',busy=false;
+ // WRONG-004: baseline is the complete byte-level proof from an explicitly
+ // confirmed upload/restore; it is only kept in this browser tab's memory.
+ let baselineProof=null,baselineDocument=null,pendingRestore=null,preferredId='';
+ const DB='uriaimath-github-qa-v224-only';
+ const idOkay=id=>/^[A-Za-z0-9_-]{1,100}$/.test(String(id||''));
+ const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+ // The original importer reconstructs followupHistory entries with a different
+ // property order. Check EVERY field/value, array order and photo SHA-256 while
+ // ignoring only JSON object key insertion order; server CAS remains unchanged.
+ const canonicalJson=value=>JSON.stringify(value,(_,v)=>
+  v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype
+   ?Object.fromEntries(Object.keys(v).sort().map(key=>[key,v[key]]))
+   :v);
+ async function sha(bytes){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)))}
+ // Read all app stores in ONE readonly transaction; no writes or downloaded
+ // raw JSON, so failed preflight cannot clobber a local family record.
+ async function localProof(){
+  const request=indexedDB.open(DB);
+  const db=await new Promise((ok,bad)=>{
+   request.onsuccess=()=>ok(request.result);request.onerror=()=>bad(request.error);
+   request.onblocked=()=>bad(Error('브라우저 저장소가 잠겨 있습니다.'));
+  });
+  try{
+   const snapshot=await new Promise((ok,bad)=>{
+    const tx=db.transaction(['mistakes','photos','settings'],'readonly');
+    const tasks=[
+     tx.objectStore('mistakes').getAll(),tx.objectStore('photos').getAllKeys(),
+     tx.objectStore('photos').getAll(),tx.objectStore('settings').get('profile'),
+     tx.objectStore('settings').getAllKeys()
+    ];const vals=[];
+    tasks.forEach((r,i)=>r.onsuccess=()=>{vals[i]=r.result});
+    tx.oncomplete=()=>ok(vals);
+    tx.onerror=()=>bad(tx.error||Error('로컬 원본을 읽을 수 없습니다.'));
+    tx.onabort=()=>bad(tx.error||Error('로컬 원본 읽기가 취소됐습니다.'));
+   });
+   const [rows,keys,blobs,profile,settings]=snapshot;
+   if(!Array.isArray(rows)||!Array.isArray(keys)||!Array.isArray(blobs)||keys.length!==blobs.length||
+      !Array.isArray(settings)||settings.some(k=>!['profile','migrated-v01','v04-reentry-marker'].includes(k)))
+    throw Error('기존 기록·사진·설정 검사 실패: 미지원 저장 상태');
+   return {empty:rows.length===0&&keys.length===0,
+    signature:JSON.stringify({
+     records:rows.map(r=>[String(r.id),canonicalJson(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
+     photos:await Promise.all(keys.map(async(k,i)=>[String(k),blobs[i]?.type,await sha(await blobs[i].arrayBuffer())])).then(a=>a.sort((x,y)=>x[0].localeCompare(y[0]))),
+     profile:canonicalJson(profile||{nickname:'우리 아이',grade:3,subject:'math'})
+    })};
+  }finally{db.close()}
+ }
+ async function backupProof(doc){
+  if(!Array.isArray(doc?.records)||!doc?.photos||typeof doc.photos!=='object')throw Error('가상 백업 자료 형식 오류');
+  const photos=[];
+  for(const [id,source] of Object.entries(doc.photos)){
+   const m=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(source));
+   if(!m)throw Error('가상 백업 사진 형식 오류');
+   const raw=atob(m[2]),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+   photos.push([String(id),m[1],await sha(bytes)]);
+  }
+  return JSON.stringify({
+   records:doc.records.map(r=>[String(r.id),canonicalJson(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
+   photos:photos.sort((a,b)=>a[0].localeCompare(b[0])),
+   profile:canonicalJson(doc.profile||null)
+  });
+ }
+ function targetOptions(doc){
+  const select=$('qa42-target'),prior=select.value;
+  select.replaceChildren(new Option('직접 선택하세요',''));
+  if(!Array.isArray(doc?.records)){select.disabled=true;ui();return}
+  for(const r of doc.records){
+   if(!idOkay(r.id))continue;
+   const label=(String(r.problemText||'사진만 저장된 문제').replace(/\s+/g,' ').slice(0,35)||'사진만 저장된 문제');
+   select.add(new Option(label+' · '+r.id.slice(0,12),r.id));
+  }
+  const desired=[preferredId,prior].find(id=>id&&Array.from(select.options).some(o=>o.value===id));
+  if(desired)select.value=desired;
+  else if(select.options.length===2)select.selectedIndex=1;
+  select.disabled=!bearer||busy;
+  ui();
+ }
+
  function status(message,err=false){
   $('qa42-status').textContent=message;
   $('qa42-status').dataset.error=String(err);
@@ -36,11 +121,14 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
   $('qa42-family').disabled=busy||!bearer;
   $('qa42-upload').disabled=busy||!bearer||revision===null||!familyId;
   $('qa42-pull').disabled=busy||!bearer||!familyId;
+  $('qa42-target').disabled=busy||!bearer;
+  $('qa42-open-record').disabled=busy||!bearer||!idOkay($('qa42-target').value);
  }
  function clear(){
-  bearer='';base='';revision=null;familyId='';
+  bearer='';base='';revision=null;familyId='';baselineProof=null;baselineDocument=null;pendingRestore=null;preferredId='';
   $('qa42-token').value='';
   $('qa42-family').replaceChildren(new Option('미연결',''));
+  $('qa42-target').replaceChildren(new Option('연결 후 오답 선택',''));
   $('qa42-revision').textContent='로그아웃됨 · 서버 개정번호 미확인';
   ui();
  }
@@ -57,6 +145,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
    throw Error('인증된 가상 가족을 선택하세요.');
   return '/qa41/families/'+familyId+'/snapshot';
  }
+ function learningRoute(){return route().replace('/snapshot','/learning-commit')}
  async function request(path,method='GET',body,expected){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   const headers={};
@@ -76,7 +165,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
    return data;
   }catch(e){
    if(e?.name==='AbortError'||e instanceof TypeError)
-    throw Error(method==='PUT'
+    throw Error((method==='PUT'||method==='POST')
      ? '서버 저장 결과를 확인할 수 없습니다. 자동 재전송하지 않습니다. 직접 최신본을 조회하세요.'
      : '가상 API 연결 오류. 로컬 오답과 사진은 그대로 유지됩니다.');
    throw e;
@@ -93,6 +182,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
  function showRevision(v,doc){
   if(!Number.isSafeInteger(v)||v<0)throw Error('서버 개정번호 오류');
   revision=v;
+  targetOptions(doc);
   $('qa42-revision').textContent='서버 개정번호 '+v+' · 합성 오답 '+
    (doc?.records?.length??0)+'건 · 사진 '+Object.keys(doc?.photos||{}).length+'장';
  }
@@ -131,6 +221,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
  }));
  $('qa42-family').addEventListener('change',()=>act(async()=>{
   familyId=$('qa42-family').value;revision=null;
+  baselineProof=null;baselineDocument=null;pendingRestore=null;preferredId='';
   const current=await request(route());showRevision(current.revision,current.snapshot);
   status('가상 가족을 변경해 최신 개정번호를 다시 확인했습니다.');
  }));
@@ -146,16 +237,44 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
     !Array.isArray(doc.records)||!doc.photos)throw Error('완전한 앱 백업이 아닙니다.');
   if(new Blob([JSON.stringify({snapshot:doc})]).size>1024*1024)
    throw Error('서버 1MiB 전송 제한. 다운로드한 기존 백업 원본을 보관하세요.');
-  const sent=await request(route(),'PUT',{snapshot:doc},expected);
+  // Existing unchanged rows or newly added IDs use the original strict PUT.
+  // Appended history on an existing ID must use the separate explicit,
+  // signed-JWT, server-side append-only consent route. NEVER retry after 409.
+  const modifiesPrior=Boolean(baselineDocument?.records?.some(prior=>{
+   const next=doc.records.find(r=>r.id===prior.id);
+   return next&&JSON.stringify(next)!==JSON.stringify(prior);
+  }));
+  let sent,learning=false;
+  if(modifiesPrior){
+   if(!$('qa42-learning-approve').checked)
+    throw Error('동일 오답 학습 이력의 변경은 별도 수동 승인 체크가 필요합니다. 기존 원본과 사진을 자동 덮어쓰지 않습니다.');
+   if(!baselineDocument)throw Error('이전에 확정한 가상 가족 기준본이 없어 변경을 전송하지 않습니다.');
+   sent=await request(learningRoute(),'POST',{base:baselineDocument,local:doc,approved:true},expected);
+   learning=true;
+  }else{
+   sent=await request(route(),'PUT',{snapshot:doc},expected);
+  }
   if(sent?.stored!==true)throw Error('서버가 저장 완료를 확인하지 않았습니다.');
-  showRevision(sent.revision,doc);
-  status('개정번호 '+sent.revision+'에 합성 오답을 저장했습니다. 자동 동기화가 아닙니다.');
+  const verified=await request(route()); // require authoritative post-commit state
+  if(verified.revision!==sent.revision||!verified.snapshot)
+   throw Error('서버가 전송을 받았으나 최종 버전을 확인할 수 없습니다. 자동 재전송을 하지 마세요.');
+  baselineDocument=structuredClone(verified.snapshot);
+  baselineProof=await backupProof(verified.snapshot);
+  $('qa42-learning-approve').checked=false;
+  showRevision(sent.revision,verified.snapshot);
+  status('개정번호 '+sent.revision+'에 합성 오답을 저장했습니다. '+(learning?'동일 ID 학습 이력 수동 승인·원본 보호 검사 완료. ':'')+'자동 동기화가 아닙니다.');
  }));
  $('qa42-pull').addEventListener('click',()=>act(async()=>{
   if(!bearer||!familyId)throw Error('가상 인증이 필요합니다.');
   const latest=await request(route());
   if(!latest?.snapshot||latest.snapshot.format!=='uriaimath-offline-backup-v02')
    throw Error('서버에 복원 가능한 가상 백업이 없습니다.');
+  // Fail closed on local unsynced edits, unknown origin or family change.
+  // An empty local DB may join the verified synthetic family; otherwise
+  // require a previously confirmed matching baseline or EXACT remote equality.
+  const local=await localProof(),remoteProof=await backupProof(latest.snapshot);
+  if(!local.empty&&local.signature!==baselineProof&&local.signature!==remoteProof)
+   throw Error('이 기기에 미전송·다른 가족 기록 또는 충돌 변경이 있습니다. 전체 복원 시 원본이 사라질 수 있어 가져오기를 차단했습니다. 먼저 백업 후 수동으로 검토하세요.');
   const json=JSON.stringify(latest.snapshot);
   if(new Blob([json]).size>1024*1024)throw Error('서버 백업 용량 초과');
   const field=$('import-file');
@@ -163,9 +282,34 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
   const dt=new DataTransfer();
   dt.items.add(new File([json],'qa42-synthetic-revision-'+latest.revision+'.json',{type:'application/json'}));
   // Delegate validation, dry run and explicit consent to the existing app.
+  pendingRestore={doc:latest.snapshot,targetId:$('qa42-target').value,proof:remoteProof};
   field.files=dt.files;field.dispatchEvent(new Event('change',{bubbles:true}));
   showRevision(latest.revision,latest.snapshot);
   status('앱 복원 검사에 가상 백업을 전달했습니다. 별도 확인창 승인 전에는 데이터가 바뀌지 않습니다.');
  }));
+ $('qa42-target').addEventListener('change',()=>{preferredId=$('qa42-target').value;ui()});
+ $('qa42-open-record').addEventListener('click',()=>{
+  const id=$('qa42-target').value;if(!bearer||!idOkay(id))return;
+  document.dispatchEvent(new CustomEvent('wrong004:open-record',{detail:{id}}));
+ });
+ document.addEventListener('wrong004:remember-record',event=>{
+  const id=event.detail?.id;
+  if(!idOkay(id))return;
+  preferredId=id;
+  if(Array.from($('qa42-target').options).some(o=>o.value===id))$('qa42-target').value=id;
+  ui();
+ });
+ document.addEventListener('wrong004:restore-verified',async event=>{
+  const pending=pendingRestore;pendingRestore=null;
+  if(!pending||!bearer||!familyId)return;
+  try{
+   const evidence=await localProof();
+   if(evidence.signature!==pending.proof)throw Error('복원 후 원본 바이트 재검사에서 차이가 확인됐습니다.');
+   baselineProof=pending.proof;baselineDocument=structuredClone(pending.doc);
+   status('복원 확인 및 같은 기록·사진 재조회가 완료됐습니다. 자동 가족 공유는 아닙니다.');
+   if(idOkay(pending.targetId)&&event.detail?.ids?.includes(pending.targetId))
+    document.dispatchEvent(new CustomEvent('wrong004:open-record',{detail:{id:pending.targetId}}));
+  }catch(err){baselineProof=null;status('복원 후 재검사 실패: '+String(err.message||err).slice(0,100)+' · 원본 백업을 확인하세요.',true)}
+ });
  ui();status('로컬 가상 JWT+가족 DB 수동 교환입니다. 실제 아동 정보는 입력하지 마세요.');
 }
