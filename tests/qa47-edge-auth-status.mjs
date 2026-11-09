@@ -20,6 +20,11 @@ r=await handle(req({origin:'https://jinbh99-arch.github.io',method:'OPTIONS',tok
 assert.equal(r.status,204);
 assert.equal(r.headers.get('access-control-allow-origin'),'https://jinbh99-arch.github.io');
 pass('독립 QA GitHub Pages 출처는 읽기 전용 CORS 사전 요청 허용');
+const allowedHeaders=(r.headers.get('access-control-allow-headers')||'').split(',').map(x=>x.trim());
+for(const header of ['authorization','x-client-info','apikey','content-type'])
+ assert.ok(allowedHeaders.includes(header),'CORS preflight missing '+header);
+assert.equal(r.headers.get('access-control-allow-methods'),'GET, OPTIONS');
+pass('Supabase JS SDK x-client-info CORS 요청 허용 + GET/OPTIONS 한정');
 r=await handle(req({origin:'https://jinbh99-arch.github.io',token:null}),svc);
 assert.equal(r.status,401);
 assert.equal(r.headers.get('access-control-allow-origin'),'https://jinbh99-arch.github.io');
