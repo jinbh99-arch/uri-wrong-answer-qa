@@ -45,9 +45,31 @@ function learningOnlyChange(base,local){
    appended+=newer.length-older.length;
   }
   if(!same(prior.studyPlan,next.studyPlan)){
-   if(prior.studyPlan!==null&&prior.studyPlan!==undefined)throw error('LEARNING_CHANGE_UNSAFE');
-   if(!next.studyPlan||typeof next.studyPlan!=='object'||Array.isArray(next.studyPlan))
-    throw error('LEARNING_CHANGE_UNSAFE');
+   if(prior.studyPlan===null||prior.studyPlan===undefined){
+    // First parent-scheduled review is an explicit newly added plan.
+    if(!next.studyPlan||typeof next.studyPlan!=='object'||Array.isArray(next.studyPlan))
+     throw error('LEARNING_CHANGE_UNSAFE');
+   }else{
+    // Existing app v06 followup atomically appends one observation and
+    // either completes the active plan (null) or schedules an explicit
+    // next-check date. Never change a plan on its own.
+    const before=prior.followupHistory||[],after=next.followupHistory||[];
+    const last=after[after.length-1];
+    if(after.length!==before.length+1||!last||
+       last.conceptId!==prior.studyPlan.conceptId||
+       last.method!==prior.studyPlan.method)throw error('LEARNING_CHANGE_UNSAFE');
+    if(last.workflowState==='completed_observation'){
+     if(next.studyPlan!==null)throw error('LEARNING_CHANGE_UNSAFE');
+    }else if(last.workflowState==='needs_recheck'){
+     if(!next.studyPlan||next.studyPlan.conceptId!==prior.studyPlan.conceptId||
+        next.studyPlan.method!==prior.studyPlan.method||
+        typeof next.studyPlan.dueDate!=='string'||
+        !/^(20\\d{2})-(0[1-9]|1[0-2])-([0-2]\\d|3[01])$/.test(next.studyPlan.dueDate))
+      throw error('LEARNING_CHANGE_UNSAFE');
+     const ignoreDates=x=>Object.fromEntries(Object.entries(x).filter(([k])=>!['dueDate','createdAt'].includes(k)));
+     if(!same(ignoreDates(prior.studyPlan),ignoreDates(next.studyPlan)))throw error('LEARNING_CHANGE_UNSAFE');
+    }else throw error('LEARNING_CHANGE_UNSAFE');
+   }
    appended++;
   }
  }
