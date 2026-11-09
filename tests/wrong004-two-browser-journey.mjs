@@ -80,7 +80,9 @@ async function push(p,rev){
 async function pull(p,id){
  await p.locator('#qa42-target').selectOption(id);
  await p.locator('#qa42-pull').click();
- await p.locator('#confirm-dialog[open]').waitFor({timeout:25000});
+ await p.waitForFunction(()=>document.querySelector('#confirm-dialog[open]')||document.querySelector('#qa42-status')?.dataset.error==='true',null,{timeout:25000});
+ const status=await p.locator('#qa42-status').innerText();
+ assert.equal(await p.locator('#confirm-dialog[open]').count(),1,'GET/pull failed before confirmation: '+status);
  await p.locator('#dlg-ok').click();
  await p.locator('#wrong004-handoff:visible').waitFor({timeout:25000});
  assert.equal(await p.locator('#detail-edit').getAttribute('data-record')===id,false); // detail is selected by app, not a URL query
