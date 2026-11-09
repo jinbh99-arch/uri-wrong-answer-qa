@@ -23,6 +23,7 @@ on:
       - 'tests/wrong004-two-browser-journey.mjs'
       - 'tests/wrong005-semantics-journey.mjs'
       - 'tests/wrong006-multi-reason-journey.mjs'
+      - 'tests/wrong007-grade-subject-journey.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -198,6 +199,8 @@ jobs:
         run: node tests/wrong005-semantics-journey.mjs
       - name: WRONG-006 0/1/N reason candidate compatibility, legacy backup, photo and 390/320px E2E
         run: node tests/wrong006-multi-reason-journey.mjs
+      - name: WRONG-007 math and non-math grade/subject record, photo, parent report and legacy backup E2E
+        run: node tests/wrong007-grade-subject-journey.mjs
       - name: QA43 step 1 release config, role, secrets, OIDC and guardian approval fail closed
         run: node tests/qa43-ops-preflight.mjs
       - name: QA43 step 2 AES-GCM family backups, PostgreSQL disaster restore, CAS, deletion, revocation
