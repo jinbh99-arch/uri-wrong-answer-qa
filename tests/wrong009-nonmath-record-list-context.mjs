@@ -161,6 +161,9 @@ try{
  }
  await B.locator('#v218-child-mode').click();
  await detail(B,koreanId);
+ // The detail photo read and subsequent WRONG-002 action wrapper are async.
+ // Wait for the actual child retry CTA, not only the earlier context label.
+ await B.locator('#wrong002-retry:visible').waitFor({timeout:25000});
  assert.equal(await B.locator('#wrong002-retry').isVisible(),true);
  assert.equal(await B.locator('#wrong002-plan').isVisible(),false);
  assert.equal(await B.locator('#wrong008-next-review').isVisible(),false);
