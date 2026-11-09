@@ -204,6 +204,13 @@ jobs:
         run: node tests/wrong007-grade-subject-journey.mjs
       - name: WRONG-008 nonmath manual recheck notes and existing-schema photo backup 320/390px E2E
         run: node tests/wrong008-nonmath-manual-recheck.mjs
+      - name: WRONG-VIEW-001 preserve latest Draft actual UI screenshots from synthetic mobile browser
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-view-001-latest-draft-screenshots
+          path: wrong-view-001-screenshots/*.png
+          retention-days: 14
+          if-no-files-found: error
       - name: QA43 step 1 release config, role, secrets, OIDC and guardian approval fail closed
         run: node tests/qa43-ops-preflight.mjs
       - name: QA43 step 2 AES-GCM family backups, PostgreSQL disaster restore, CAS, deletion, revocation
