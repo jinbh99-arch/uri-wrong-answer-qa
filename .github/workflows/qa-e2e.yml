@@ -19,6 +19,7 @@ on:
       - 'tests/qa-ocr-preprocess.mjs'
       - 'tests/qa-workflow-ux.mjs'
       - 'tests/wrong002-core-journey.mjs'
+      - 'tests/wrong003-first-use-photo-flow.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -258,6 +259,8 @@ jobs:
         run: node tests/qa-workflow-ux.mjs
       - name: WRONG-002 real app end-to-end parent/child workflow, 320px 390px, synthetic records
         run: node tests/wrong002-core-journey.mjs
+      - name: WRONG-003 actual app first-use, photo-only completion and photo integrity 320/390px
+        run: node tests/wrong003-first-use-photo-flow.mjs
       - name: QA10 all-record retry and intact JSON backup roundtrip
         run: node tests/qa-general-retry.mjs
       - name: QA11 general concept map and ambiguous candidate protection
