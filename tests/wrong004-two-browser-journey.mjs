@@ -160,6 +160,7 @@ try{
  await A.locator('#problem').fill('WRONG005 가상 가족 둘째 오답: 문제 문장 해석 후보');
  await A.locator('#concept').selectOption('');
  await A.locator('#reason').selectOption('reading');
+ await A.locator('#wrong006-candidates input[value="calculation"]').check();
  await A.locator('#save-btn').click();
  await A.locator('#v09-save-confirm:not(.hide)').waitFor();
  const second=(await stored(A)).records.find(r=>r.problemText.startsWith('WRONG005 가상 가족 둘째'));
@@ -168,7 +169,8 @@ try{
  await toDetail(A,id);
  const initial=await stored(A);
  assert.equal(initial.records.length,2);
- assert.equal(initial.records.find(r=>r.id===secondId).reason,'reading');
+ assert.equal(initial.records.find(r=>r.id===secondId).reason,'other');
+ assert.deepEqual(initial.records.find(r=>r.id===secondId).reasonCandidates,['calculation','reading']);
  assert.equal(initial.records.find(r=>r.id===secondId).conceptId,'');
  await handoff(A);
  await push(A,1);
@@ -205,7 +207,9 @@ try{
  assert.ok(childFirst);
  assert.equal(childFirst.conceptId,'math.natural.addition');
  assert.equal(childFirst.reason,'unknown');
- assert.equal(childState.records.find(r=>r.id===secondId).reason,'reading');
+ assert.deepEqual(childFirst.reasonCandidates,[]);
+ assert.equal(childState.records.find(r=>r.id===secondId).reason,'other');
+ assert.deepEqual(childState.records.find(r=>r.id===secondId).reasonCandidates,['calculation','reading']);
  assert.equal(childState.records.find(r=>r.id===secondId).conceptId,'');
  assert.deepEqual(childState.photos,original.photos);
  assert.equal(childFirst.studyPlan.dueDate,'2026-11-15');
@@ -239,7 +243,9 @@ try{
  assert.ok(observedFirst);assert.ok(observedSecond);
  assert.equal(observedFirst.conceptId,'math.natural.addition');
  assert.equal(observedFirst.reason,'unknown');
- assert.equal(observedSecond.conceptId,'');assert.equal(observedSecond.reason,'reading');
+ assert.deepEqual(observedFirst.reasonCandidates,[]);
+ assert.equal(observedSecond.conceptId,'');assert.equal(observedSecond.reason,'other');
+ assert.deepEqual(observedSecond.reasonCandidates,['calculation','reading']);
  assert.equal(observedSecond.followupHistory.length,0);
  assert.equal(observedFirst.generalRetryHistory.length,1);
  assert.equal(observedFirst.followupHistory.length,1);
