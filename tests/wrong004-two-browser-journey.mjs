@@ -161,7 +161,8 @@ try{
   await A.locator('#wrong007-subject').selectOption('english');
   await A.locator('#wrong007-grade').selectOption('5');
   assert.equal(await A.locator('#wrong007-math-fields').isVisible(),false);
- await A.locator('#concept').selectOption('');
+ // English math concept selector is intentionally hidden. Its value must remain blank.
+  assert.equal(await A.locator('#concept').inputValue(),'');
  await A.locator('#reason').selectOption('reading');
  await A.locator('#wrong006-candidates input[value="calculation"]').check();
  await A.locator('#save-btn').click();
