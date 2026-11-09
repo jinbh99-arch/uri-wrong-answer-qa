@@ -60,7 +60,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
    });
    const [rows,keys,blobs,profile,settings]=snapshot;
    if(!Array.isArray(rows)||!Array.isArray(keys)||!Array.isArray(blobs)||keys.length!==blobs.length||
-      !Array.isArray(settings)||settings.some(k=>k!=='profile'))
+      !Array.isArray(settings)||settings.some(k=>!['profile','migrated-v01','v04-reentry-marker'].includes(k)))
     throw Error('기존 기록·사진·설정 검사 실패: 미지원 저장 상태');
    return {empty:rows.length===0&&keys.length===0,
     signature:JSON.stringify({
