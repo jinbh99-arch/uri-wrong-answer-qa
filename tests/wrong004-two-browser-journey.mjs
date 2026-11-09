@@ -170,6 +170,23 @@ try{
  const second=(await stored(A)).records.find(r=>r.problemText.startsWith('WRONG005 가상 가족 둘째'));
  assert.ok(second);
  const secondId=second.id;
+ // WRONG-008: parent saves an English manual recheck date in original checkHistory,
+ // NOT a fabricated future observation or math studyPlan.
+ await toDetail(A,secondId);
+ await A.locator('#v230-answer').fill('English words: synthetic re-answer');
+ await A.locator('#v230-save').click();
+ await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'));
+ await A.locator('#v230-review').selectOption('needs_help');
+ await A.locator('#v230-review-save').click();
+ await A.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help');
+ const wrong008Day=await A.evaluate(()=>{
+  const d=new Date();d.setDate(d.getDate()+5);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ });
+ await A.locator('#wrong008-next-date').fill(wrong008Day);
+ await A.locator('#wrong008-next-question').fill('Synthetic English repeat reading');
+ await A.locator('#wrong008-save-note').click();
+ await A.waitForFunction(day=>document.querySelector('#wrong008-last-manual-note')?.textContent?.includes(day),wrong008Day);
  await toDetail(A,id);
  const initial=await stored(A);
  assert.equal(initial.records.length,2);
@@ -178,6 +195,10 @@ try{
  assert.equal(initial.records.find(r=>r.id===secondId).conceptId,'');
   assert.equal(initial.records.find(r=>r.id===secondId).subject,'english');
   assert.equal(initial.records.find(r=>r.id===secondId).gradeAtEntry,5);
+  assert.equal(initial.records.find(r=>r.id===secondId).generalRetryHistory.at(-1).review,'needs_help');
+  assert.equal(initial.records.find(r=>r.id===secondId).checkHistory[0].status,'not_checked');
+  assert.match(initial.records.find(r=>r.id===secondId).checkHistory[0].memo,new RegExp('^다음 확인 메모: '+wrong008Day));
+  assert.deepEqual(Object.keys(initial.records.find(r=>r.id===secondId).checkHistory[0]).sort(),['at','by','memo','status']);
  await handoff(A);
  await push(A,1);
  assert.equal(await A.locator('#qa42-target').inputValue(),id);
@@ -219,6 +240,8 @@ try{
  assert.equal(childState.records.find(r=>r.id===secondId).conceptId,'');
   assert.equal(childState.records.find(r=>r.id===secondId).subject,'english');
   assert.equal(childState.records.find(r=>r.id===secondId).gradeAtEntry,5);
+  assert.equal(childState.records.find(r=>r.id===secondId).generalRetryHistory.at(-1).review,'needs_help');
+  assert.match(childState.records.find(r=>r.id===secondId).checkHistory[0].memo,new RegExp(wrong008Day));
  assert.deepEqual(childState.photos,original.photos);
  assert.equal(childFirst.studyPlan.dueDate,'2026-11-15');
  await handoff(B);
@@ -256,6 +279,9 @@ try{
   assert.equal(observedSecond.subject,'english');assert.equal(observedSecond.gradeAtEntry,5);
  assert.deepEqual(observedSecond.reasonCandidates,['calculation','reading']);
  assert.equal(observedSecond.followupHistory.length,0);
+ assert.equal(observedSecond.checkHistory.length,1);
+ assert.match(observedSecond.checkHistory[0].memo,new RegExp(wrong008Day));
+ assert.equal(observedSecond.studyPlan,null);
  assert.equal(observedFirst.generalRetryHistory.length,1);
  assert.equal(observedFirst.followupHistory.length,1);
  assert.equal(observedFirst.followupHistory[0].outcome,'explained');
