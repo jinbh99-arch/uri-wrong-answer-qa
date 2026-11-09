@@ -80,9 +80,20 @@ async function push(p,rev){
 async function pull(p,id){
  await p.locator('#qa42-target').selectOption(id);
  await p.locator('#qa42-pull').click();
- await p.waitForFunction(()=>document.querySelector('#confirm-dialog[open]')||document.querySelector('#qa42-status')?.dataset.error==='true',null,{timeout:25000});
+ await p.waitForFunction(()=>{
+  const verify=document.querySelector('#v18-verify-result')?.textContent||'';
+  return document.querySelector('#confirm-dialog[open]')||
+   document.querySelector('#qa42-status')?.dataset.error==='true'||
+   verify.includes('복원 전 검사에서 차단')||verify.includes('⛔');
+ },null,{timeout:25000}).catch(async err=>{
+  const status=await p.locator('#qa42-status').innerText();
+  const verify=await p.locator('#v18-verify-result').innerText();
+  const toast=await p.locator('#toast').innerText();
+  throw Error('GET/import no confirm: status='+status+' | integrity='+verify+' | toast='+toast+' | '+String(err));
+ });
  const status=await p.locator('#qa42-status').innerText();
- assert.equal(await p.locator('#confirm-dialog[open]').count(),1,'GET/pull failed before confirmation: '+status);
+ const verify=await p.locator('#v18-verify-result').innerText();
+ assert.equal(await p.locator('#confirm-dialog[open]').count(),1,'GET/pull blocked: '+status+'; import='+verify);
  await p.locator('#dlg-ok').click();
  await p.locator('#wrong004-handoff:visible').waitFor({timeout:25000});
  assert.equal(await p.locator('#detail-edit').getAttribute('data-record')===id,false); // detail is selected by app, not a URL query
