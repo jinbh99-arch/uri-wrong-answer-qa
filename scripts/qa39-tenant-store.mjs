@@ -64,7 +64,7 @@ function learningOnlyChange(base,local){
      if(!next.studyPlan||next.studyPlan.conceptId!==prior.studyPlan.conceptId||
         next.studyPlan.method!==prior.studyPlan.method||
         typeof next.studyPlan.dueDate!=='string'||
-        !/^(20\\d{2})-(0[1-9]|1[0-2])-([0-2]\\d|3[01])$/.test(next.studyPlan.dueDate))
+        !/^(20\d{2})-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(next.studyPlan.dueDate))
       throw error('LEARNING_CHANGE_UNSAFE');
      const ignoreDates=x=>Object.fromEntries(Object.entries(x).filter(([k])=>!['dueDate','createdAt'].includes(k)));
      if(!same(ignoreDates(prior.studyPlan),ignoreDates(next.studyPlan)))throw error('LEARNING_CHANGE_UNSAFE');
