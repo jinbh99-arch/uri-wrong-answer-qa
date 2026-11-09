@@ -140,7 +140,9 @@ try{
  assert.equal(await A.locator('#v230-answer').isVisible(),true);
  await A.locator('#v230-answer').fill('가상 국어 재풀이 설명');
  await A.locator('#v230-save').click();
- await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:25000});
+ try{await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:10000})}catch(err){
+  console.error('WRONG009_RETRY_DIAGNOSTIC='+JSON.stringify({state:await A.locator('#wrong002-state').allTextContents(),retryStatus:await A.locator('#v230-status').allTextContents(),record:await stored(A).then(x=>x.records.find(r=>r.id===koreanId)).then(r=>({retryHistory:r?.generalRetryHistory?.length,checkHistory:r?.checkHistory?.length}))}));throw err;
+ }
  await A.locator('#v230-review').selectOption('needs_help');
  await A.locator('#v230-review-save').click();
  await A.waitForFunction(()=>document.querySelector('#wrong008-next-review')?.textContent?.includes('부모 도움이 필요했다고 기록'),null,{timeout:25000});
