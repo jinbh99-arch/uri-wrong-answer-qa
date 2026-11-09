@@ -1123,6 +1123,11 @@ try{
  await v23RestoreWithPhotoCheck(items,images,p,v22Baseline,v23PhotoBaseline);v217Committed=true;
  const proof=await v217VerifyRestoredData(items,images,p);
  await restoreState();notify(`복원 후 재읽기 확인: 오답 ${proof.records}건·사진 ${proof.photos}장·프로필 일치.`);navigate('home');
+  // WRONG-004: notify the isolated local family bridge ONLY after the
+  // original app finished atomic restore and independent photo/row verification.
+  if(location.origin==='http://127.0.0.1:4173'&&/^qa42-synthetic-revision-[0-9]+\.json$/.test(file.name)){
+    document.dispatchEvent(new CustomEvent('wrong004:restore-verified',{detail:{ids:items.map(r=>r.id)}}));
+  }
 }catch(e){
  if(v217Committed){
   try{await restoreState()}catch{}
@@ -4150,6 +4155,51 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const status=$('wrong002-state');
     if(status)status.after(make('p','small','사진은 저장됐지만 문제 문장이 비어 있습니다. 내용을 보완해도 같은 기록을 유지하며, 아이는 사진만 보고 먼저 다시 풀 수도 있습니다.'));
   };
+
+
+  // WRONG-004 adds navigation to existing QA42 manual family transfer in the
+  // actual app. The panel is never created on Pages/Netlify or another origin.
+  if(location.origin==='http://127.0.0.1:4173'){
+    document.addEventListener('wrong004:open-record',event=>{
+      const id=event.detail?.id;
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(id))return;
+      if(!records.some(r=>r.id===id)){notify('선택한 가상 오답 ID가 현재 기기에 없습니다. 먼저 수동 복원·확인을 완료하세요.');return}
+      detailId=id;navigate('detail');
+    });
+    const wrong004OriginalDetail=renderDetail;
+    renderDetail=async function(){
+      await wrong004OriginalDetail();
+      if(route!=='detail')return;
+      const record=records.find(r=>r.id===detailId);
+      if(!record)return;
+      const area=$('detail-card');
+      if(!area)return;
+      let card=$('wrong004-cross-device');
+      if(!card){
+        card=make('section','card');
+        card.id='wrong004-cross-device';
+        card.setAttribute('aria-label','가상 가족의 다른 브라우저에 오답 이어주기');
+        area.before(card);
+      }
+      card.replaceChildren();
+      card.append(make('h2',null,'🧪 다른 브라우저에서 이 오답 이어하기'));
+      const title=make('p','small','같은 가상 가족의 보호자·아이 브라우저에서 이 오답 ID('+record.id.slice(0,12)+'…)를 수동으로 이어 씁니다. 기존 사진·기록의 원본을 보존하며 자동 동기화하지 않습니다.');
+      card.append(title);
+      card.append(make('p','small','① 이 기록을 로컬 가족 서버로 수동 보내기 → ② 다른 브라우저에서 같은 ID 선택·수동 가져오기 및 승인 → ③ 아이 재풀이 → ④ 다시 보내기 → ⑤ 부모 수동 가져오기·관찰·보고서. 충돌이 있으면 중단합니다.'));
+      const go=make('button','secondary','📤📥 이 오답의 가상 가족 수동 교환 열기');
+      go.id='wrong004-handoff';go.type='button';
+      go.onclick=()=>{
+        document.dispatchEvent(new CustomEvent('wrong004:remember-record',{detail:{id:record.id}}));
+        // The child view is only an app presentation mode, never a login
+        // or verified parental authority. Switching here grants no server rights.
+        if(v218Mode==='child')$('v218-parent-mode').click();
+        navigate('settings');
+        $('qa42-real-api')?.scrollIntoView({block:'start',behavior:'auto'});
+      };
+      card.append(go);
+      card.append(make('p','small','🔒 아이 보기/부모 보기는 화면 표시만 구분합니다. 실제 학생 계정·가족 권한 검증이 아닙니다. 127.0.0.1 시험 환경 외에서는 제공하지 않습니다.'));
+    };
+  }
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
