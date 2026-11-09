@@ -1591,12 +1591,12 @@ function renderFollowUpPanel(){
 const renderDetail_v04=renderDetail;
 renderDetail=async function(){await renderDetail_v04();if(route!=='detail')return;renderFollowUpPanel();renderV25LearningPanel()};
 function summaryCSV(){
-  const cols=['학년','관련 개념','오답 등록 건수','복습 일정 건수','최근 오답 등록일'];
+  const cols=['학년','관련 개념','오답 등록 건수','복습 일정 건수','최근 오답 등록일','과목(학부모 입력)'];
   const groups=new Map();
-  for(const r of records){const grade=String(r.gradeAtEntry||''),id=getConcept(r.conceptId)?r.conceptId:'미분류',key=grade+'|'+id;
-    if(!groups.has(key))groups.set(key,{grade,id,count:0,plans:0,last:''});const a=groups.get(key);a.count++;if(r.studyPlan)a.plans++;if(String(r.createdAt||'')>a.last)a.last=String(r.createdAt||'');}
+  for(const r of records){const grade=String(r.gradeAtEntry||''),id=r.subject==='math'&&getConcept(r.conceptId)?r.conceptId:'미분류',key=grade+'|'+r.subject+'|'+id;
+    if(!groups.has(key))groups.set(key,{grade,id,subject:r.subject,count:0,plans:0,last:''});const a=groups.get(key);a.count++;if(r.studyPlan)a.plans++;if(String(r.createdAt||'')>a.last)a.last=String(r.createdAt||'');}
   const csvEscape=value=>{let s=String(value??'').replace(/\r?\n/g,' ');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
-  const rows=[cols,...[...groups.values()].sort((a,b)=>Number(a.grade)-Number(b.grade)||a.id.localeCompare(b.id)).map(a=>[a.grade,a.id==='미분류'?'미분류':cname(a.id),a.count,a.plans,a.last.slice(0,10)])];
+  const rows=[cols,...[...groups.values()].sort((a,b)=>Number(a.grade)-Number(b.grade)||a.id.localeCompare(b.id)).map(a=>[a.grade,a.id==='미분류'?'미분류':cname(a.id),a.count,a.plans,a.last.slice(0,10),wrong007SubjectName(a.subject)])];
   return '\ufeff'+rows.map(row=>row.map(csvEscape).join(',')).join('\r\n');
 }
 $('export-summary-csv').onclick=()=>{
