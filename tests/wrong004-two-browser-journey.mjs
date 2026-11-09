@@ -66,8 +66,16 @@ async function handoff(p){
  await p.locator('#qa42-real-api:visible').waitFor();
 }
 async function push(p,rev){
+ const before=await p.locator('#qa42-revision').innerText();
+ assert.equal(await p.locator('#qa42-upload').isEnabled(),true,'upload button disabled at '+before);
+ assert.equal(await p.locator('#qa42-synthetic').isChecked(),true,'synthetic only confirmation lost');
  await p.locator('#qa42-upload').click();
- await p.getByText('개정번호 '+rev+'에 합성 오답을 저장했습니다.',{exact:false}).waitFor({timeout:25000});
+ await p.waitForFunction(value=>{
+  const el=document.querySelector('#qa42-status');
+  return el&&(el.textContent.includes('개정번호 '+value+'에 합성 오답을 저장했습니다.')||el.dataset.error==='true');
+ },rev,{timeout:25000});
+ const actual=await p.locator('#qa42-status').innerText();
+ assert.match(actual,new RegExp('개정번호 '+rev+'에 합성 오답을 저장했습니다\\.'),'upload failed: '+actual+'; previously '+before);
 }
 async function pull(p,id){
  await p.locator('#qa42-target').selectOption(id);
