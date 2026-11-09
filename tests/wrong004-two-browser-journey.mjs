@@ -90,7 +90,7 @@ try{
   await admin.query('INSERT INTO qa39.family_snapshots(family_id) VALUES($1)',[id]);
  }
  for(const [id,sub] of [[FAMILY,USER_A],[FAMILY,USER_B],[FOREIGN,USER_C]]){
-  const principal='oidc:'+createHash('sha256').update(ISS+'\\0'+sub).digest('hex');
+  const principal='oidc:'+createHash('sha256').update(ISS+'\0'+sub).digest('hex');
   await admin.query("INSERT INTO qa39.guardian_memberships(family_id,principal_id,role,verified_at) VALUES($1,$2,'guardian',now())",[id,principal]);
  }
  gate=await createQa41LoopbackFamilyApi({pool:dbApp,resolveAuthenticatedPrincipal:resolve});
