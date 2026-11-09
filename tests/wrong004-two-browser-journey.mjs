@@ -145,6 +145,7 @@ try{
  await A.locator('#problem').fill('WRONG004 가상 사진 문제: 6 + 3 = ?');
  await A.locator('#student-answer').fill('8 가상 오답');
  await A.locator('#concept').selectOption('math.natural.addition');
+ await A.locator('#reason').selectOption('unknown'); // related concept known; cause NOT established
  await A.locator('#save-btn').click();
  await A.locator('#v09-save-confirm:not(.hide)').waitFor();
  const original=await stored(A),id=original.records[0]?.id;
@@ -153,14 +154,32 @@ try{
  await A.locator('#v05-plan-date').fill('2026-11-15');
  await A.locator('#v05-followup button').filter({hasText:'복습 계획 저장'}).click();
  await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('2026-11-15'));
+ // WRONG-005: a second distinct family mistake, unknown concept but a
+ // different POSSIBLE reason. Must never be conflated with the photo record.
+ await A.locator('#nav-add').click();
+ await A.locator('#problem').fill('WRONG005 가상 가족 둘째 오답: 문제 문장 해석 후보');
+ await A.locator('#concept').selectOption('');
+ await A.locator('#reason').selectOption('reading');
+ await A.locator('#save-btn').click();
+ await A.locator('#v09-save-confirm:not(.hide)').waitFor();
+ const second=(await stored(A)).records.find(r=>r.problemText.startsWith('WRONG005 가상 가족 둘째'));
+ assert.ok(second);
+ const secondId=second.id;
+ await toDetail(A,id);
  const initial=await stored(A);
+ assert.equal(initial.records.length,2);
+ assert.equal(initial.records.find(r=>r.id===secondId).reason,'reading');
+ assert.equal(initial.records.find(r=>r.id===secondId).conceptId,'');
  await handoff(A);
  await push(A,1);
  assert.equal(await A.locator('#qa42-target').inputValue(),id);
- assert.equal((await remote(FAMILY,jwtA)).body.snapshot.records[0].id,id);
+ assert.equal((await remote(FAMILY,jwtA)).body.snapshot.records.length,2);
+ assert.ok((await remote(FAMILY,jwtA)).body.snapshot.records.some(r=>r.id===id));
+ assert.ok((await remote(FAMILY,jwtA)).body.snapshot.records.some(r=>r.id===secondId));
  pass('보호자 가상 사진·복습 계획 저장→같은 ID 선택→가족 서버 수동 전송 rev1');
 
  await connect(B,jwtB,FAMILY);
+ await B.locator('#qa42-target').selectOption(id);
  assert.equal(await B.locator('#qa42-target').inputValue(),id);
  await B.locator('#qa42-pull').click();
  await B.locator('#confirm-dialog[open]').waitFor();
@@ -181,9 +200,15 @@ try{
  await B.locator('#v230-save').click();
  await B.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'));
  const childState=await stored(B);
- assert.equal(childState.records[0].id,id);
+ assert.equal(childState.records.length,2);
+ const childFirst=childState.records.find(r=>r.id===id);
+ assert.ok(childFirst);
+ assert.equal(childFirst.conceptId,'math.natural.addition');
+ assert.equal(childFirst.reason,'unknown');
+ assert.equal(childState.records.find(r=>r.id===secondId).reason,'reading');
+ assert.equal(childState.records.find(r=>r.id===secondId).conceptId,'');
  assert.deepEqual(childState.photos,original.photos);
- assert.equal(childState.records[0].studyPlan.dueDate,'2026-11-15');
+ assert.equal(childFirst.studyPlan.dueDate,'2026-11-15');
  await handoff(B);
  assert.equal(await B.locator('#qa42-real-api').isVisible(),true);
  await B.locator('#qa42-learning-approve').check();
@@ -209,14 +234,20 @@ try{
  await B.locator('#qa42-target').selectOption(id);
  await pull(B,id);
  const observed=await stored(B);
- assert.equal(observed.records.length,1);
- assert.equal(observed.records[0].id,id);
- assert.equal(observed.records[0].generalRetryHistory.length,1);
- assert.equal(observed.records[0].followupHistory.length,1);
+ assert.equal(observed.records.length,2);
+ const observedFirst=observed.records.find(r=>r.id===id),observedSecond=observed.records.find(r=>r.id===secondId);
+ assert.ok(observedFirst);assert.ok(observedSecond);
+ assert.equal(observedFirst.conceptId,'math.natural.addition');
+ assert.equal(observedFirst.reason,'unknown');
+ assert.equal(observedSecond.conceptId,'');assert.equal(observedSecond.reason,'reading');
+ assert.equal(observedSecond.followupHistory.length,0);
+ assert.equal(observedFirst.generalRetryHistory.length,1);
+ assert.equal(observedFirst.followupHistory.length,1);
+ assert.equal(observedFirst.followupHistory[0].outcome,'explained');
  // Existing v06 review completion explicitly clears the active plan while
  // retaining its dated history; requiring dueDate here was a stale test oracle.
- assert.equal(observed.records[0].studyPlan,null);
- assert.equal(observed.records[0].followupHistory[0].workflowState,'completed_observation');
+ assert.equal(observedFirst.studyPlan,null);
+ assert.equal(observedFirst.followupHistory[0].workflowState,'completed_observation');
  assert.deepEqual(observed.photos,initial.photos);
  await B.reload({waitUntil:'domcontentloaded'});
  await B.locator('#nav-records').click();
@@ -251,7 +282,7 @@ try{
  await B.locator('#qa42-pull').click();
  await B.getByText('미전송·다른 가족 기록 또는 충돌 변경',{exact:false}).waitFor({timeout:25000});
  assert.deepEqual(await stored(B),unsynced);
- const count=await stored(B);assert.equal(count.records.length,1);
+ const count=await stored(B);assert.equal(count.records.length,2);
  await B.locator('#qa42-upload').click();
  await B.getByText('서버 최신본이 변경돼 원본 백업을 새로 만들지 않고 중단했습니다.',{exact:false}).waitFor();
  assert.deepEqual(await stored(B),unsynced);
