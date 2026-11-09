@@ -158,7 +158,11 @@ try{
  // different POSSIBLE reason. Must never be conflated with the photo record.
  await A.locator('#nav-add').click();
  await A.locator('#problem').fill('WRONG005 가상 가족 둘째 오답: 문제 문장 해석 후보');
- await A.locator('#concept').selectOption('');
+  await A.locator('#wrong007-subject').selectOption('english');
+  await A.locator('#wrong007-grade').selectOption('5');
+  assert.equal(await A.locator('#wrong007-math-fields').isVisible(),false);
+ // English math concept selector is intentionally hidden. Its value must remain blank.
+  assert.equal(await A.locator('#concept').inputValue(),'');
  await A.locator('#reason').selectOption('reading');
  await A.locator('#wrong006-candidates input[value="calculation"]').check();
  await A.locator('#save-btn').click();
@@ -172,6 +176,8 @@ try{
  assert.equal(initial.records.find(r=>r.id===secondId).reason,'other');
  assert.deepEqual(initial.records.find(r=>r.id===secondId).reasonCandidates,['calculation','reading']);
  assert.equal(initial.records.find(r=>r.id===secondId).conceptId,'');
+  assert.equal(initial.records.find(r=>r.id===secondId).subject,'english');
+  assert.equal(initial.records.find(r=>r.id===secondId).gradeAtEntry,5);
  await handoff(A);
  await push(A,1);
  assert.equal(await A.locator('#qa42-target').inputValue(),id);
@@ -211,6 +217,8 @@ try{
  assert.equal(childState.records.find(r=>r.id===secondId).reason,'other');
  assert.deepEqual(childState.records.find(r=>r.id===secondId).reasonCandidates,['calculation','reading']);
  assert.equal(childState.records.find(r=>r.id===secondId).conceptId,'');
+  assert.equal(childState.records.find(r=>r.id===secondId).subject,'english');
+  assert.equal(childState.records.find(r=>r.id===secondId).gradeAtEntry,5);
  assert.deepEqual(childState.photos,original.photos);
  assert.equal(childFirst.studyPlan.dueDate,'2026-11-15');
  await handoff(B);
@@ -245,6 +253,7 @@ try{
  assert.equal(observedFirst.reason,'unknown');
  assert.deepEqual(observedFirst.reasonCandidates,[]);
  assert.equal(observedSecond.conceptId,'');assert.equal(observedSecond.reason,'other');
+  assert.equal(observedSecond.subject,'english');assert.equal(observedSecond.gradeAtEntry,5);
  assert.deepEqual(observedSecond.reasonCandidates,['calculation','reading']);
  assert.equal(observedSecond.followupHistory.length,0);
  assert.equal(observedFirst.generalRetryHistory.length,1);
