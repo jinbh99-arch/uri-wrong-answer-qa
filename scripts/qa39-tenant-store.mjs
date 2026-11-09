@@ -4,6 +4,7 @@
 // supplying resolveAuthenticatedPrincipal. Never ship DB credentials to clients.
 import {createHash} from 'node:crypto';
 import {checkBackup,previewMerge} from './qa-family-merge-preflight.mjs';
+import {previewThreeWay} from './qa-family-threeway.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function error(code){return Object.assign(new Error(code),{code})}
@@ -21,6 +22,38 @@ function preparedDocument(doc){
  if(Buffer.byteLength(snapshotText,'utf8')>1024*1024)throw error('QA39_DOCUMENT_TOO_LARGE');
  return {snapshotText,hash:createHash('sha256').update(snapshotText,'utf8').digest('hex')};
 }
+
+function learningOnlyChange(base,local){
+ // Explicit synthetic learning-history commit: an existing record's problem,
+ // photo, concept, parent profile and identifiers are immutable. A child can
+ // append a retry; a parent can append an observation or add the first plan.
+ const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ if(base.records.length!==local.records.length||!same(base.profile,local.profile)||
+    !same(base.photos,local.photos))throw error('LEARNING_CHANGE_UNSAFE');
+ const fields=['practiceHistory','generalRetryHistory','followupHistory','checkHistory','prerequisiteChecks'];
+ const mutable=new Set([...fields,'studyPlan','updatedAt']);
+ const strip=r=>Object.fromEntries(Object.keys(r).filter(k=>!mutable.has(k)).map(k=>[k,r[k]]));
+ const existing=new Map(base.records.map(x=>[x.id,x]));
+ let appended=0;
+ for(const next of local.records){
+  const prior=existing.get(next.id);
+  if(!prior||!same(strip(prior),strip(next)))throw error('LEARNING_CHANGE_UNSAFE');
+  for(const key of fields){
+   const older=prior[key]===undefined?[]:prior[key],newer=next[key]===undefined?[]:next[key];
+   if(!Array.isArray(older)||!Array.isArray(newer)||newer.length<older.length||
+      !same(older,newer.slice(0,older.length)))throw error('LEARNING_CHANGE_UNSAFE');
+   appended+=newer.length-older.length;
+  }
+  if(!same(prior.studyPlan,next.studyPlan)){
+   if(prior.studyPlan!==null&&prior.studyPlan!==undefined)throw error('LEARNING_CHANGE_UNSAFE');
+   if(!next.studyPlan||typeof next.studyPlan!=='object'||Array.isArray(next.studyPlan))
+    throw error('LEARNING_CHANGE_UNSAFE');
+   appended++;
+  }
+ }
+ if(!appended)throw error('NO_NEW_LEARNING_EVIDENCE');
+}
+
 export function createQa39TenantStore(pool,resolveAuthenticatedPrincipal){
  if(process.env.QA39_REFERENCE_ONLY!=='1')throw error('NO_PRODUCTION_AUTH_PROVIDER_CONNECTED');
  if(!pool||typeof pool.connect!=='function'||typeof resolveAuthenticatedPrincipal!=='function')
@@ -66,6 +99,34 @@ export function createQa39TenantStore(pool,resolveAuthenticatedPrincipal){
     }
     return {revision:Number(row.revision),
       snapshot:row.snapshot_text===null?null:JSON.parse(row.snapshot_text)};
+   });
+  },
+  async commitLearning(context,requestedFamilyId,expectedRevision,base,local,approved){
+   if(approved!==true)throw error('APPROVAL_REQUIRED');
+   const id=familyId(requestedFamilyId),expected=revision(expectedRevision);
+   preparedDocument(base);preparedDocument(local);
+   learningOnlyChange(base,local);
+   return scoped(context,async db=>{
+    const rows=await db.query('SELECT revision,snapshot_text,content_sha256 FROM qa39.family_snapshots WHERE family_id=$1',[id]);
+    if(rows.rowCount!==1)throw error('FAMILY_NOT_ACCESSIBLE');
+    const prior=rows.rows[0];
+    if(Number(prior.revision)!==expected)throw error('STALE_REVISION');
+    if(prior.snapshot_text===null||JSON.stringify(base)!==prior.snapshot_text)
+     throw error('BASE_SNAPSHOT_MISMATCH');
+    const priorHash=createHash('sha256').update(prior.snapshot_text).digest('hex');
+    if(priorHash!==prior.content_sha256)throw error('PERSISTED_DOCUMENT_TAMPERED');
+    // Reuse QA28 review-only three-way preview, but require the server's
+    // current authenticated document to be the exact user-reviewed base.
+    const plan=previewThreeWay(base,local,JSON.parse(prior.snapshot_text));
+    if(plan.outcome!=='NON_CONFLICTING_DRAFT'||!plan.candidate||
+       plan.candidate.records.length!==base.records.length)
+     throw error('LEARNING_CHANGE_UNSAFE');
+    const {snapshotText,hash}=preparedDocument(plan.candidate);
+    const updated=await db.query(
+     'UPDATE qa39.family_snapshots SET revision=revision+1,snapshot_text=$3,content_sha256=$4,updated_at=now() WHERE family_id=$1 AND revision=$2 RETURNING revision',
+     [id,expected,snapshotText,hash]);
+    if(updated.rowCount!==1)throw error('STALE_OR_UNAUTHORIZED_COMMIT');
+    return {stored:true,approvedManualLearning:true,revision:Number(updated.rows[0].revision),sha256:hash};
    });
   },
   async put(context,requestedFamilyId,expectedRevision,document){
