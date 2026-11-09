@@ -121,7 +121,13 @@ export function createQa39TenantStore(pool,resolveAuthenticatedPrincipal){
     if(plan.outcome!=='NON_CONFLICTING_DRAFT'||!plan.candidate||
        plan.candidate.records.length!==base.records.length)
      throw error('LEARNING_CHANGE_UNSAFE');
-    const {snapshotText,hash}=preparedDocument(plan.candidate);
+    // QA28 preview intentionally emits only the generic SHA-256 digest.
+    // The ACTUAL app's v1.8 restore requires its original integrity.scheme;
+    // adding that transport metadata does not alter the digested payload.
+    const accepted=structuredClone(plan.candidate);
+    accepted.integrity={...accepted.integrity,scheme:'v18-json-payload',
+     notice:'가상 수동 학습 이력 전송의 손상 검사용 SHA-256 · 인증 또는 암호화가 아닙니다.'};
+    const {snapshotText,hash}=preparedDocument(accepted);
     const updated=await db.query(
      'UPDATE qa39.family_snapshots SET revision=revision+1,snapshot_text=$3,content_sha256=$4,updated_at=now() WHERE family_id=$1 AND revision=$2 RETURNING revision',
      [id,expected,snapshotText,hash]);
