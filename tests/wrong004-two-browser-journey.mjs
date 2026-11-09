@@ -160,6 +160,7 @@ try{
  assert.equal(childState.records[0].studyPlan.dueDate,'2026-11-15');
  await handoff(B);
  assert.equal(await B.locator('#qa42-real-api').isVisible(),true);
+ await B.locator('#qa42-learning-approve').check();
  await push(B,2);
  assert.equal((await remote(FAMILY,jwtA)).body.revision,2);
  pass('아이는 같은 ID의 재풀이 저장, 화면상 부모 기능 숨김 → 보호자 시범 전송 rev2 (자동동기화 아님)');
@@ -174,7 +175,9 @@ try{
  await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('학부모 관찰 1회'));
  await A.locator('#wrong002-report').click();
  assert.equal(await A.locator('#v227-parent-report').isVisible(),true);
- await toDetail(A,id);await handoff(A);await push(A,3);
+ await toDetail(A,id);await handoff(A);
+ await A.locator('#qa42-learning-approve').check();
+ await push(A,3);
  pass('부모가 rev2 수신 후 같은 ID의 복습 결과 관찰→활동 보고서→가족 서버 rev3');
 
  await B.locator('#qa42-target').selectOption(id);
