@@ -110,7 +110,7 @@ try{
  const date1=await plusDays(A,3),date2=await plusDays(A,7);
  await A.locator('#v230-review').selectOption('needs_help');
  await A.locator('#v230-review-save').click();
- await A.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help'&&document.querySelector('#wrong008-next-date'),null,{timeout:25000});
+ await A.waitForFunction(()=>document.querySelector('#wrong008-next-review')?.textContent?.includes('부모 도움이 필요했다고 기록'),null,{timeout:25000});
  let observed=await stored(A);
  assert.equal(find(observed,koreanId).generalRetryHistory.at(-1).review,'needs_help');
  assert.equal(find(observed,koreanId).checkHistory.length,0);
