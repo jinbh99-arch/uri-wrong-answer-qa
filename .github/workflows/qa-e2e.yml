@@ -207,6 +207,13 @@ jobs:
         run: node tests/wrong008-nonmath-manual-recheck.mjs
       - name: WRONG-009 subject and photo/text status filter no-math-leak 390/320px real app regression
         run: node tests/wrong009-nonmath-record-list-context.mjs
+      - name: WRONG-009 save actual 390 and 320px nonmath subject-filter screen evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong009-subject-filter-screenshots
+          path: wrong009-ui-evidence/*.png
+          retention-days: 14
+          if-no-files-found: error
       - name: WRONG-VIEW-001 preserve latest Draft actual UI screenshots from synthetic mobile browser
         uses: actions/upload-artifact@v4
         with:
