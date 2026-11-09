@@ -69,7 +69,7 @@ if(location.origin===ORIGIN&&document.getElementById('qa34-sync-bridge')){
     signature:JSON.stringify({
      records:rows.map(r=>[String(r.id),JSON.stringify(r)]).sort((a,b)=>a[0].localeCompare(b[0])),
      photos:await Promise.all(keys.map(async(k,i)=>[String(k),blobs[i]?.type,await sha(await blobs[i].arrayBuffer())])).then(a=>a.sort((x,y)=>x[0].localeCompare(y[0]))),
-     profile:JSON.stringify(profile||null)
+     profile:JSON.stringify(profile||{nickname:'우리 아이',grade:3,subject:'math'})
     })};
   }finally{db.close()}
  }
