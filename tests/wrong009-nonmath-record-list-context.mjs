@@ -1,13 +1,17 @@
 // WRONG-009: reproducible non-math subject/status filter confusion in real app.
 // Synthetic data and Chromium 390/320px only; no user credentials/production service.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const BASE='http://127.0.0.1:4173/',DB='uriaimath-github-qa-v224-only';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 const SUBS=['math','korean','english','science','social'];
 let browser,checks=0;const pass=s=>{checks++;console.log('PASS WRONG009 '+s)};
 const stable=x=>JSON.stringify(x,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+async function screenshotList(p,name){
+ await mkdir('wrong009-ui-evidence',{recursive:true});
+ await p.locator('#page-records:visible').screenshot({path:'wrong009-ui-evidence/'+name,animations:'disabled',timeout:25000});
+}
 async function stored(p){return p.evaluate(async name=>{
  const req=indexedDB.open(name),db=await new Promise((ok,no)=>{req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error)});
  const read=q=>new Promise((ok,no)=>{q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -101,6 +105,8 @@ try{
   assert.deepEqual(found,name==='math'?[mathPhotoId]:[],name+' status=photo_only must obey subject');
  }
  pass('390px 과목 5개 각각 사진만 저장 상태도 과목과 동시 적용: 비수학에 수학 사진 오답 노출 0');
+ await list(A,'korean','photo_only');
+ await screenshotList(A,'01_korean-photo-only-no-math-390.png');
 
  await list(A,'math','all');
  await A.locator('#filter-concept').selectOption('math.natural.addition');
@@ -110,6 +116,7 @@ try{
  assert.equal(await A.locator('#filter-concept').isVisible(),false);
  assert.equal(await A.locator('#concept-counts').isVisible(),false);
  assert.deepEqual(await A.locator('#records-list button[data-record]').evaluateAll(els=>els.map(el=>el.dataset.record)),[koreanId]);
+ await screenshotList(A,'02_korean-only-math-concept-hidden-390.png');
  pass('수학 개념 필터를 켠 뒤 국어 전환: 수학 전용 입력/집계 숨김·낡은 개념 조건 초기화·국어 1건 유지');
 
  await A.locator('#wrong007-filter-subject').selectOption('english');
@@ -118,6 +125,7 @@ try{
  assert.equal(await A.locator('#filter-concept').isVisible(),true);
  assert.equal(await A.locator('#concept-counts').isVisible(),true);
  assert.equal(await A.locator('#filter-concept').inputValue(),'');
+ await screenshotList(A,'03_math-concept-filter-restored-390.png');
  await A.locator('#wrong007-filter-subject').selectOption('');
  assert.equal(await A.locator('#records-list button[data-record]').count(),6);
  pass('수학/전체로 돌아가면 기존 수학 개념 필터 복귀, 6개 기록 누락 없음');
@@ -155,6 +163,7 @@ try{
 
  for(const [name,id] of Object.entries(ids)){
   assert.deepEqual(await list(B,name,'text_ready'),[id],name+' child 320px');
+  if(name==='korean')await screenshotList(B,'04_korean-only-child-width-320.png');
   assert.deepEqual(await list(B,name,'photo_only'),name==='math'?[mathPhotoId]:[]);
   assert.equal(await B.locator('#filter-concept').isVisible(),name==='math');
   await noOverflow(B);
