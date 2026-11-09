@@ -22,6 +22,7 @@ on:
       - 'tests/wrong003-first-use-photo-flow.mjs'
       - 'tests/wrong004-two-browser-journey.mjs'
       - 'tests/wrong005-semantics-journey.mjs'
+      - 'tests/wrong006-multi-reason-journey.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -195,6 +196,8 @@ jobs:
         run: node tests/wrong004-two-browser-journey.mjs
       - name: WRONG-005 actual three-record concept-reason-observation and photo backup E2E 390/320px
         run: node tests/wrong005-semantics-journey.mjs
+      - name: WRONG-006 0/1/N reason candidate compatibility, legacy backup, photo and 390/320px E2E
+        run: node tests/wrong006-multi-reason-journey.mjs
       - name: QA43 step 1 release config, role, secrets, OIDC and guardian approval fail closed
         run: node tests/qa43-ops-preflight.mjs
       - name: QA43 step 2 AES-GCM family backups, PostgreSQL disaster restore, CAS, deletion, revocation
