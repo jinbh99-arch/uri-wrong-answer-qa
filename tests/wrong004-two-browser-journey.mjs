@@ -244,6 +244,10 @@ try{
  await handoff(A);
  await push(A,4);
  assert.equal((await remote(FAMILY,jwtA)).body.revision,4);
+ // After a local edit the app is on the record flow, not Settings. Navigate
+ // through the actual UI before exercising the guarded manual import.
+ await B.locator('#nav-settings').click();
+ await B.locator('#qa42-real-api:visible').waitFor();
  await B.locator('#qa42-pull').click();
  await B.getByText('미전송·다른 가족 기록 또는 충돌 변경',{exact:false}).waitFor({timeout:25000});
  assert.deepEqual(await stored(B),unsynced);
