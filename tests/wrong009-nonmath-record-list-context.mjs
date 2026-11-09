@@ -57,6 +57,10 @@ async function detail(p,id){
  await list(p,'','all');
  await p.locator('#records-list button[data-record="'+id+'"]').click();
  await p.locator('#wrong007-record-context:visible').waitFor();
+ // App's photo read and later WRONG-002 action wrapper finish asynchronously.
+ // A context label alone is NOT sufficient before clicking retry or checking child CTA.
+ await p.locator('#wrong002-retry:visible').waitFor({timeout:25000});
+ await p.locator('#v230-answer:visible').waitFor({timeout:25000});
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
