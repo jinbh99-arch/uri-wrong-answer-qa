@@ -1,12 +1,21 @@
 // WRONG-008: actual app UI with synthetic non-math recheck date notes (no schema migration).
 // No real child, account, production network or service; no automatic schedule/approval.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
 const BASE='http://127.0.0.1:4173/',DB='uriaimath-github-qa-v224-only';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 let browser,checks=0;const pass=s=>{checks++;console.log('PASS WRONG008 '+s)};
+// WRONG-VIEW-001: screenshot evidence of the SAME passing synthetic Chromium
+// journey, captured only in ephemeral GitHub Actions. Never any real child data.
+const EVIDENCE_DIR='wrong-view-001-screenshots';
+async function visual(p,name,selector=null){
+ await mkdir(EVIDENCE_DIR,{recursive:true});
+ const target=selector?p.locator(selector):p;
+ if(selector)await target.waitFor({state:'visible',timeout:25000});
+ await target.screenshot({path:EVIDENCE_DIR+'/'+name,animations:'disabled',timeout:25000});
+}
 const stable=obj=>JSON.stringify(obj,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?
  Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 async function stored(page){
@@ -34,6 +43,7 @@ async function add(p,{title,subject='math',grade='3',concept='',photo=false,cand
  }
  if(subject==='math'&&concept)await p.locator('#concept').selectOption(concept);
  for(const x of candidates)await p.locator('#wrong006-candidates input[value="'+x+'"]').check();
+ if(subject==='korean')await visual(p,'02_korean-entry_grade-reasons_390.png','#mistake-form');
  await p.locator('#save-btn').click();
  await p.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:25000});
  const snap=await stored(p),r=snap.records.find(x=>x.problemText===title);
@@ -71,6 +81,8 @@ async function note(p,id,day,question){
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
+ await p.locator('#export-json').scrollIntoViewIfNeeded();
+ await visual(p,'08_backup-settings_390.png');
  const [file]=await Promise.all([p.waitForEvent('download',{timeout:30000}),p.locator('#export-json').click()]);
  return readFile(await file.path());
 }
@@ -89,6 +101,7 @@ try{
  const A=await ac.newPage(),B=await bc.newPage(),pageErrors=[];
  for(const p of [A,B])p.on('pageerror',e=>pageErrors.push(String(e)));
  await A.goto(BASE,{waitUntil:'domcontentloaded'});
+ await visual(A,'01_first-home-photo_390.png','#page-home .v08-start');
  const mathId=await add(A,{title:'WRONG008 구형 수학 3 + 4',concept:'math.natural.addition',grade:'4',photo:true});
  const koreanId=await add(A,{title:'WRONG008 국어 글 속 주장 다시 설명',subject:'korean',grade:'3',photo:true,candidates:['reading','concept']});
  const englishId=await add(A,{title:'WRONG008 영어에서도 1/4 + 1/6 수식을 정답 계산하지 않음',subject:'english',grade:'5',candidates:['reading']});
@@ -103,9 +116,12 @@ try{
   assert.deepEqual(find(initial,id).followupHistory,[]);
  }
  assert.equal(find(initial,mathId).conceptId,'math.natural.addition');
+ await A.locator('#nav-records').click();
+ await visual(A,'03_records-five-subjects_390.png','#page-records');
  pass('기존 수학·국어·영어·과학·사회 오답 5ID/사진2장/기존 후보 및 수학 전용 필드 불변');
 
  await detail(A,koreanId);
+ await visual(A,'04_korean-detail-and-next-actions_390.png','#wrong002-journey');
  assert.equal(await A.locator('#wrong008-next-review').isVisible(),true);
  assert.equal(await A.locator('#wrong008-next-date').count(),0);
  assert.match(await A.locator('#wrong008-next-review').innerText(),/먼저 위쪽에서 아이가/);
@@ -125,6 +141,7 @@ try{
  let observed=await stored(A);
  assert.equal(find(observed,koreanId).generalRetryHistory.at(-1).review,'needs_help');
  assert.equal(find(observed,koreanId).checkHistory.length,0);
+ await visual(A,'05_generic-retry-parent-review_390.png','#v25-learning-flow');
  pass('비수학 일반 재풀이와 실제 부모 관찰은 기존 generalRetryHistory에 따로 기록');
 
  await A.locator('#wrong008-jump-note').click();
@@ -148,6 +165,7 @@ try{
  assert.deepEqual(find(scheduled,mathId),find(initial,mathId));
  assert.deepEqual(find(scheduled,englishId),find(initial,englishId));
  assert.match(await A.locator('#wrong008-last-manual-note').innerText(),/아직 확인 전/);
+ await visual(A,'06_parent-next-check-note_390.png','#wrong008-next-review');
  assert.match(await A.locator('#wrong002-state').innerText(),/학부모 관찰 0회/);
  pass('다음 날짜는 기존 checkHistory 4키의 not_checked 수동 메모, 실제 관찰/사진/타 과목과 분리');
 
@@ -173,6 +191,7 @@ try{
  pass('날짜 수정은 이전 기록을 지우지 않는 새 수동 메모, 최근 메모만 화면에 안내');
 
  await A.locator('#wrong002-report').click();
+ await visual(A,'07_parent-evidence-report_390.png','#v227-parent-report');
  const model=await A.locator('#v227-evidence').innerText();
  assert.match(model,/학부모/);
  const report=await A.locator('#v227-parent-report').innerText();
@@ -204,6 +223,7 @@ try{
  assert.equal(await B.locator('#v25-learning-flow .v25-learning').count(),0);
  assert.equal(await B.locator('#v230-answer').isVisible(),true);
  await B.locator('#v218-child-mode').click();
+ await visual(B,'09_child-generic-retry_320.png','#v25-learning-flow');
  assert.equal(await B.locator('#wrong008-jump-note').count(),0); // no attempt yet
  assert.equal(await B.locator('#wrong002-retry').isVisible(),true);
  for(const [p,width] of [[A,390],[B,320]]){
