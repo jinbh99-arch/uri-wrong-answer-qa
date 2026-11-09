@@ -25,6 +25,7 @@ on:
       - 'tests/wrong006-multi-reason-journey.mjs'
       - 'tests/wrong007-grade-subject-journey.mjs'
       - 'tests/wrong008-nonmath-manual-recheck.mjs'
+      - 'tests/wrong009-nonmath-record-list-context.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -204,6 +205,8 @@ jobs:
         run: node tests/wrong007-grade-subject-journey.mjs
       - name: WRONG-008 nonmath manual recheck notes and existing-schema photo backup 320/390px E2E
         run: node tests/wrong008-nonmath-manual-recheck.mjs
+      - name: WRONG-009 subject and photo/text status filter no-math-leak 390/320px real app regression
+        run: node tests/wrong009-nonmath-record-list-context.mjs
       - name: WRONG-VIEW-001 preserve latest Draft actual UI screenshots from synthetic mobile browser
         uses: actions/upload-artifact@v4
         with:
