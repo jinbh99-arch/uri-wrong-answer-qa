@@ -1428,7 +1428,7 @@ function relatedConceptIds(id){return [id,...edges.filter(e=>e.to_concept_id===i
 function renderFollowUpPanel(){
   const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail')return;
   const before=parent.querySelector('#v05-followup');if(before)before.remove();
-  const card=make('section','card');card.id='v05-followup';
+  const card=make('section','card v218-parent-only');card.id='v05-followup';
   card.append(make('h2',null,'🗓️ 이 오답에서 다음 복습을 정하기'));
   card.append(make('p','small','학부모가 직접 계획하는 기능입니다. 자동 진단이나 실제 달력 알림은 없습니다. 현재 교과 개념을 먼저 설명하고, 필요할 때만 기초 개념을 확인합니다.'));
   const steps=make('div','guide-steps');
@@ -1510,7 +1510,7 @@ renderHome=function(){renderHome_v05();v06RenderHomeReviews()};
 function v06FollowupPanel(){
  const r=records.find(x=>x.id===detailId),parent=$('detail-card');if(!r||!parent||route!=='detail')return;
  parent.querySelector('#v06-review-cycle')?.remove();
- const card=make('section','card');card.id='v06-review-cycle';
+ const card=make('section','card v218-parent-only');card.id='v06-review-cycle';
  card.append(make('h2',null,'✅ 복습 후 결과 기록하기'));
  card.append(make('p','small','계획을 직접 실천한 후 학부모가 관찰한 내용만 기록합니다. ‘스스로 설명함’도 개념 완전 습득을 뜻하지 않습니다.'));
  const history=(Array.isArray(r.followupHistory)?r.followupHistory:[]);
@@ -4003,6 +4003,65 @@ $('v212-mixed-drill-run').onclick=async()=>{
     }finally{button.disabled=false}
   };
   // V227-PARENT-REPORT-END
+
+  // WRONG-002: guide an existing saved record through actual retry and parent observations.
+  // Read-only navigation; no duplicate records, automatic scores or family authorization.
+  const wrong002BaseRenderDetail=renderDetail;
+  renderDetail=async function(){
+    await wrong002BaseRenderDetail();
+    const record=records.find(x=>x.id===detailId);
+    if(route!=='detail'||!record)return;
+    const detail=$('detail-card');
+    let box=$('wrong002-journey');
+    if(!box){box=make('section','card');box.id='wrong002-journey';box.setAttribute('aria-label','오답 기록부터 부모 확인까지');detail.before(box)}
+    box.replaceChildren();
+    box.append(make('h2',null,'🧭 이 오답의 다음 학습 단계'));
+    const attempts=(Array.isArray(record.practiceHistory)?record.practiceHistory.length:0)
+      +(Array.isArray(record.generalRetryHistory)?record.generalRetryHistory.length:0);
+    const observations=(Array.isArray(record.followupHistory)?record.followupHistory.length:0)
+      +(Array.isArray(record.checkHistory)?record.checkHistory.length:0);
+    const state=make('p','small',
+      '저장된 오답 1건 · 다시 푼 기록 '+attempts+'회 · 학부모 관찰 '+observations+
+      '회 · 복습 계획 '+(record.studyPlan?.dueDate||'미설정'));
+    state.id='wrong002-state';state.setAttribute('role','status');box.append(state);
+    box.append(make('p','small','현재 기기에 저장된 기록입니다. 재풀이 기록은 자동 채점·이해도 진단이 아니며, 화면 모드는 인증이나 접근제어가 아닙니다.'));
+    const controls=make('div','row');controls.id='wrong002-actions';
+    const jump=target=>{
+      if(!target||target.getClientRects().length===0){notify('해당 학습 단계를 찾지 못했습니다. 기록을 다시 열어주세요.');return}
+      target.scrollIntoView({block:'start',behavior:'auto'});
+      const focus=target.matches('input,textarea,button,select')?target:
+        target.querySelector('textarea:not([disabled]),input:not([disabled]),button:not([disabled])');
+      if(focus)focus.focus({preventScroll:true});
+      else{target.tabIndex=-1;target.focus({preventScroll:true})}
+    };
+    const retry=make('button','primary','① 아이가 다시 풀기');
+    retry.id='wrong002-retry';retry.type='button';
+    retry.onclick=()=>jump($('v230-answer')||$('v25-learning-flow')?.querySelector('input,textarea,button')||$('v25-learning-flow'));
+    controls.append(retry);
+    const plan=make('button','secondary v218-parent-only',
+      getConcept(record.conceptId)?'② 부모가 복습 일정 정하기':'② 관련 개념 선택 후 복습하기');
+    plan.id='wrong002-plan';plan.type='button';
+    plan.onclick=()=>{
+      if(!getConcept(record.conceptId)){editId=record.id;navigate('add');$('concept').focus();return}
+      jump($('v05-plan-date')||$('v05-followup'));
+    };
+    controls.append(plan);
+    const outcome=make('button','secondary v218-parent-only',
+      record.studyPlan?'③ 복습 후 관찰 기록':'③ 부모 학습 현황 보기');
+    outcome.id='wrong002-outcome';outcome.type='button';
+    outcome.onclick=()=>{
+      if(record.studyPlan){jump($('v06-review-outcome')||$('v06-review-cycle'));return}
+      navigate('home');jump($('v227-parent-report'));
+    };
+    controls.append(outcome);
+    const report=make('button','secondary v218-parent-only','📋 부모 활동 보고서');
+    report.id='wrong002-report';report.type='button';
+    report.onclick=()=>{navigate('home');jump($('v227-parent-report'))};
+    controls.append(report);
+    box.append(controls);
+    if(v218Mode==='child')box.append(make('p','small','아이 화면에서는 다시 풀기만 제공합니다. 학부모 관찰·복습 일정은 부모 화면에서 기록합니다.'));
+  };
+
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
