@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, 'feature/wrong010-multisubject-home-copy-20261110']
     paths:
       - 'index.html'
       - 'check.html'
@@ -26,6 +26,7 @@ on:
       - 'tests/wrong007-grade-subject-journey.mjs'
       - 'tests/wrong008-nonmath-manual-recheck.mjs'
       - 'tests/wrong009-nonmath-record-list-context.mjs'
+      - 'tests/wrong010-multisubject-first-contact.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
       - 'tests/qa-evidence-transition.mjs'
@@ -212,6 +213,15 @@ jobs:
         with:
           name: wrong009-subject-filter-screenshots
           path: wrong009-ui-evidence/*.png
+          retention-days: 14
+          if-no-files-found: error
+      - name: WRONG-010 first-use five-subject copy, real registration/list/retry/guardian observation 390/320px
+        run: node tests/wrong010-multisubject-first-contact.mjs
+      - name: WRONG-010 archive first-contact parent/child screenshots (synthetic only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong010-first-contact-screenshots
+          path: wrong010-ui-evidence/*.png
           retention-days: 14
           if-no-files-found: error
       - name: WRONG-VIEW-001 preserve latest Draft actual UI screenshots from synthetic mobile browser
