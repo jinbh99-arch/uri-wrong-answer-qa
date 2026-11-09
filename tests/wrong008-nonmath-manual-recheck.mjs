@@ -56,7 +56,14 @@ async function note(p,id,day,question){
  await p.locator('#wrong008-next-date').fill(day);
  await p.locator('#wrong008-next-question').fill(question);
  await p.locator('#wrong008-save-note').click();
- await p.waitForFunction(({day})=>document.querySelector('#wrong008-last-manual-note')?.textContent?.includes(day),{day},{timeout:25000});
+ try{
+  await p.waitForFunction(({day})=>document.querySelector('#wrong008-last-manual-note')?.textContent?.includes(day),{day},{timeout:7000});
+ }catch(e){
+  const record=(await stored(p)).records.find(x=>x.id===id);
+  const status=await p.locator('#wrong008-note-status').first().innerText().catch(()=>'(missing)');
+  const note=await p.locator('#wrong008-last-manual-note').first().innerText().catch(()=>'(missing)');
+  throw Error('WRONG008 date save diagnostic: '+JSON.stringify({day,status,note,history:record?.checkHistory,error:String(e)}));
+ }
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
