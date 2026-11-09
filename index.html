@@ -4449,6 +4449,9 @@ $('v212-mixed-drill-run').onclick=async()=>{
   }
   const wrong008PreviousDetail=renderDetail;
   renderDetail=async function(){
+    // Do not let a previous visit's date input remain clickable while the
+    // asynchronous saved-photo/detail read is still rebuilding this route.
+    $('wrong008-next-review')?.remove();
     await wrong008PreviousDetail();
     if(route!=='detail')return;
     const record=records.find(x=>x.id===detailId);
