@@ -124,7 +124,7 @@ try{
  assert.equal(await A.locator('#v227-parent-report').isVisible(),true);
  assert.ok(await A.locator('.wrong005-report-semantic[data-record-id="'+idA+'"]').count()>0);
  const report=await A.locator('.wrong005-report-semantic[data-record-id="'+idA+'"]').first().innerText();
- assert.match(report,/개념/);assert.match(report,/원인/);assert.match(report,/관찰/);
+ assert.match(report,/문제 관련 개념/);assert.match(report,/틀린 이유 후보/);assert.match(report,/복습 후 학부모 관찰/);
  assert.doesNotMatch(report,/오답률|정확한 원인|실력 확정/);
  pass('상세 3정보 구분 및 부모 보고서의 동일 ID 분류/추정/관찰 현황 분리');
 
