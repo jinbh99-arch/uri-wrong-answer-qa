@@ -862,6 +862,15 @@ try{
     old[k]!==undefined && JSON.stringify(old[k])!==JSON.stringify(rec[k]))) {
     const err=new Error('수정 전 학습 이력이 보존되지 않았습니다. 저장을 중단합니다.');err.code='V29_HISTORY';throw err;
   }
+  // WRONG-003: do not mutate existing metadata when its referenced photo is missing.
+  let wrong003PreservedPhoto=null;
+  if(old?.hasPhoto&&!blob&&!pendingRemove){
+    try{wrong003PreservedPhoto=await readOne('photos',old.id)}
+    catch{const err=new Error('기존 사진을 읽을 수 없습니다.');err.code='WRONG003_PHOTO_MISSING';throw err}
+    if(!(wrong003PreservedPhoto instanceof Blob)||wrong003PreservedPhoto.size<1){
+      const err=new Error('기존 사진 파일이 없습니다.');err.code='WRONG003_PHOTO_MISSING';throw err;
+    }
+  }
   await v20SaveMistakeGuarded(rec,blob,pendingRemove&&!blob,old?v20EditSnapshot:null);
   transactionDone=true;
   const verifiedRecord=await readOne('mistakes',id);
@@ -870,6 +879,9 @@ try{
     throw new Error('저장 후 읽기 확인 실패');
   }
   // v2.1: a new photo must match byte-for-byte after an independent read.
+  if(wrong003PreservedPhoto&&!(await v21SamePhotoBytes(wrong003PreservedPhoto,verifiedPhoto))){
+    throw new Error('기존 사진의 바이트가 저장 후 달라졌습니다. 기록을 다시 확인해 주세요.');
+  }
   if(blob&&!(await v21SamePhotoBytes(blob,verifiedPhoto))){
     throw new Error('저장된 사진의 바이트가 원본과 일치하지 않습니다.');
   }
@@ -879,7 +891,7 @@ try{
   $('v09-save-confirm').classList.remove('hide');
   notify('오답 기록 저장 후 다시 읽기 확인 완료');
 }catch(e){
-  $('form-error').textContent=transactionDone?'저장 동작은 실행됐으나 저장 후 확인에 실패했습니다. 중복 등록하지 말고 오답 목록에서 사진과 기록을 먼저 확인하세요.':(e?.code==='V220_CAPACITY'?'⛔ 오답 저장 한도 500건에 도달했습니다. 기존 기록을 자동 삭제하지 않았습니다. 안전하게 백업한 뒤 기록을 정리하세요.':e?.code==='V29_HISTORY'?'⛔ 기존 재풀이·복습 이력이 보존되지 않아 수정 저장을 차단했습니다. 기록을 새로 불러와 주세요.':e?.code==='V20_STALE'?'⛔ 다른 탭 또는 화면에서 이 기록이 수정·삭제되었습니다. 작성 중인 내용을 보관한 뒤 최신 기록을 다시 불러오세요. 덮어쓰기를 차단했습니다.':'기록을 저장하지 못했습니다. 저장 공간·브라우저 사용 권한을 확인하세요.');
+  $('form-error').textContent=transactionDone?'저장 동작은 실행됐으나 저장 후 확인에 실패했습니다. 중복 등록하지 말고 오답 목록에서 사진과 기록을 먼저 확인하세요.':(e?.code==='V220_CAPACITY'?'⛔ 오답 저장 한도 500건에 도달했습니다. 기존 기록을 자동 삭제하지 않았습니다. 안전하게 백업한 뒤 기록을 정리하세요.':e?.code==='V29_HISTORY'?'⛔ 기존 재풀이·복습 이력이 보존되지 않아 수정 저장을 차단했습니다. 기록을 새로 불러와 주세요.':e?.code==='WRONG003_PHOTO_MISSING'?'⛔ 기존 사진을 읽을 수 없어 수정하지 않았습니다. 백업·저장소를 확인하세요.':e?.code==='V20_STALE'?'⛔ 다른 탭 또는 화면에서 이 기록이 수정·삭제되었습니다. 작성 중인 내용을 보관한 뒤 최신 기록을 다시 불러오세요. 덮어쓰기를 차단했습니다.':'기록을 저장하지 못했습니다. 저장 공간·브라우저 사용 권한을 확인하세요.');
   $('form-error').classList.remove('hide');
 }};
 $('cancel-edit').onclick=()=>{editId=null;navigate('records')};
@@ -4062,6 +4074,82 @@ $('v212-mixed-drill-run').onclick=async()=>{
     if(v218Mode==='child')box.append(make('p','small','아이 화면에서는 다시 풀기만 제공합니다. 학부모 관찰·복습 일정은 부모 화면에서 기록합니다.'));
   };
 
+
+
+  // WRONG-003: guide first-time visitors without creating a duplicate storage path.
+  const wrong003HomeBase=renderHome;
+  renderHome=function(){
+    wrong003HomeBase();
+    const intro=$('v08-home-add')?.closest('.v08-start');
+    if(!intro)return;
+    let guide=$('wrong003-first-visit');
+    if(!guide){
+      guide=make('div','v218-parent-only');guide.id='wrong003-first-visit';
+      guide.append(make('strong',null,'처음 쓰시나요? 사진 없이도 시작할 수 있습니다.'));
+      guide.append(make('p','small','문제 등록 → 저장 → 아이가 다시 풀기 → 부모 복습·관찰을 같은 기록으로 이어갑니다.'));
+      const start=make('button','secondary','✏️ 사진 없이 문제 내용 직접 입력');
+      start.id='wrong003-text-start';start.type='button';
+      start.onclick=()=>{editId=null;navigate('add');$('problem').focus()};
+      guide.append(start);intro.append(guide);
+    }
+    guide.classList.toggle('hide',records.length!==0);
+  };
+  const wrong003RecordsBase=renderRecords;
+  renderRecords=function(){
+    wrong003RecordsBase();
+    if(records.length)return;
+    const target=$('records-list');if(!target)return;
+    const empty=make('div','callout small');
+    empty.id='wrong003-empty-list';
+    empty.append(make('p',null,'아직 등록된 오답이 없습니다. 사진이나 문제 글자 중 편한 방법으로 시작하세요.'));
+    const button=make('button','primary v218-parent-only','✏️ 첫 오답을 글자로 등록하기');
+    button.id='wrong003-empty-start';button.type='button';
+    button.onclick=()=>{editId=null;navigate('add');$('problem').focus()};
+    empty.append(button);target.append(empty);
+  };
+  // Existing v1.3 saved-photo preview is retained and reused.
+  const wrong003AddBase=renderAdd;
+  renderAdd=function(){
+    wrong003AddBase();
+    let guide=$('wrong003-photo-edit-guide');
+    if(!guide){
+      guide=make('section','callout small v218-parent-only');
+      guide.id='wrong003-photo-edit-guide';
+      const form=$('mistake-form');form.insertBefore(guide,form.querySelector('h2'));
+    }
+    guide.replaceChildren();
+    const old=editId?records.find(x=>x.id===editId):null;
+    const photoOnly=Boolean(old?.hasPhoto)&&!notempty(old?.problemText);
+    guide.classList.toggle('hide',!photoOnly);
+    if(!photoOnly)return;
+    guide.append(make('strong',null,'📷 저장된 사진을 확인하고 같은 오답을 보완합니다'));
+    guide.append(make('p','small','기존 사진과 오답 ID를 유지합니다. 아래 사진을 보면서 문제 내용을 입력하고, 필요하면 관련 개념을 선택한 뒤 수정사항 저장을 누르세요. 새 사진을 선택하지 않아도 됩니다.'));
+    const row=make('div','row');
+    const photo=make('button','secondary','저장된 사진 확인');photo.id='wrong003-view-existing';photo.type='button';
+    photo.onclick=()=>{
+      const target=$('v13-old-photo');
+      if(!target||target.classList.contains('hide'))return notify('기존 사진을 표시하지 못했습니다. 저장소 상태를 확인하세요.');
+      target.scrollIntoView({block:'center',behavior:'auto'});
+      const img=target.querySelector('img');if(img){img.tabIndex=-1;img.focus({preventScroll:true})}
+    };
+    const edit=make('button','primary','문제 내용 입력하기');edit.id='wrong003-write-details';edit.type='button';
+    edit.onclick=()=>{$('problem').scrollIntoView({block:'center',behavior:'auto'});$('problem').focus()};
+    row.append(photo,edit);guide.append(row);
+  };
+  const wrong003DetailBase=renderDetail;
+  renderDetail=async function(){
+    await wrong003DetailBase();
+    const record=records.find(x=>x.id===detailId);
+    if(route!=='detail'||!record||!v11PhotoOnly(record))return;
+    const controls=$('wrong002-actions');
+    if(!controls)return;
+    const action=make('button','secondary v218-parent-only','📷 사진 내용 확인·보완');
+    action.id='wrong003-complete-photo';action.type='button';
+    action.onclick=()=>{editId=record.id;navigate('add');$('problem').focus()};
+    controls.prepend(action);
+    const status=$('wrong002-state');
+    if(status)status.after(make('p','small','사진은 저장됐지만 문제 문장이 비어 있습니다. 내용을 보완해도 같은 기록을 유지하며, 아이는 사진만 보고 먼저 다시 풀 수도 있습니다.'));
+  };
 
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
