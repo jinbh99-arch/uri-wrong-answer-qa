@@ -157,9 +157,9 @@ try{
  await A.locator('#check-save').click();
  await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('학부모 관찰 1회'),null,{timeout:25000});
  let afterObserved=await stored(A);
- const checks=find(afterObserved,koreanId).checkHistory;
- assert.equal(checks.length,2);
- assert.equal(checks[0].status,'not_checked');assert.equal(checks[1].status,'explained');
+ const observedHistory=find(afterObserved,koreanId).checkHistory;
+ assert.equal(observedHistory.length,2);
+ assert.equal(observedHistory[0].status,'not_checked');assert.equal(observedHistory[1].status,'explained');
  assert.match(await A.locator('#wrong008-last-manual-note').innerText(),new RegExp(date1));
  assert.match(await A.locator('#check-history').innerText(),/다음 확인 수동 메모/);
  pass('기존 직접 관찰 저장으로 별도 실측 이력 추가; 예정 메모를 자동 완료로 승격하지 않음');
