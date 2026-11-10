@@ -117,8 +117,13 @@ export async function importSyntheticBundleAtomic({
   await client.query('BEGIN');active=true;
   // Deny any possible accidental connection to a real external database;
   // ALSO enforced by the disposable QA fixture migration itself.
-  const db=await client.query('SELECT current_database() AS db,inet_server_addr() AS ip');
-  if(db.rows[0].db!=='qa39_ci'||!['127.0.0.1','::1'].includes(String(db.rows[0].ip)))
+  const db=await client.query('SELECT current_database() AS db');
+  // The client connects to the Docker-published port on localhost. The
+  // server's inet_server_addr() may be a 172.* container address, so verify
+  // the actual client connection URL instead of incorrectly trusting it.
+  let conn;try{conn=new URL(process.env.QA39_TEST_DATABASE_URL)}catch{}
+  if(db.rows[0].db!=='qa39_ci'||conn?.hostname!=='127.0.0.1'||
+   conn?.pathname!=='/qa39_ci')
    throw fail('P6_NOT_EPHEMERAL_LOOPBACK_DB');
   const owner=await client.query(
    'SELECT family_id,revision,snapshot_text,content_sha256 FROM wrong_p6_synthetic.family_state WHERE family_id=$1 FOR UPDATE',
