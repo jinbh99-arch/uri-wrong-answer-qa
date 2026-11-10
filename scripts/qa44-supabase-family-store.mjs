@@ -115,7 +115,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
    const history=Array.isArray(row.generalRetryHistory)?row.generalRetryHistory:[];
    const ownAttempts=attempts.rows.map(x=>x.attempt_json);
    for(const entry of ownAttempts){
-    if(!history.some(original=>JSON.stringify(original)===JSON.stringify(entry)))
+    if(!history.some(original=>original?.at===entry?.at&&original?.answer===entry?.answer&&original?.explanation===entry?.explanation))
      throw error('CHILD_EVENT_HISTORY_MISMATCH');
    }
    // Deliberately no profile, parent memo, parent review, studentAnswer,
