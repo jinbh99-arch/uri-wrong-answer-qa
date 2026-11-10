@@ -54,6 +54,9 @@ if(testcase==='corrupt-photo'){
  const value=change.backup.photos[keys[0]],parts=value.split(',');
  const bytes=Buffer.from(parts[1],'base64');bytes[bytes.length-1]^=1;
  change.backup.photos[keys[0]]=parts[0]+','+bytes.toString('base64');
+ // Re-sign the altered backup to verify per-photo byte equivalence is a separate gate.
+ const copied={...change.backup};delete copied.integrity;
+ change.backup.integrity.digest=sha256(Buffer.from(JSON.stringify(copied)));
 }
 if(testcase==='failed-restore'){
  const candidate=change.restored.records.find(r=>Array.isArray(r.checkHistory)&&r.checkHistory.length);
