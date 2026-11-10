@@ -40,6 +40,10 @@ async function detail(p,id){
  await p.locator('#nav-records').click();
  await p.locator('#records-list button[data-record="'+id+'"]').click();
  await p.locator('#wrong007-record-context:visible').waitFor({timeout:20000});
+ // Wait for the asynchronous saved-photo read and retry panel render, not only
+ // the early subject heading (which can appear while the detail is incomplete).
+ await p.locator('#wrong002-state:visible').waitFor({timeout:25000});
+ await p.locator('#v25-learning-flow #v230-answer:visible').waitFor({timeout:25000});
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
