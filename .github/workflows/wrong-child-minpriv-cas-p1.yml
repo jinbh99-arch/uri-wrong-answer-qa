@@ -1,0 +1,62 @@
+name: WRONG child minimal privilege and retry CAS synthetic contract
+on:
+  push:
+    branches: ['qa/wrong-child-minpriv-cas-p1-20261110']
+    paths:
+      - 'scripts/qa44-supabase-family-store.mjs'
+      - 'db/qa44_child_retry_stage_only.sql'
+      - 'tests/wrong-child-minpriv-cas-p1.mjs'
+      - '.github/workflows/wrong-child-minpriv-cas-p1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  focused-child-role-cas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      stage_only_pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - name: Checkout isolated B contract; never modify A demo
+        uses: actions/checkout@v4
+      - name: Confirm original v1.4 product and guardian RLS unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          git fetch --no-tags origin f3c118f98f8d0740de9ea97acf03c2d974a5cf07
+          test -z "$(git diff --name-only f3c118f98f8d0740de9ea97acf03c2d974a5cf07 HEAD -- index.html db/qa44_supabase_staging_rls.sql supabase/functions)"
+          git diff --name-only f3c118f98f8d0740de9ea97acf03c2d974a5cf07 HEAD
+          echo WRONG_A_V14_UNMODIFIED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install one test-only PG client
+        run: npm install --no-save pg@8.16.3
+      - name: Verify contract source syntax
+        run: |
+          node --check scripts/qa44-supabase-family-store.mjs
+          node --check tests/wrong-child-minpriv-cas-p1.mjs
+      - name: Verify synthetic child minimal privilege versioned event CAS
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/wrong-child-minpriv-cas-p1.mjs | tee /tmp/wrong-child-minpriv-p1.log
+          grep -q 'WRONG_CHILD_MIN_PRIV_CAS_RESULT={"status":"PASS"' /tmp/wrong-child-minpriv-p1.log
+          echo WRONG_CHILD_SYNTHETIC_CAS=PASS
