@@ -161,8 +161,8 @@ try{
  await fresh.getByText('복원 후 재읽기 확인:',{exact:false}).waitFor({timeout:25000});
  assert.equal(canon(await stored(fresh)),canon(pre),'entire IDB records + photo bytes must survive restore');
  await detail(fresh,ids.korean);
- assert.match(await fresh.locator('#wrong-p0-child-reason-readonly').innerText(),/처음엔 첫 문장/);
- assert.equal(await fresh.locator('#v230-review').inputValue(),'needs_help');
+ assert.match(await fresh.locator('#wrong-p0-child-reason-readonly').innerText(),/반복된 말을 글에서 찾아/);
+ assert.equal(await fresh.locator('#v230-review').inputValue(),'explained');
  for(const p of [parent,fresh]){
   const res=await p.evaluate(()=>({inner:innerWidth,scroll:document.documentElement.scrollWidth}));
   assert.ok(res.scroll<=res.inner+2,'horizontal overflow '+JSON.stringify(res));
