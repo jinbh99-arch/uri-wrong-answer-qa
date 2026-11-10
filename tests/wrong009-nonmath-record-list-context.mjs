@@ -65,7 +65,8 @@ async function detail(p,id){
  // only after the saved-photo read and all nested detail renderers complete.
  // The earlier WRONG-002 button can already be visible while a later render
  // replaces the textarea, losing a test's just-filled text before click.
- await p.locator('#wrong008-next-review:visible').waitFor({timeout:25000});
+ // The panel is parent-only and deliberately hidden (not absent) in child mode.
+ await p.locator('#wrong008-next-review').waitFor({state:'attached',timeout:25000});
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
