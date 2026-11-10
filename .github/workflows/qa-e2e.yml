@@ -119,6 +119,53 @@ permissions:
   contents: read
 
 jobs:
+  # Temporary isolated QA on the existing WRONG-010 Draft branch. Full QA stays unchanged.
+  # A stable PASS here is evidence of repetitions, not proof that earlier flakiness was fixed.
+  wrong009-stability:
+    if: github.ref == 'refs/heads/feature/wrong010-multisubject-home-copy-20261110'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start ephemeral loopback HTTP app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/wrong009-http.log 2>&1 &
+          sleep 2
+          curl --fail http://127.0.0.1:4173/ > /dev/null
+      - name: Repeat unchanged WRONG-009 real-app test five independent browser processes
+        shell: bash
+        run: |
+          failures=0
+          for attempt in 1 2 3 4 5; do
+            echo "::group::WRONG-009 repeat $attempt of 5"
+            if node tests/wrong009-nonmath-record-list-context.mjs; then
+              echo "WRONG009_STABILITY_ATTEMPT=$attempt PASS"
+            else
+              echo "WRONG009_STABILITY_ATTEMPT=$attempt FAIL"
+              failures=$((failures+1))
+            fi
+            echo "::endgroup::"
+          done
+          echo "WRONG009_STABILITY_RESULT attempts=5 failures=$failures"
+          test "$failures" -eq 0
+      - name: Keep synthetic failure evidence, including screenshot before retry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong009-stability-screenshots
+          path: wrong009-ui-evidence/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
   qa-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 18
