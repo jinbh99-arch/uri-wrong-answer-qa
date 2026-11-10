@@ -357,11 +357,12 @@ try{
  pass('actual A navigation and child view erase guardian projection; zero external network calls or production auth, no stale private events');
 
  const sourceIndex=readFileSync(new URL('../index.html',import.meta.url));
- assert.equal(sha(sourceIndex),'e0be0e7e0be0e7e0be0e7e0be0e7e0be0e7e0be0e7e0be0e7e0be0e7e0be0e7e0b'.slice(0,64).length?sha(sourceIndex):'');
- // Source blob identity is checked by CI git hash-object; this local checksum
- // assertion deliberately checks only that the test did not modify file bytes.
+ // GitHub CI verifies the original A index Git blob exactly. No test
+ // writes to this file or to the source A branch.
  const sourceAgain=readFileSync(new URL('../index.html',import.meta.url));
  assert.deepEqual(sourceAgain,sourceIndex);
+ const schema=await pool.query("SELECT count(*)::int n FROM information_schema.tables WHERE table_schema='qa44'");
+ assert.equal(schema.rows[0].n,0);
  assert.deepEqual(await state(FA),beforeDbA);
  assert.deepEqual(await storedA(page),initialA);
  pass('original A source unchanged; final synthetic local IndexedDB and restored PostgreSQL snapshot/CAS/ledgers intact');
