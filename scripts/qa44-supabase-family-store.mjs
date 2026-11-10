@@ -42,6 +42,26 @@ const REQUEST_ID=/^[A-Za-z0-9_-]{8,64}$/;
 function childStage(){
  if(process.env.QA44_SYNTHETIC_CHILD_ONLY!=='1')throw error('SYNTHETIC_CHILD_ONLY');
 }
+// B3 observation contract: isolated synthetic consent/role boundary only.
+// Not a production auth API; B2 child attempt ID is not a client timestamp.
+function guardianObservationStage(){
+ if(process.env.QA44_SYNTHETIC_GUARDIAN_OBS_ONLY!=='1')
+  throw error('SYNTHETIC_GUARDIAN_OBSERVATION_ONLY');
+}
+function parentObservationPayload(value){
+ if(!value||typeof value!=='object'||Array.isArray(value)||
+  Object.keys(value).some(k=>!['status','note'].includes(k))||
+  !Object.hasOwn(value,'status')||
+  !['not_checked','explained','needs_help'].includes(value.status)||
+  (value.note!==undefined&&(typeof value.note!=='string'||value.note.length>500)))
+  throw error('GUARDIAN_OBSERVATION_FIELDS_DENIED');
+ return Object.freeze({status:value.status,note:value.note===undefined?'':value.note});
+}
+function observationRequestId(value){
+ if(typeof value!=='string'||!REQUEST_ID.test(value))
+  throw error('INVALID_OBSERVATION_REQUEST_ID');
+ return value;
+}
 function childRecordId(value){
  if(typeof value!=='string'||!CHILD_ID.test(value))throw error('INVALID_RECORD_ID');
  return value;
@@ -179,6 +199,103 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
     "INSERT INTO qa44.child_retry_events(family_id,child_user_id,request_id,record_id,input_sha256,attempt_json,base_revision,applied_revision) VALUES($1,(SELECT auth.uid()),$2,$3,$4,$5,$6,$7)",
     [id,requestId,recordId,inputHash,JSON.stringify(attempt),expected,newRevision]);
    return Object.freeze({stored:true,duplicate:false,revision:newRevision});
+  });
+ },
+ async guardianObservations(token,family,record){
+  guardianObservationStage();
+  const id=familyId(family),recordId=childRecordId(record);
+  return scoped(token,async c=>{
+   const scope=await c.query(
+    "SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW,
+    [id]);
+   if(scope.rowCount!==1)return null;
+   const snapshot=checkedSnapshot(scope.rows[0]);
+   if(!snapshot.records.some(x=>x.id===recordId))return null;
+   // Only guardian projection; not returned by childRead or any public API.
+   // If a child grant has been revoked, its past observations aren't returned.
+   const result=await c.query(
+    "SELECT e.request_id,e.child_user_id,e.child_request_id,e.status,e.note,e.created_at,e.applied_revision "+
+    "FROM qa44.parent_observation_events e "+
+    "JOIN qa44.child_retry_grants g ON g.family_id=e.family_id AND g.child_user_id=e.child_user_id AND g.record_id=e.record_id "+
+    "WHERE e.family_id=$1 AND e.record_id=$2 AND g.role='child' AND g.consent_verified_at IS NOT NULL AND g.revoked_at IS NULL "+
+    "ORDER BY e.applied_revision,e.created_at",
+    [id,recordId]);
+   return Object.freeze({revision:Number(scope.rows[0].revision),
+    observations:result.rows.map(r=>Object.freeze({
+     id:r.request_id,childUserId:r.child_user_id,childAttemptId:r.child_request_id,
+     status:r.status,note:r.note,at:r.created_at,appliedRevision:Number(r.applied_revision)
+    }))});
+  });
+ },
+ async guardianObserve(token,family,record,childUserId,childRequestId,
+    expectedRevision,requestId,input){
+  guardianObservationStage();
+  const id=familyId(family),recordId=childRecordId(record),
+   childId=familyId(childUserId),childAttempt=observationRequestId(childRequestId),
+   expected=revision(expectedRevision),eventId=observationRequestId(requestId),
+   payload=parentObservationPayload(input);
+  const inputHash=createHash('sha256').update(JSON.stringify({
+   recordId,childUserId:childId,childRequestId:childAttempt,...payload
+  })).digest('hex');
+  return scoped(token,async c=>{
+   // Same family snapshot lock and revision used by B2 childAppend. Serialized
+   // append-only event; the immutable wrong-answer/photo/attempt JSON is
+   // intentionally NOT rewritten or automatically merged.
+   const scope=await c.query(
+    "SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW+" FOR UPDATE",
+    [id]);
+   if(scope.rowCount!==1)throw error('GUARDIAN_OBSERVATION_NOT_ACCESSIBLE');
+   const snapshot=checkedSnapshot(scope.rows[0]);
+   const row=snapshot.records.find(x=>x.id===recordId);
+   if(!row)throw error('GUARDIAN_OBSERVATION_NOT_ACCESSIBLE');
+   // Require a real B2 event PK and an active consented grant; legacy A
+   // attempt timestamps cannot be forged into an ID.
+   const target=await c.query(
+    "SELECT e.attempt_json FROM qa44.child_retry_events e "+
+    "JOIN qa44.child_retry_grants g ON g.family_id=e.family_id AND g.child_user_id=e.child_user_id AND g.record_id=e.record_id "+
+    "WHERE e.family_id=$1 AND e.record_id=$2 AND e.child_user_id=$3 AND e.request_id=$4 "+
+    "AND g.role='child' AND g.consent_verified_at IS NOT NULL AND g.revoked_at IS NULL",
+    [id,recordId,childId,childAttempt]);
+   if(target.rowCount!==1)throw error('CHILD_ATTEMPT_NOT_ACCESSIBLE');
+   const attempt=target.rows[0].attempt_json;
+   const history=Array.isArray(row.generalRetryHistory)?row.generalRetryHistory:[];
+   if(!history.some(x=>x?.at===attempt?.at&&x?.answer===attempt?.answer&&
+    x?.explanation===attempt?.explanation))
+    throw error('CHILD_ATTEMPT_NOT_IN_SNAPSHOT');
+   // Idempotency is checked AFTER authorization, consent, and target proof,
+   // and BEFORE stale revision to safely acknowledge retried requests.
+   const previous=await c.query(
+    "SELECT record_id,child_user_id,child_request_id,input_sha256,base_revision,applied_revision "+
+    "FROM qa44.parent_observation_events "+
+    "WHERE family_id=$1 AND guardian_user_id=(SELECT auth.uid()) AND request_id=$2",
+    [id,eventId]);
+   if(previous.rowCount){
+    const p=previous.rows[0];
+    if(p.record_id!==recordId||p.child_user_id!==childId||
+     p.child_request_id!==childAttempt||p.input_sha256!==inputHash||
+     Number(p.base_revision)!==expected)
+      throw error('OBSERVATION_REQUEST_ID_REUSED');
+    return Object.freeze({stored:true,duplicate:true,revision:Number(p.applied_revision)});
+   }
+   if(Number(scope.rows[0].revision)!==expected)
+    throw error('STALE_REVISION');
+   // This UPDATE claims a single revision but leaves snapshot byte-for-byte
+   // unchanged; event and revision are rolled back together on any failure.
+   const updated=await c.query(
+    "UPDATE qa44.family_snapshots SET revision=revision+1,updated_at=now() "+
+    "WHERE family_id=$1 AND revision=$2 AND "+VERIFIED_GUARDIAN_FOR_ROW+
+    " RETURNING revision",
+    [id,expected]);
+   if(updated.rowCount!==1)throw error('STALE_OR_REVOKED_GUARDIAN');
+   const applied=Number(updated.rows[0].revision);
+   await c.query(
+    "INSERT INTO qa44.parent_observation_events "+
+    "(family_id,guardian_user_id,request_id,record_id,child_user_id,child_request_id,"+
+    "input_sha256,status,note,base_revision,applied_revision) "+
+    "VALUES ($1,(SELECT auth.uid()),$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    [id,eventId,recordId,childId,childAttempt,inputHash,
+     payload.status,payload.note,expected,applied]);
+   return Object.freeze({stored:true,duplicate:false,revision:applied});
   });
  },
   async families(token){
