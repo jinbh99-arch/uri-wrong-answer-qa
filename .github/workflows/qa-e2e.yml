@@ -406,7 +406,7 @@ jobs:
 
   local-rc-artifact:
     # GitHub Actions downloadable source artifact; never a deployed preview or main change.
-    needs: [qa-e2e]
+    needs: [qa-e2e, wrong009-stability]
     if: github.ref == 'refs/heads/feature/wrong010-multisubject-home-copy-20261110'
     runs-on: ubuntu-latest
     timeout-minutes: 5
