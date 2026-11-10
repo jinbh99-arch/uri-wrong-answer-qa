@@ -201,6 +201,115 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
    return Object.freeze({stored:true,duplicate:false,revision:newRevision});
   });
  },
+ // B4: One-record, read-only guardian projection of actual B2/B3 events.
+ // No HTTP route, no auth UI, no backup write. Scoped transaction + FOR SHARE
+ // pins the current snapshot revision across both event queries.
+ async guardianRetryTimeline(token,family,record){
+  guardianObservationStage();
+  const id=familyId(family),recordId=childRecordId(record);
+  return scoped(token,async c=>{
+   const scope=await c.query(
+    "SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots "+
+    "WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW+" FOR SHARE",
+    [id]);
+   if(scope.rowCount!==1)return null;
+   const snapshot=checkedSnapshot(scope.rows[0]);
+   const row=snapshot.records.find(x=>x.id===recordId);
+   if(!row)return null; // never reveal another family/record's existence
+   const familyRevision=revision(Number(scope.rows[0].revision));
+   // Cross-check consent and guardian membership in SQL; do not rely only on
+   // RLS for elevated synthetic pool misconfiguration.
+   const tries=await c.query(
+    "SELECT e.request_id,e.child_user_id,e.attempt_json,e.applied_revision "+
+    "FROM qa44.child_retry_events e "+
+    "JOIN qa44.child_retry_grants g ON g.family_id=e.family_id "+
+    "AND g.child_user_id=e.child_user_id AND g.record_id=e.record_id "+
+    "WHERE e.family_id=$1 AND e.record_id=$2 AND g.role='child' "+
+    "AND g.consent_verified_at IS NOT NULL AND g.revoked_at IS NULL "+
+    "AND EXISTS(SELECT 1 FROM qa44.guardian_memberships m "+
+    "WHERE m.family_id=e.family_id AND m.guardian_user_id=(SELECT auth.uid()) "+
+    "AND m.role='guardian' AND m.verification_source='externally_verified' "+
+    "AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL "+
+    "AND m.revoked_at IS NULL) ORDER BY e.applied_revision,e.request_id",
+    [id,recordId]);
+   const observations=await c.query(
+    "SELECT o.request_id,o.child_user_id,o.child_request_id,o.status,o.note,"+
+    "o.created_at,o.applied_revision FROM qa44.parent_observation_events o "+
+    "JOIN qa44.child_retry_grants g ON g.family_id=o.family_id "+
+    "AND g.child_user_id=o.child_user_id AND g.record_id=o.record_id "+
+    "WHERE o.family_id=$1 AND o.record_id=$2 AND g.role='child' "+
+    "AND g.consent_verified_at IS NOT NULL AND g.revoked_at IS NULL "+
+    "AND EXISTS(SELECT 1 FROM qa44.guardian_memberships m "+
+    "WHERE m.family_id=o.family_id AND m.guardian_user_id=(SELECT auth.uid()) "+
+    "AND m.role='guardian' AND m.verification_source='externally_verified' "+
+    "AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL "+
+    "AND m.revoked_at IS NULL) ORDER BY o.applied_revision,o.request_id",
+    [id,recordId]);
+   const history=Array.isArray(row.generalRetryHistory)?row.generalRetryHistory:[];
+   // Check B2 event payloads against the signed snapshot without inventing a
+   // legacy ID from a date. Multisets handle equal timestamps/content safely.
+   const signature=x=>JSON.stringify([x?.at,x?.answer,x?.explanation]);
+   const historicalCounts=new Map();
+   for(const entry of history)
+    historicalCounts.set(signature(entry),(historicalCounts.get(signature(entry))||0)+1);
+   const byKey=new Map(),timeline=[],readAttempts=[];
+   for(const entry of tries.rows){
+    const retry=entry.attempt_json;
+    if(!retry||typeof retry!=='object'||Array.isArray(retry)||
+     typeof retry.at!=='string'||typeof retry.answer!=='string'||
+     typeof retry.explanation!=='string'||retry.review!=='not_checked')
+     throw error('CHILD_EVENT_DATA_INVALID');
+    const sig=signature(retry),left=historicalCounts.get(sig)||0;
+    if(left<1)throw error('CHILD_EVENT_HISTORY_MISMATCH');
+    historicalCounts.set(sig,left-1);
+    const key=entry.child_user_id+':'+entry.request_id;
+    if(byKey.has(key))throw error('DUPLICATE_CHILD_EVENT');
+    const seq=revision(Number(entry.applied_revision));
+    if(seq>familyRevision)throw error('EVENT_REVISION_AHEAD');
+    const result={attemptId:entry.request_id,childUserId:entry.child_user_id,
+     answer:retry.answer,explanation:retry.explanation,at:retry.at,
+     revision:seq,observations:[]};
+    byKey.set(key,result);
+    readAttempts.push(result);
+    timeline.push({kind:'child_retry',attemptId:result.attemptId,revision:seq});
+   }
+   for(const entry of observations.rows){
+    const key=entry.child_user_id+':'+entry.child_request_id;
+    const attempt=byKey.get(key);
+    if(!attempt)throw error('ORPHAN_GUARDIAN_OBSERVATION');
+    const seq=revision(Number(entry.applied_revision));
+    if(seq<=attempt.revision||seq>familyRevision)
+     throw error('INVALID_OBSERVATION_ORDER');
+    attempt.observations.push(Object.freeze({id:entry.request_id,
+     status:entry.status,note:entry.note,at:entry.created_at,revision:seq}));
+    timeline.push({kind:'guardian_observation',attemptId:attempt.attemptId,
+     observationId:entry.request_id,revision:seq});
+   }
+   timeline.sort((a,b)=>a.revision-b.revision||
+    String(a.kind).localeCompare(String(b.kind)));
+   for(let i=1;i<timeline.length;i++)
+    if(timeline[i-1].revision===timeline[i].revision)
+     throw error('DUPLICATE_EVENT_REVISION');
+   for(const attempt of readAttempts){
+    attempt.observations.sort((a,b)=>a.revision-b.revision);
+    Object.freeze(attempt.observations);
+    Object.freeze(attempt);
+   }
+   // No photo bytes or full backup in this projection; legacy history still
+   // exists in signed backup, but has NO B2 child request ID to safely join.
+   return Object.freeze({
+    revision:familyRevision,
+    record:Object.freeze({id:row.id,subject:row.subject,
+     gradeAtEntry:row.gradeAtEntry,problemText:row.problemText,
+     hasPhoto:row.hasPhoto===true}),
+    attempts:Object.freeze(readAttempts),
+    order:Object.freeze(timeline.map(x=>Object.freeze(x))),
+    unlinkedBackupAttempts:[...historicalCounts.values()].reduce((a,b)=>a+b,0),
+    observationEventsIncludedInJsonBackup:false,
+    readOnly:true
+   });
+  });
+ },
  async guardianObservations(token,family,record){
   guardianObservationStage();
   const id=familyId(family),recordId=childRecordId(record);
