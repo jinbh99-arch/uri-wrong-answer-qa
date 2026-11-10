@@ -3454,11 +3454,11 @@ function v230RenderGenericRetry(box,r){
  label.setAttribute('for','v230-answer');
  const answer=make('textarea','control notes');answer.id='v230-answer';answer.maxLength=500;answer.rows=3;
  answer.placeholder='수식, 답, 그림을 보고 계산한 과정 등을 적어 보세요.';
- const explanationLabel=make('label','field','② 어떻게 생각했는지 설명하기 (선택)');
+ const explanationLabel=make('label','field','② 내가 왜 틀렸고, 다시 왜 이렇게 풀었는지 한 문장 (선택)');
  explanationLabel.setAttribute('for','v230-explanation');
  const explanation=make('textarea','control notes');explanation.id='v230-explanation';
  explanation.maxLength=350;explanation.rows=3;
- explanation.placeholder='헷갈렸던 점이나 새롭게 이해한 내용을 적어 보세요.';
+ explanation.placeholder='예: 처음에는 문제 조건을 놓쳤어요. 다시 읽고 답을 바꾼 이유는…';
  const save=make('button','primary','💾 다시 푼 기록 저장');
  save.id='v230-save';save.type='button';
  const status=make('p','v25-status');status.id='v230-status';status.setAttribute('role','status');
@@ -3491,13 +3491,20 @@ function v230RenderGenericRetry(box,r){
    save.disabled=false;
   }
  };
- card.append(label,answer,explanationLabel,explanation,save,status);
+ const explanationHelp=make('p','small','아이가 직접 쓴 설명은 정답·오답 원인의 확정 판정이 아닙니다. 설명 없이 답만 저장해도 되고, 저장한 뒤 학부모가 듣고 관찰할 수 있습니다.');
+ card.append(label,answer,explanationLabel,explanation,explanationHelp,save,status);
  const history=Array.isArray(r.generalRetryHistory)?r.generalRetryHistory:[];
  const last=history[history.length-1];
  if(last){
   const reviewBox=make('div','v230-parent-review v218-parent-only');
-  reviewBox.append(make('h3',null,'③ 학부모 관찰 기록 (자동 정답 판정 아님)'));
-  const reviewLabel=make('label','field','아이의 설명을 듣고 관찰한 내용');
+  reviewBox.append(make('h3',null,'③ 아이가 쓴 이유 읽고 학부모가 관찰하기 (자동 판정 아님)'));
+  // Reuse the saved generalRetryHistory explanation. Never infer why the child was wrong.
+  const childReason=make('p','callout small',last.explanation?
+   '아이가 직접 남긴 설명: '+last.explanation:
+   '아이의 설명은 아직 기록되지 않았습니다. 말로 설명을 들어 보거나 답만 관찰해도 됩니다.');
+  childReason.id='wrong-p0-child-reason-readonly';
+  reviewBox.append(childReason);
+  const reviewLabel=make('label','field','설명을 확인한 뒤 학부모가 직접 관찰한 내용');
   reviewLabel.setAttribute('for','v230-review');
   const review=make('select','control');review.id='v230-review';
   for(const [key,label] of [
