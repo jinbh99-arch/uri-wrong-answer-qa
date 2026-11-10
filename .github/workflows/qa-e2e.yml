@@ -28,6 +28,8 @@ on:
       - 'tests/wrong009-nonmath-record-list-context.mjs'
       - 'tests/wrong-rc-fast-input-risk.mjs'
       - 'tests/qa-wrong-rc-downgrade-lab.mjs'
+      - 'scripts/qa-wrong-release-dryrun.mjs'
+      - 'scripts/qa-wrong-rollback-release-gate.mjs'
       - 'tests/wrong010-multisubject-first-contact.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
@@ -272,6 +274,14 @@ jobs:
           WRONG_BASELINE_SHA: 47b6645df5ac75a45b8038e4f416b1c53c6da949
           WRONG_RC_SHA: d95b07ac1d9d846525418fb1bcea63402ea9036f
         run: node tests/qa-wrong-rc-downgrade-lab.mjs
+      - name: Save synthetic real-browser release preflight evidence for gated local staging
+        if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-rc-synthetic-release-evidence
+          path: wrong-rc-synthetic-release-evidence/
+          retention-days: 7
+          if-no-files-found: error
       - name: Simulate QA50 plus RC merge-tree and authenticate synthetic Edge regression
         if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
         shell: bash
@@ -575,4 +585,75 @@ jobs:
           name: wrong-rc-001-local-run-same-sha
           path: wrong-rc-local/
           retention-days: 14
+          if-no-files-found: error
+
+  # This job *never* deploys. It imitates the last step BEFORE release by
+  # refusing to prepare even a local staging directory unless synthetic,
+  # independently restored backup and exact RC source hashes all pass.
+  wrong-rc-mock-deploy-gate:
+    if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
+    needs: [qa-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact tested isolated branch
+        uses: actions/checkout@v4
+      - name: Download ONLY the synthetic browser evidence from same CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: wrong-rc-synthetic-release-evidence
+          path: wrong-rc-synthetic-release-evidence
+      - name: Fetch pinned original product RC to verify identical staging source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin d95b07ac1d9d846525418fb1bcea63402ea9036f
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse d95b07ac1d9d846525418fb1bcea63402ea9036f:index.html)"
+      - name: Mock deployment must BLOCK obsolete main, partial photo backup, forged photo and failed restore
+        shell: bash
+        env:
+          WRONG_RELEASE_LAB_ONLY: '1'
+          WRONG_LAB_EVIDENCE: wrong-rc-synthetic-release-evidence/input.json
+        run: |
+          set -euo pipefail
+          block_case() {
+            case_id="$1"; target="$2"; mode="$3"; expected="$4"
+            path="$RUNNER_TEMP/wrong-rc-denied-$case_id"
+            set +e
+            WRONG_LAB_TARGET_SHA="$target" WRONG_LAB_CASE="$mode" WRONG_LAB_STAGE_DIR="$path" \
+              node scripts/qa-wrong-release-dryrun.mjs > "$RUNNER_TEMP/wrong-block-$case_id.log" 2>&1
+            result="$?"
+            set -e
+            cat "$RUNNER_TEMP/wrong-block-$case_id.log"
+            test "$result" -eq 3
+            test ! -e "$path"
+            grep -F "${expected}" "$RUNNER_TEMP/wrong-block-$case_id.log"
+          }
+          block_case main d95b07ac1d9d846525418fb1bcea63402ea9036f normal DUMMY_DO_NOT_USE
+          echo "THIS MUST NOT BE REACHED"
+      - name: Mock deployment may stage ONLY exact original RC when all safety proofs pass
+        shell: bash
+        env:
+          WRONG_RELEASE_LAB_ONLY: '1'
+          WRONG_LAB_EVIDENCE: wrong-rc-synthetic-release-evidence/input.json
+          WRONG_LAB_TARGET_SHA: d95b07ac1d9d846525418fb1bcea63402ea9036f
+          WRONG_LAB_CASE: normal
+        run: |
+          set -euo pipefail
+          export WRONG_LAB_STAGE_DIR="$RUNNER_TEMP/wrong-rc-gated-local-staging"
+          node scripts/qa-wrong-release-dryrun.mjs
+          test -s "$WRONG_LAB_STAGE_DIR/SIMULATED_RELEASE_RECEIPT.json"
+          test -s "$WRONG_LAB_STAGE_DIR/index.html"
+          test -s "$WRONG_LAB_STAGE_DIR/check.html"
+          test -s "$WRONG_LAB_STAGE_DIR/NOT_DEPLOYED.txt"
+          cmp index.html "$WRONG_LAB_STAGE_DIR/index.html"
+          echo "WRONG_RC_MOCK_DEPLOY_PIPELINE_RESULT=PASS staged_only=true external_deployment=false"
+      - name: Upload ONLY synthesized, local non-deployed staging files
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-rc-virtual-deploy-stage-only
+          path: ${{ runner.temp }}/wrong-rc-gated-local-staging/
+          retention-days: 7
           if-no-files-found: error
