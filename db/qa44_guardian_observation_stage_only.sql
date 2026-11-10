@@ -50,7 +50,7 @@ CREATE POLICY qa44_observe_guardian_child_attempt
   ));
 CREATE POLICY qa44_observation_guardian_read
  ON qa44.parent_observation_events FOR SELECT TO qa44_sync_writer
- USING(guardian_user_id=(SELECT auth.uid()) OR EXISTS(
+ USING(EXISTS(
    SELECT 1 FROM qa44.guardian_memberships m
    WHERE m.family_id=parent_observation_events.family_id
     AND m.guardian_user_id=(SELECT auth.uid()) AND m.role='guardian'
@@ -58,8 +58,8 @@ CREATE POLICY qa44_observation_guardian_read
     AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL
     AND m.revoked_at IS NULL
   ));
--- Any read must be filtered again by a guardian-scoped snapshot at the server
--- boundary; read policy alone MUST NOT reveal data to revoked guardians.
+ -- Only current, verified and consenting guardians may read; server also
+-- checks the family snapshot before returning any event to a caller.
 CREATE POLICY qa44_observation_guardian_insert
  ON qa44.parent_observation_events FOR INSERT TO qa44_sync_writer
  WITH CHECK(guardian_user_id=(SELECT auth.uid()) AND EXISTS(
