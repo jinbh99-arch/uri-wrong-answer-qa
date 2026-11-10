@@ -309,7 +309,6 @@ try{
  assert.equal(evidence.networkExternalRequests,0);
  pass('real Chromium 390px parent + 320px child screenshots captured from B2/B3/B4 backed HTTP; zero external requests',
   {screenshots:4});
- }
  evidence.result='PASS';evidence.checkCount=evidence.checks.length;
  evidence.finalRevisionA=(await dbState(FA)).revision;
  evidence.eventsA=await eventCounts(FA);
@@ -323,6 +322,7 @@ try{
   readBackedByB4:true,guardianWriteB3:true,childWriteB2:true,
   crossFamilyDenied:true,revokedGuardianDenied:true,
   backupLedgerGapShown:true,noActualAccount:true,operatingDeployment:false}));
+ } // full-suite evidence is not written during the targeted Korean run
 }catch(e){
  evidence.result='FAIL';evidence.error=String(e);evidence.stack=String(e?.stack).slice(0,1600);
  mkdirSync('test-results/wrong-p3',{recursive:true});
