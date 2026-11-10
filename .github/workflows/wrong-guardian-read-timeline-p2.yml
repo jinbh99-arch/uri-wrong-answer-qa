@@ -1,0 +1,59 @@
+name: WRONG guardian linked retry observation read-only projection P2
+on:
+  push:
+    branches: ['qa/wrong-guardian-read-timeline-p2-20261110']
+    paths:
+      - 'scripts/qa44-supabase-family-store.mjs'
+      - 'tests/wrong-guardian-read-timeline-p2.mjs'
+      - '.github/workflows/wrong-guardian-read-timeline-p2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guardian-read-projection-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      synthetic_pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm B3 source and A v1.4 UI unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          git fetch --no-tags origin 346f02844d5f77ce89c637723de2ea032da84663
+          test -z "$(git diff --name-only 346f02844d5f77ce89c637723de2ea032da84663 HEAD -- index.html db scripts/qa-family-merge-preflight.mjs supabase)"
+          git diff --name-only 346f02844d5f77ce89c637723de2ea032da84663 HEAD
+          echo WRONG_A_B3_INTEGRITY_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install synthetic PostgreSQL client only
+        run: npm install --no-save pg@8.16.3
+      - name: Narrow syntax and two-family linked projection regression
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/qa44-supabase-family-store.mjs
+          node --check tests/wrong-guardian-read-timeline-p2.mjs
+          node tests/wrong-guardian-read-timeline-p2.mjs | tee /tmp/wrong-guardian-read-p2.log
+          grep -q 'WRONG_GUARDIAN_READ_P2_RESULT={"status":"PASS"' /tmp/wrong-guardian-read-p2.log
+          echo WRONG_GUARDIAN_READ_P2_ONLY=PASS
