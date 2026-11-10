@@ -60,10 +60,13 @@ function sanitizeTimeline(value){
  * auth tokens remain server-only. Roles are declared SYNTHETIC by the harness;
  * B2/B3/B4 independently revalidate token/user membership on EVERY call.
  */
-export async function startWrongP3SyntheticLocalServer({guardianStore,childStore,sessions,port=0,restoredReadOnly=false}={}){
+export async function startWrongP3SyntheticLocalServer({guardianStore,childStore,sessions,port=0,restoredReadOnly=false,aParentReadOnly=false}={}){
  demoOnly();
  if(restoredReadOnly&&process.env.WRONG_P7_SYNTHETIC_RESTORED_READONLY!=='1')
   throw fail('P7_SYNTHETIC_READONLY_FLAG_REQUIRED');
+ if(aParentReadOnly&&(!restoredReadOnly||
+  process.env.WRONG_P8_SYNTHETIC_A_PARENT_ONLY!=='1'))
+  throw fail('P8_A_PARENT_GUARDED_READ_ONLY_REQUIRED');
  if(!guardianStore||(!restoredReadOnly&&!childStore)||!(sessions instanceof Map))
   throw fail('SYNTHETIC_SERVER_DEPENDENCIES_MISSING');
  for(const [sid,identity] of sessions){
@@ -107,6 +110,40 @@ export async function startWrongP3SyntheticLocalServer({guardianStore,childStore
     throw fail('RECORD_SCOPE_DENIED');
   };
   try{
+   // P8 QA-only serving of ACTUAL A index.html bytes with a temporary,
+   // local-only read bridge. This dynamic view does not edit the tracked A
+   // product file; module paths below use exact existing source.
+   if(aParentReadOnly&&req.method==='GET'&&pathname==='/qa-p8/a-parent'){
+    role('guardian');
+    const original=await readFile(new URL('../index.html',import.meta.url),'utf8');
+    if(!original.includes('</body>'))throw fail('A_INDEX_UNEXPECTED');
+    const page=original.replace('</body>',
+     '<script defer src="/qa-p8/a-parent-read-bridge.js"></script></body>');
+    const csp="default-src 'none'; script-src 'self' 'unsafe-inline'; "+
+     "style-src 'self' 'unsafe-inline'; connect-src 'self'; "+
+     "img-src 'self' data: blob:; font-src 'self'; "+
+     "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+    res.writeHead(200,{'content-type':'text/html; charset=utf-8',
+     ...noCache,'content-security-policy':csp});
+    res.end(page);return;
+   }
+   if(aParentReadOnly&&req.method==='GET'&&
+    pathname==='/qa-p8/a-parent-read-bridge.js'){
+    role('guardian');
+    res.writeHead(200,{'content-type':'text/javascript; charset=utf-8',
+     ...noCache,'content-security-policy':"default-src 'none'"});
+    res.end(await readFile(new URL('./wrong-p8-a-parent-read-bridge.js',import.meta.url)));
+    return;
+   }
+   if(aParentReadOnly&&req.method==='GET'&&
+    ['/qa-p8/scripts/qa-inapp-sync-bridge.mjs',
+     '/qa-p8/scripts/qa47-live-auth-lab.mjs'].includes(pathname)){
+    role('guardian');
+    const name=pathname.endsWith('qa-inapp-sync-bridge.mjs')?
+     'qa-inapp-sync-bridge.mjs':'qa47-live-auth-lab.mjs';
+    res.writeHead(200,{'content-type':'text/javascript; charset=utf-8',...noCache});
+    res.end(await readFile(new URL('./'+name,import.meta.url)));return;
+   }
    if(req.method==='GET'&&pathname==='/qa-p3'){
     res.writeHead(302,{location:session.role==='guardian'?'/qa-p3/parent':'/qa-p3/child',...noCache});res.end();return;
    }
