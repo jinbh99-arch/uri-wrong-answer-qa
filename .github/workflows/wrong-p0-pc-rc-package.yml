@@ -1,0 +1,201 @@
+name: WRONG P0 PC RC ZIP from pinned validated UI
+
+on:
+  push:
+    branches: ['qa/wrong-p0-pc-rc-package-20261110']
+    paths: ['.github/workflows/wrong-p0-pc-rc-package.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-and-check-extracted-zip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout immutable P0-2 source, not packaging branch
+        uses: actions/checkout@v4
+        with:
+          ref: eaf87d1fafa830a4c0121df45df8616cd3eaa5de
+          persist-credentials: false
+      - name: Validate only P0-2 UI changed against Draft PR 54 product source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "eaf87d1fafa830a4c0121df45df8616cd3eaa5de"
+          test "$(git hash-object index.html)" = "499fbef9b5b62add2c8f6e50db64fa654b208df7"
+          git fetch --no-tags origin d95b07ac1d9d846525418fb1bcea63402ea9036f
+          git diff --name-only d95b07ac1d9d846525418fb1bcea63402ea9036f HEAD > /tmp/p0-diff-files
+          printf '%s\n' '.github/workflows/wrong-p0-child-why-ci.yml' 'index.html' 'tests/wrong-p0-child-why-journey.mjs' > /tmp/p0-expected-files
+          diff -u /tmp/p0-expected-files /tmp/p0-diff-files
+          git diff --numstat d95b07ac1d9d846525418fb1bcea63402ea9036f HEAD -- index.html
+      - name: Build reproducible nonoperating 9-source local PC ZIP
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, shutil, subprocess, zipfile, base64
+          source=pathlib.Path.cwd()
+          out=source / "wrong-p0-pc-rc"
+          out.mkdir(exist_ok=False)
+          items=[
+              "index.html", "check.html", "qa-family-sync-lab.html",
+              "scripts/qa-inapp-sync-bridge.mjs", "scripts/qa42-app-http-bridge.mjs",
+              "scripts/qa44-supabase-auth-lab.mjs", "scripts/qa44-supabase-auth-adapter.mjs",
+              "scripts/qa47-live-auth-lab.mjs", "scripts/qa47-public-stage-config.mjs"
+          ]
+          fixed="eaf87d1fafa830a4c0121df45df8616cd3eaa5de"
+          commit=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert commit == fixed, (commit,fixed)
+          expected_blob="499fbef9b5b62add2c8f6e50db64fa654b208df7"
+          blob=subprocess.check_output(["git","hash-object","index.html"],text=True).strip()
+          assert blob==expected_blob, (blob,expected_blob)
+          html=(source/"index.html").read_text(encoding="utf-8")
+          assert "내가 왜 틀렸고" in html and "wrong-p0-child-reason-readonly" in html
+          entries=[]
+          for rel in items:
+              subprocess.check_call(["git","ls-files","--error-unmatch",rel],stdout=subprocess.DEVNULL)
+              src=source/rel
+              assert src.is_file() and not src.is_symlink()
+              dst=out/rel
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(src,dst)
+              assert src.read_bytes()==dst.read_bytes()
+              entries.append({"path":rel,"sha256":hashlib.sha256(src.read_bytes()).hexdigest(),"size":src.stat().st_size})
+          sample=base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=")
+          (out/"가상_사진연습.png").write_bytes(sample)
+          guide="""우리아이오답노트 | P0-2 비운영 PC 실행 후보 (2026-11-10)
+          제품 고정 Git commit: eaf87d1fafa830a4c0121df45df8616cd3eaa5de
+          index.html Git blob: 499fbef9b5b62add2c8f6e50db64fa654b208df7
+
+          [중요] 실제 아이 이름·학교·사진·가족정보·실계정 입력 절대 금지.
+          부모/아이 전환은 화면 모드일 뿐 서버 인증이 아닙니다.
+          AI가 보여주는 오답 원인 후보는 확정 진단이 아닙니다.
+          5과목 일반 기록 기능과 일부 수학 개념/그림학습 시범은 다릅니다.
+          이미 출시된 공개 사이트 또는 운영 서비스가 아닌 로컬 시험용입니다.
+          저장 정보는 현재 브라우저의 로컬 IndexedDB에만 있으며 브라우저 데이터를 지우면 사라질 수 있습니다.
+          구형 버전으로 되돌릴 경우 이력과 사진이 보이지 않을 수 있으니 백업 JSON을 보관하세요.
+          OCR·가족 동기화·실제 Supabase 로그인/인증 관련 시험 기능은 사용하지 마세요.
+
+          [시작] 압축 해제 후 index.html 더블클릭이 아니라 localhost HTTP 실행.
+          Windows: start_windows.bat 실행 (Python 3 설치 필요, 명령 창 유지)
+          macOS/Linux: 터미널에서 sh start_mac_linux.sh (Python 3 설치 필요)
+          수동 명령: python3 -m http.server 43173 --bind 127.0.0.1
+          PC 브라우저 주소: http://127.0.0.1:43173/
+          종료: 실행한 명령창에서 Ctrl+C. 동일 PC에서 같은 포트를 사용하세요.
+
+          [가상 체험]
+          1. 부모 화면에서 오답 등록 → 가상 수학·국어·과학 문제 문장 입력.
+          2. 사진은 동봉된 가상_사진연습.png 파일만 사용.
+          3. 오답 목록의 과목 필터 → 상세 → 아이 모드에서 재풀이.
+          4. 새 문구 '내가 왜 틀렸고, 다시 왜 이렇게 풀었는지 한 문장 (선택)' 작성.
+          5. 부모 모드에서 아이 설명 원문을 확인한 다음 별도로 관찰 결과 기록.
+          6. 선택 설명을 비워도 재풀이 가능. AI 추정과 아이 설명 구분.
+          7. 설정 → JSON 전체 백업. 다른 빈 로컬 브라우저에서 복원 시험(가상 데이터만).
+          실제 스마트폰/외부 공개 배포/실계정 권한/운영 DB/실제 OCR/교육 효과는 미검증.
+          검증 증거: GitHub Actions #42781730848 합성 7/7 PASS 및 이번 패키지 추출본 재검증.
+          """
+          (out/"실행_안내.txt").write_text(guide,encoding="utf-8")
+          (out/"start_windows.bat").write_bytes(
+              b'@echo off\r\ncd /d "%~dp0"\r\necho http://127.0.0.1:43173/\r\n'
+              b'where py >nul 2>&1\r\n'
+              b'if %errorlevel%==0 (py -3 -m http.server 43173 --bind 127.0.0.1) else (python -m http.server 43173 --bind 127.0.0.1)\r\n'
+              b'pause\r\n'
+          )
+          (out/"start_mac_linux.sh").write_text('#!/bin/sh\ncd "$(dirname "$0")"\necho http://127.0.0.1:43173/\nexec python3 -m http.server 43173 --bind 127.0.0.1\n',encoding="utf-8")
+          (out/"start_mac_linux.sh").chmod(0o755)
+          manifest={
+              "kind":"WRONG_P0_PC_LOCAL_NON_OPERATING",
+              "source_commit":fixed,
+              "index_git_blob":blob,
+              "product_base_commit":"d95b07ac1d9d846525418fb1bcea63402ea9036f",
+              "expected_origin":"http://127.0.0.1:43173",
+              "synthetic_only":True,
+              "production_approved":False,
+              "data_schema_changed":False,
+              "sources":entries,
+              "source_file_count":len(items)
+          }
+          (out/"RC_MANIFEST.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          archive=source/"WRONG_P0_PC_RC_v1.1_20261110.zip"
+          with zipfile.ZipFile(archive,"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              for f in sorted(out.rglob("*")):
+                  if not f.is_file(): continue
+                  rel=f.relative_to(out).as_posix()
+                  info=zipfile.ZipInfo(rel,(2026,11,10,0,0,0))
+                  info.compress_type=zipfile.ZIP_DEFLATED
+                  info.external_attr=((0o100755 if rel.endswith(".sh") else 0o100644) << 16)
+                  z.writestr(info,f.read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
+          zipsha=hashlib.sha256(archive.read_bytes()).hexdigest()
+          (source/"WRONG_P0_PC_RC_v1.1_20261110.sha256").write_text(f"{zipsha}  {archive.name}\n",encoding="utf-8")
+          report={"status":"PACKAGE_BUILT","zip_name":archive.name,"zip_sha256":zipsha,
+                  "source_commit":fixed,"index_blob_sha1":blob,"source_files":len(items),
+                  "zip_bytes":archive.stat().st_size,"synthetic_only":True,"operating_deployment":False}
+          (source/"WRONG_P0_PC_RC_v1.1_20261110_report.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print("WRONG_P0_PC_PACKAGE="+json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Extract ZIP and verify CRC, 9 unchanged files, and exact Git blob
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile
+          src=pathlib.Path.cwd()
+          zfile=src/"WRONG_P0_PC_RC_v1.1_20261110.zip"
+          expected=(src/"WRONG_P0_PC_RC_v1.1_20261110.sha256").read_text().split()[0]
+          assert hashlib.sha256(zfile.read_bytes()).hexdigest()==expected
+          out=pathlib.Path("/tmp/wrong-p0-pc-rc-extracted")
+          out.mkdir(exist_ok=False)
+          with zipfile.ZipFile(zfile) as z:
+              assert z.testzip() is None
+              assert all(not pathlib.PurePosixPath(p).is_absolute() and ".." not in pathlib.PurePosixPath(p).parts for p in z.namelist())
+              z.extractall(out)
+          m=json.loads((out/"RC_MANIFEST.json").read_text(encoding="utf-8"))
+          assert m["source_commit"]=="eaf87d1fafa830a4c0121df45df8616cd3eaa5de"
+          assert m["index_git_blob"]=="499fbef9b5b62add2c8f6e50db64fa654b208df7"
+          assert len(m["sources"])==9
+          for row in m["sources"]:
+              dest=out/row["path"]
+              assert hashlib.sha256(dest.read_bytes()).hexdigest()==row["sha256"]
+              assert dest.read_bytes()==(src/row["path"]).read_bytes()
+          print("WRONG_P0_PC_ZIP_EXTRACT_CRC_AND_9_SOURCE_SHA256=PASS")
+          print("WRONG_P0_PC_ZIP_SHA256="+expected)
+          print("WRONG_P0_PC_INDEX_GIT_BLOB="+m["index_git_blob"])
+          PY
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test-only Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve extracted ZIP on test localhost and compare code bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/wrong-p0-pc-rc-extracted > /tmp/wrong-p0-extracted-http.log 2>&1 &
+          sleep 2
+          curl --fail --silent http://127.0.0.1:4173/ -o /tmp/wrong-p0-pc-served-index.html
+          cmp /tmp/wrong-p0-pc-rc-extracted/index.html /tmp/wrong-p0-pc-served-index.html
+          cmp index.html /tmp/wrong-p0-pc-served-index.html
+          for path in scripts/qa-inapp-sync-bridge.mjs scripts/qa42-app-http-bridge.mjs scripts/qa44-supabase-auth-lab.mjs scripts/qa44-supabase-auth-adapter.mjs scripts/qa47-live-auth-lab.mjs scripts/qa47-public-stage-config.mjs; do
+            curl --fail --silent "http://127.0.0.1:4173/$path" -o /tmp/wrong-p0-served-module.mjs
+            cmp "/tmp/wrong-p0-pc-rc-extracted/$path" /tmp/wrong-p0-served-module.mjs
+          done
+          echo WRONG_P0_PC_RC_LOCAL_HTTP_BYTES=PASS
+      - name: Run existing synthetic 7 of 7 child explanation to guardian and separate browser restore from extracted ZIP
+        run: |
+          set -euo pipefail
+          node tests/wrong-p0-child-why-journey.mjs | tee /tmp/wrong-p0-retest.log
+          grep -q '"status":"PASS","checks":7' /tmp/wrong-p0-retest.log
+          echo WRONG_P0_PC_RC_EXTRACTED_BROWSER_7_OF_7=PASS
+      - name: Upload one PC ZIP with its SHA-256 checksum and report (not deployed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P0_PC_RC_v1.1_20261110
+          path: |
+            WRONG_P0_PC_RC_v1.1_20261110.zip
+            WRONG_P0_PC_RC_v1.1_20261110.sha256
+            WRONG_P0_PC_RC_v1.1_20261110_report.json
+          retention-days: 14
+          if-no-files-found: error
