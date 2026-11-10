@@ -60,9 +60,11 @@ function sanitizeTimeline(value){
  * auth tokens remain server-only. Roles are declared SYNTHETIC by the harness;
  * B2/B3/B4 independently revalidate token/user membership on EVERY call.
  */
-export async function startWrongP3SyntheticLocalServer({guardianStore,childStore,sessions,port=0}={}){
+export async function startWrongP3SyntheticLocalServer({guardianStore,childStore,sessions,port=0,restoredReadOnly=false}={}){
  demoOnly();
- if(!guardianStore||!childStore||!(sessions instanceof Map))
+ if(restoredReadOnly&&process.env.WRONG_P7_SYNTHETIC_RESTORED_READONLY!=='1')
+  throw fail('P7_SYNTHETIC_READONLY_FLAG_REQUIRED');
+ if(!guardianStore||(!restoredReadOnly&&!childStore)||!(sessions instanceof Map))
   throw fail('SYNTHETIC_SERVER_DEPENDENCIES_MISSING');
  for(const [sid,identity] of sessions){
   if(!/^[a-f0-9]{48}$/.test(sid)||
@@ -83,6 +85,11 @@ export async function startWrongP3SyntheticLocalServer({guardianStore,childStore
   if(!['GET','POST'].includes(req.method))
    return send(res,405,{error:'METHOD_NOT_ALLOWED'});
   const url=new URL(req.url,origin),pathname=url.pathname;
+  // P7 is exclusively a post-restore guardian read view: never allow
+  // child routes or any writes (even if an old P3 form is submitted).
+  if(restoredReadOnly&&(req.method!=='GET'||
+   pathname.startsWith('/qa-p3/api/child/')||pathname==='/qa-p3/child'))
+   return send(res,405,{error:'P7_RESTORED_READ_ONLY'});
   const session=sessions.get(getCookie(req.headers.cookie));
   if(!session)return send(res,401,{error:'SYNTHETIC_SESSION_REQUIRED'});
   if(req.method==='POST'&&(
@@ -113,6 +120,9 @@ export async function startWrongP3SyntheticLocalServer({guardianStore,childStore
     res.writeHead(200,{'content-type':file.endsWith('js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8',...pageHeaders});
     res.end(await readFile(new URL(file,import.meta.url)));return;
    }
+   if(restoredReadOnly&&pathname.startsWith('/qa-p3/api/')&&
+    !['/qa-p3/api/parent/status','/qa-p3/api/parent/timeline'].includes(pathname))
+    return send(res,405,{error:'P7_RESTORED_READ_ONLY'});
    if(!pathname.startsWith('/qa-p3/api/'))return send(res,404,{error:'NOT_FOUND'});
    scope();
    if(req.method==='GET'&&pathname==='/qa-p3/api/parent/status'){
