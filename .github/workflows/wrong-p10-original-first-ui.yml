@@ -1,0 +1,59 @@
+name: WRONG P10 real A original-first guarded accordion UI
+on:
+  push:
+    branches: ['qa/wrong-p10-original-first-ui-20261111']
+    paths:
+      - 'scripts/wrong-p8-a-parent-read-bridge.js'
+      - 'tests/wrong-p10-original-first-ui-e2e.mjs'
+      - '.github/workflows/wrong-p10-original-first-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-original-first-guardian:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve fixed original A/P6/P7/P9 and server
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 0498b2e8acfa12b92c95e51070fa16dcef676285
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 0498b2e8acfa12b92c95e51070fa16dcef676285 HEAD -- index.html db supabase scripts/wrong-p9-a-ledger-preflight.mjs scripts/wrong-p6-synthetic-atomic-restore.mjs scripts/wrong-p7-restored-guardian-read-adapter.mjs scripts/wrong-p3-local-timeline-server.mjs)"
+          echo WRONG_P10_A_AND_P7_AND_P9_PRESERVED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install synthetic local Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: P10 only original-first 390px accordion and fail-closed
+        shell: bash
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          WRONG_P3_SYNTHETIC_LOCAL_ONLY: '1'
+          WRONG_P7_SYNTHETIC_RESTORED_READONLY: '1'
+          WRONG_P8_SYNTHETIC_A_PARENT_ONLY: '1'
+          WRONG_P10_SYNTHETIC_UI_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p8-a-parent-read-bridge.js
+          node --check tests/wrong-p10-original-first-ui-e2e.mjs
+          node tests/wrong-p10-original-first-ui-e2e.mjs | tee /tmp/wrong-p10.log
+          grep -q 'WRONG_P10_UI_RESULT={"status":"PASS"' /tmp/wrong-p10.log
+          echo WRONG_P10_ORIGINAL_FIRST_COLLAPSE_QA=PASS
+      - name: Upload genuine A 390px before-and-after screens and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P10_REAL_A_ORIGINAL_FIRST_QA
+          path: test-results/wrong-p10/
+          if-no-files-found: warn
+          retention-days: 14
