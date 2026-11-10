@@ -1,0 +1,53 @@
+name: WRONG P9 A v02 to B3 ledger read-only preflight
+on:
+  push:
+    branches: ['qa/wrong-p9-a-ledger-preflight-20261111']
+    paths:
+      - 'scripts/wrong-p9-a-ledger-preflight.mjs'
+      - 'tests/wrong-p9-a-ledger-preflight-e2e.mjs'
+      - '.github/workflows/wrong-p9-a-ledger-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a-v02-ledger-preflight-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve existing A, P6, P7, P8 sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 50d9ca48e1209a151a384edb6d16c0f1b565f369
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 50d9ca48e1209a151a384edb6d16c0f1b565f369 HEAD -- index.html db scripts/wrong-p6-synthetic-atomic-restore.mjs scripts/wrong-p7-restored-guardian-read-adapter.mjs scripts/wrong-p8-a-parent-read-bridge.js scripts/wrong-p3-local-timeline-server.mjs supabase)"
+          echo P9_EXISTING_PRODUCT_AND_LEDGER_SOURCES_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only local synthetic Chromium browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Execute ONLY P9 read-only preflight cases
+        env:
+          WRONG_P9_SYNTHETIC_READONLY: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p9-a-ledger-preflight.mjs
+          node --check tests/wrong-p9-a-ledger-preflight-e2e.mjs
+          node tests/wrong-p9-a-ledger-preflight-e2e.mjs | tee /tmp/wrong-p9.log
+          grep -q 'WRONG_P9_PREFLIGHT_RESULT={"status":"PASS"' /tmp/wrong-p9.log
+          echo WRONG_P9_A_V02_B3_READONLY_PREFLIGHT=PASS
+      - name: Upload preflight JSON and original A record screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P9_A_V02_B3_PREFLIGHT_READONLY
+          path: test-results/wrong-p9
+          if-no-files-found: warn
+          retention-days: 14
