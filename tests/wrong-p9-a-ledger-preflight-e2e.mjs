@@ -189,9 +189,9 @@ try{
  testNegative('photo hash mismatch',input,x=>{x.ledger.photoSignature.sha256='f'.repeat(64)},'B2_PHOTO_SHA_OR_META_MISMATCH');
  testNegative('A v02 downloaded photo data mismatch',input,x=>{x.aBackup.photos[x.aRecord.id]='data:image/png;base64,AA=='},'A_INDEXEDDB_BACKUP_PHOTO_MISMATCH');
  testNegative('cross-family ledger mix',input,x=>{x.ledger.familyId=familyB},'LEDGER_FAMILY_OR_RECORD_MISMATCH');
- testNegative('cross-family guardian observation',input,x=>{x.ledger.parentEvents[0].family_id=familyB},'B2_B3_CHECKPOINT_DIGEST_MISMATCH');
+ testNegative('cross-family guardian observation',input,x=>{x.ledger.parentEvents[0].family_id=familyB},'B3_PARENT_EVENT_INVALID');
  testNegative('different record ID',input,x=>{x.ledger.recordId='other-family-record-01'},'LEDGER_FAMILY_OR_RECORD_MISMATCH');
- testNegative('P7 child request ID missing in B3',input,x=>{delete x.ledger.parentEvents[0].child_request_id},'B2_B3_CHECKPOINT_DIGEST_MISMATCH');
+ testNegative('P7 child request ID missing in B3',input,x=>{delete x.ledger.parentEvents[0].child_request_id},'B3_PARENT_EVENT_INVALID');
  testNegative('legacy A retry missing stable request ID',input,x=>{
   x.aRecord.generalRetryHistory=[{at:now(1),answer:'old retry',explanation:'old'}]
  },'A_LEGACY_RETRY_REQUEST_ID_UNMAPPED');
