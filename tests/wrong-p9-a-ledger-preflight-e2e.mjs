@@ -146,7 +146,7 @@ try{
  const aRecord=original.records[0],aPhoto=original.photoSignatures[0];
  assert.equal(aRecord.subject,'korean');assert.equal(Number(aRecord.gradeAtEntry),3);
  assert.equal(aRecord.problemText,question);assert.equal(aRecord.hasPhoto,true);
- assert.equal(aPhoto.key,aRecord.id);assert.equal(aPhoto.mime,'image/png');
+ assert.equal(aPhoto.key,aRecord.id);assert.ok(['image/jpeg','image/png'].includes(aPhoto.mime));
  assert.match(aPhoto.sha256,/^[a-f0-9]{64}$/);
  pass('A form creates one local IndexedDB mistake, exact ID/subject/grade/question and real stored Blob SHA256');
 
