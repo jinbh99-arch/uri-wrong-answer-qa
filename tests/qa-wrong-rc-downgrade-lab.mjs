@@ -2,7 +2,7 @@
 // using only synthetic 1px photos, fake data, and GitHub Actions localhost.
 // Must never write to main, deployed Pages/Netlify or real family data.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {createHash} from 'node:crypto';
 import {assessWrongRelease,WRONG_MAIN_SHA,WRONG_RC_SHA} from '../scripts/qa-wrong-rollback-release-gate.mjs';
@@ -265,6 +265,23 @@ try{
    independentRestoreByteEqual:true,realDataUsed:false,operatingDeployment:false
  }));
 
+ // CI artifact is generated exclusively from synthetic 1px fixtures (never user data).
+ // A downstream, separate mock-deploy job consumes this exact browser evidence.
+ const evidenceDir='wrong-rc-synthetic-release-evidence';
+ await mkdir(evidenceDir,{recursive:true});
+ const evidence={
+   kind:'WRONG_SYNTHETIC_BROWSER_RELEASE_EVIDENCE_v1',
+   syntheticOnly:true,productionApproved:false,realUsers:0,
+   origin:URL,mainSha:WRONG_MAIN_SHA,rcSha:WRONG_RC_SHA,
+   original:{live:oldSnapshot,backup:oldBackup,restored:upgrade},
+   latest:{live:beforeDown,backup:rcJson,restored:recovered}
+ };
+ await writeFile(evidenceDir+'/input.json',JSON.stringify(evidence,null,2)+'\\n','utf8');
+ console.log('WRONG_RC_RELEASE_EVIDENCE_CREATED='+JSON.stringify({
+   syntheticOnly:true,records:beforeDown.records.length,
+   photoCount:beforeDown.photos.length,mainSha:WRONG_MAIN_SHA,
+   rcSha:WRONG_RC_SHA,artifactPath:evidenceDir+'/input.json'
+ }));
  assert.deepEqual(pageErrors,[],'JavaScript errors in version swap');
  console.log('WRONG_RC_ROLLBACK_RESULT='+JSON.stringify({
     status:'PASS',checks:step,mainSha:process.env.WRONG_BASELINE_SHA,
