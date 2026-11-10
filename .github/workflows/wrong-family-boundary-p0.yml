@@ -1,0 +1,61 @@
+name: WRONG QA44 two-family synthetic role and consent boundary
+on:
+  push:
+    branches: ['qa/wrong-family-boundary-p0-20261110']
+    paths:
+      - 'scripts/qa44-supabase-family-store.mjs'
+      - 'tests/wrong-family-boundary-p0.mjs'
+      - '.github/workflows/wrong-family-boundary-p0.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-role-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      qa44_ephemeral_postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - name: Checkout isolated QA44 branch with v1.4 product unchanged
+        uses: actions/checkout@v4
+      - name: Confirm product A code unchanged and minimal B-only diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test -z "$(git diff --name-only c7d413f311df5bc983bc63f18027ac18b0445f27 HEAD -- index.html db/qa44_supabase_staging_rls.sql supabase/functions)"
+          git diff --name-only c7d413f311df5bc983bc63f18027ac18b0445f27 HEAD
+          echo WRONG_FAMILY_A_V14_PRODUCT_UNCHANGED=PASS
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only synthetic PostgreSQL client
+        run: npm install --no-save pg@8.16.3
+      - name: Syntax check existing QA44 store and one new negative test
+        run: |
+          node --check scripts/qa44-supabase-family-store.mjs
+          node --check tests/wrong-family-boundary-p0.mjs
+      - name: Run narrow two-family guardian viewer photo backup consent regression
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/wrong-family-boundary-p0.mjs | tee /tmp/wrong-family-boundary-p0.log
+          grep -q 'WRONG_FAMILY_BOUNDARY_P0_RESULT={"status":"PASS"' /tmp/wrong-family-boundary-p0.log
+          echo WRONG_FAMILY_ROLE_BACKUP_PHOTO_CONSENT_TEST=PASS
