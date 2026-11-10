@@ -1,0 +1,81 @@
+name: WRONG P7 restored child and guardian timeline real Chromium synthetic only
+on:
+  push:
+    branches: ['qa/wrong-p7-restored-guardian-read-20261111']
+    paths:
+      - 'db/wrong-p7-restored-guardian-read-only.sql'
+      - 'scripts/wrong-p7-restored-guardian-read-adapter.mjs'
+      - 'scripts/wrong-p3-local-timeline-server.mjs'
+      - 'scripts/wrong-p3-local-timeline.js'
+      - 'tests/wrong-p7-restored-parent-browser.mjs'
+      - '.github/workflows/wrong-p7-restored-parent-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-restored-read-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      isolated_pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm original A, main-side SQL, P6 restore and B4 contract unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin cd061440b161b5cb5865a3f3be7405368d2a1deb
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only cd061440b161b5cb5865a3f3be7405368d2a1deb HEAD -- index.html db/wrong-p6-synthetic-restore-only.sql db/qa44_supabase_staging_rls.sql db/qa44_child_retry_stage_only.sql db/qa44_guardian_observation_stage_only.sql scripts/qa44-supabase-family-store.mjs scripts/wrong-p5-synthetic-bundle-preflight.mjs scripts/wrong-p6-synthetic-atomic-restore.mjs supabase)"
+          git diff --name-only cd061440b161b5cb5865a3f3be7405368d2a1deb HEAD
+          echo WRONG_P7_A_P6_B4_IMMUTABLE=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only ephemeral PG and browser test packages
+        run: |
+          npm install --no-save pg@8.16.3 playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          fc-match 'Noto Sans CJK KR'
+      - name: Run NEW P7 synthetic restore-to-read only (not P6 11/11)
+        env:
+          QA44_STAGE_ONLY: '1'
+          WRONG_P4_SYNTHETIC_BACKUP_ONLY: '1'
+          WRONG_P5_SYNTHETIC_BUNDLE_ONLY: '1'
+          WRONG_P6_SYNTHETIC_ATOMIC_ONLY: '1'
+          WRONG_P7_SYNTHETIC_RESTORED_READONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          WRONG_P3_SYNTHETIC_LOCAL_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p7-restored-guardian-read-adapter.mjs
+          node --check scripts/wrong-p3-local-timeline-server.mjs
+          node --check scripts/wrong-p3-local-timeline.js
+          node --check tests/wrong-p7-restored-parent-browser.mjs
+          node tests/wrong-p7-restored-parent-browser.mjs | tee /tmp/wrong-p7.log
+          grep -q 'WRONG_P7_RESTORED_GUARDIAN_RESULT={"status":"PASS"' /tmp/wrong-p7.log
+          echo WRONG_P7_NEW_RESTORED_GUARDIAN_BROWSER=PASS
+      - name: Publish only synthetic CI browser screenshot and evidence JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P7_SYNTHETIC_RESTORED_PARENT_SCREEN
+          path: test-results/wrong-p7
+          if-no-files-found: warn
+          retention-days: 14
