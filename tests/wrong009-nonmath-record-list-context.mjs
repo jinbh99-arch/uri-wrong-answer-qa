@@ -61,6 +61,12 @@ async function detail(p,id){
  // A context label alone is NOT sufficient before clicking retry or checking child CTA.
  await p.locator('#wrong002-retry:visible').waitFor({timeout:25000});
  await p.locator('#v230-answer:visible').waitFor({timeout:25000});
+ // WRONG-008 is the final async renderDetail wrapper: its panel is created
+ // only after the saved-photo read and all nested detail renderers complete.
+ // The earlier WRONG-002 button can already be visible while a later render
+ // replaces the textarea, losing a test's just-filled text before click.
+ // The panel is parent-only and deliberately hidden (not absent) in child mode.
+ await p.locator('#wrong008-next-review').waitFor({state:'attached',timeout:25000});
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
@@ -139,8 +145,11 @@ try{
  assert.equal(await A.locator('#detail-concept').isVisible(),false);
  assert.equal(await A.locator('#v230-answer').isVisible(),true);
  await A.locator('#v230-answer').fill('가상 국어 재풀이 설명');
+ assert.equal(await A.locator('#v230-answer').inputValue(),'가상 국어 재풀이 설명','retry text must remain in mounted textarea before save');
  await A.locator('#v230-save').click();
- await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:25000});
+ try{await A.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:10000})}catch(err){
+  console.error('WRONG009_RETRY_DIAGNOSTIC='+JSON.stringify({state:await A.locator('#wrong002-state').allTextContents(),retryStatus:await A.locator('#v230-status').allTextContents(),record:await stored(A).then(x=>x.records.find(r=>r.id===koreanId)).then(r=>({retryHistory:r?.generalRetryHistory?.length,checkHistory:r?.checkHistory?.length}))}));throw err;
+ }
  await A.locator('#v230-review').selectOption('needs_help');
  await A.locator('#v230-review-save').click();
  await A.waitForFunction(()=>document.querySelector('#wrong008-next-review')?.textContent?.includes('부모 도움이 필요했다고 기록'),null,{timeout:25000});
