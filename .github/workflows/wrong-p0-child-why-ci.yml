@@ -1,0 +1,43 @@
+name: WRONG P0 child-why to parent observation synthetic smoke
+
+on:
+  push:
+    branches: ['qa/wrong-p0-child-why-retry-20261110']
+    paths: ['index.html', 'tests/wrong-p0-child-why-journey.mjs', '.github/workflows/wrong-p0-child-why-ci.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wrong-p0-child-why:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start local-only static server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/wrong-p0-child-why-http.log 2>&1 &
+          sleep 2
+          curl --fail --silent http://127.0.0.1:4173/ -o /tmp/wrong-p0-index.html
+          cmp index.html /tmp/wrong-p0-index.html
+      - name: P0 synthetic 390px parent 320px child why-retry and lossless restore
+        run: node tests/wrong-p0-child-why-journey.mjs
+      - name: Report exact source and test files
+        shell: bash
+        run: |
+          echo "WRONG_P0_EXPLANATION_CANDIDATE_SHA=$(git rev-parse HEAD)"
+          git diff --quiet d95b07ac1d9d846525418fb1bcea63402ea9036f -- index.html || true
+          git diff --stat d95b07ac1d9d846525418fb1bcea63402ea9036f
+          echo "WRONG_P0_PRODUCT_DEPLOYMENT=false"
