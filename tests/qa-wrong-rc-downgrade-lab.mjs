@@ -4,6 +4,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {createHash} from 'node:crypto';
+import {assessWrongRelease,WRONG_MAIN_SHA,WRONG_RC_SHA} from '../scripts/qa-wrong-rollback-release-gate.mjs';
 const URL='http://127.0.0.1:4173/';
 const DB='uriaimath-github-qa-v224-only';
 const OLD='baseline-main/index.html';
@@ -120,6 +122,11 @@ try{
  await p.locator('#nav-records').click();
  await p.locator('#records-list button[data-record="'+oldId+'"]').waitFor({timeout:25000});
  passed('RC upgrade: old math, photo, ID, retry and parent review unchanged');
+ const oldToNew=assessWrongRelease({fromSha:WRONG_MAIN_SHA,toSha:WRONG_RC_SHA,
+   live:oldSnapshot,backup:oldBackup,restored:upgrade});
+ assert.equal(oldToNew.verdict,'CANDIDATE_ONLY',JSON.stringify(oldToNew));
+ passed('preflight: old math/1 photo/parent history backup allows synthetic RC upgrade');
+
  const korean=await rcAdd(p,'korean',3,{photo:true,reasons:['reading','concept']});
  const english=await rcAdd(p,'english',4,{reasons:['reading']});
  const science=await rcAdd(p,'science',5,{reasons:['concept']});
@@ -196,6 +203,68 @@ try{
  const recovered=await stored(q);
  assert.equal(canonical(recovered),canonical(beforeDown),'backup/restore must be byte- and ID-preserving');
  passed('fresh synthetic browser: RC JSON restored all IDs, photos byte-for-byte and all learning history');
+ const gateArgs={fromSha:WRONG_RC_SHA,toSha:WRONG_RC_SHA,live:beforeDown,backup:rcJson,restored:recovered};
+ const good=assessWrongRelease(gateArgs);
+ assert.equal(good.verdict,'CANDIDATE_ONLY',JSON.stringify(good));
+ assert.deepEqual(good.evidence.records,5);
+ assert.deepEqual(good.evidence.photos,2);
+ passed('release gate: complete SHA-256 backup, same IDs/record fields/photo bytes and independent restore permits RC candidate only');
+
+ const blocked=assessWrongRelease({...gateArgs,toSha:WRONG_MAIN_SHA});
+ assert.equal(blocked.verdict,'BLOCK');
+ assert.ok(blocked.blockedReasons.includes('TARGET_UNSUPPORTED_SUBJECT'));
+ assert.ok(blocked.blockedReasons.includes('TARGET_UNSUPPORTED_REASON_CANDIDATES'));
+ passed('release gate: legacy main rollback BLOCK if any newer nonmath/candidate data remains');
+
+ const noReleaseOn=(label,changed,code)=>{
+  const result=assessWrongRelease({...gateArgs,...changed});
+  assert.equal(result.verdict,'BLOCK',label+' '+JSON.stringify(result));
+  assert.ok(result.blockedReasons.includes(code),label+': missing '+code+' '+JSON.stringify(result));
+  console.log('PASS WRONG_RC_PREDEPLOY_BLOCK '+label+' '+code);
+ };
+ const sealed=backup=>{
+  const copy=structuredClone(backup);
+  delete copy.integrity;
+  backup.integrity={...backup.integrity,
+    digest:createHash('sha256').update(JSON.stringify(copy)).digest('hex')};
+  return backup;
+ };
+ const duplicated=structuredClone(rcJson);
+ duplicated.records[1].id=duplicated.records[0].id;
+ noReleaseOn('duplicate-id',{backup:sealed(duplicated)},'BACKUP_RECORD_SET_MISMATCH');
+ const changedAnswer=structuredClone(rcJson);
+ changedAnswer.records.find(r=>r.id===korean).generalRetryHistory[0].answer='변조된 재풀이 답안';
+ noReleaseOn('altered-retry-history',{backup:sealed(changedAnswer)},'BACKUP_RECORD_BYTES_CHANGED');
+ const omitted=structuredClone(rcJson);omitted.photosOmitted=1;
+ noReleaseOn('explicit-omitted-photo',{backup:sealed(omitted)},'PARTIAL_PHOTO_BACKUP');
+ const missing=structuredClone(rcJson);delete missing.photos[korean];
+ missing.backupSummary.photoCount=1;
+ noReleaseOn('missing-photo',{backup:sealed(missing)},'BACKUP_COUNT_MISMATCH');
+ const orphan=structuredClone(rcJson);orphan.photos['ghost-orphan-id']=orphan.photos[oldId];
+ orphan.backupSummary.photoCount=3;
+ noReleaseOn('orphan-photo',{backup:sealed(orphan)},'BACKUP_COUNT_MISMATCH');
+ const changedPhoto=structuredClone(rcJson);
+ changedPhoto.photos[oldId]=changedPhoto.photos[korean].slice();
+ // identical 1px synthetic PNG for both records; mutate payload while preserving valid base64.
+ const pic=changedPhoto.photos[oldId];const raw=Buffer.from(pic.split(',')[1],'base64');
+ raw[raw.length-1]^=0x01;
+ changedPhoto.photos[oldId]=pic.split(',')[0]+','+raw.toString('base64');
+ noReleaseOn('changed-photo-bytes',{backup:sealed(changedPhoto)},'BACKUP_PHOTO_BYTES_CHANGED');
+ const brokenChecksum=structuredClone(rcJson);
+ brokenChecksum.records.find(r=>r.id===english).memo='changed without checksum update';
+ noReleaseOn('broken-backup-digest',{backup:brokenChecksum},'BACKUP_DIGEST_MISMATCH');
+ const changedRestore=structuredClone(recovered);
+ changedRestore.records.find(r=>r.id===korean).checkHistory=[];
+ noReleaseOn('incomplete-restored-history',{restored:changedRestore},'RESTORE_RECORDS_CHANGED');
+ noReleaseOn('unknown-target',{toSha:'0'.repeat(40)},'UNKNOWN_TARGET_SHA');
+ console.log('WRONG_RC_RELEASE_GATE_RESULT='+JSON.stringify({
+   status:'PASS',from:WRONG_MAIN_SHA,to:WRONG_RC_SHA,baseline:oldToNew.verdict,
+   rcCandidate:good.verdict,mainRollback:blocked.verdict,
+   failClosedProbes:9,records:5,photos:2,idsUnchanged:true,
+   parentObservationAndRetryUnchanged:true,fullBackupHashVerified:true,
+   independentRestoreByteEqual:true,realDataUsed:false,operatingDeployment:false
+ }));
+
  assert.deepEqual(pageErrors,[],'JavaScript errors in version swap');
  console.log('WRONG_RC_ROLLBACK_RESULT='+JSON.stringify({
     status:'PASS',checks:step,mainSha:process.env.WRONG_BASELINE_SHA,
