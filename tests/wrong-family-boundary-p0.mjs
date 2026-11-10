@@ -133,22 +133,33 @@ try{
  assert.equal(storageDelete.rowCount,0);
  pass('viewer child denied photo/list/backup SQL, parent role edit, snapshot deletion and photo deletion');
 
+ // Existing QA44 merge preflight deliberately BLOCKS in-place edits to old
+ // records (including parent reviews). Retain that protective rule: do not
+ // silently weaken it just to make a staged test pass.
  const updatedA=structuredClone(docA);
  updatedA.records[0].checkHistory.push({at:'2026-11-11T00:00:00Z',
-  status:'needs_help',memo:'가상 A 부모의 추가 관찰',by:'parent_observation'});
- // Synthetic only: QA44 signed backup digest must be regenerated using
- // the existing signed-backup helper; no direct mutation of protected snapshots.
+  status:'needs_help',memo:'가상 A 부모 추가 관찰',by:'parent_observation'});
  signSynthetic(updatedA);
- assert.equal((await store.put(TOKEN_A,FA,1,updatedA)).revision,2);
+ await assert.rejects(store.put(TOKEN_A,FA,1,updatedA),/RECORD_CONFLICT/);
+ assert.equal((await store.read(TOKEN_A,FA)).revision,1);
+ assert.equal((await store.read(TOKEN_A,FA)).snapshot.records[0].checkHistory.length,1);
+ // Guardian may still safely append a NEW record via the existing same-family
+ // CAS/merge path; the child viewer may never perform that write.
+ const appendedA=structuredClone(docA);
+ appendedA.records.push({id:'sampleA2',subject:'math',gradeAtEntry:3,
+  problemText:'가상 A 가족 새 문제',hasPhoto:false,practiceHistory:[]});
+ appendedA.backupSummary.recordCount=2;
+ signSynthetic(appendedA);
+ assert.equal((await store.put(TOKEN_A,FA,1,appendedA)).revision,2);
  assert.equal((await store.read(TOKEN_B,FB)).revision,1);
- assert.equal((await store.read(TOKEN_A,FA)).snapshot.records[0].checkHistory.length,2);
- await assert.rejects(store.put(TOKEN_C,FA,2,updatedA),/FAMILY_NOT_ACCESSIBLE/);
- pass('only guardian can append a real parent-observation-shaped synthetic backup update');
+ assert.equal((await store.read(TOKEN_A,FA)).snapshot.records.length,2);
+ await assert.rejects(store.put(TOKEN_C,FA,2,appendedA),/FAMILY_NOT_ACCESSIBLE/);
+ pass('guardian may append a new record; viewer cannot write; existing same-ID observation-update conflict remains fail-closed');
 
  await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=now() WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
  assert.deepEqual(await store.families(TOKEN_A),[]);
  assert.equal(await store.read(TOKEN_A,FA),null);
- await assert.rejects(store.put(TOKEN_A,FA,2,updatedA),/FAMILY_NOT_ACCESSIBLE/);
+ await assert.rejects(store.put(TOKEN_A,FA,2,appendedA),/FAMILY_NOT_ACCESSIBLE/);
  assert.deepEqual((await visible(UA,"SELECT name FROM storage.objects WHERE bucket_id='qa44-family-photos'")),[]);
  assert.equal((await visible(UA,'SELECT family_id FROM qa44.family_snapshots')).length,0);
  assert.deepEqual((await store.read(TOKEN_B,FB)).snapshot,docB);
@@ -157,7 +168,7 @@ try{
 
  await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=NULL,consent_verified_at=NULL WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
  assert.equal(await store.read(TOKEN_A,FA),null);
- await assert.rejects(store.put(TOKEN_A,FA,2,updatedA),/FAMILY_NOT_ACCESSIBLE/);
+ await assert.rejects(store.put(TOKEN_A,FA,2,appendedA),/FAMILY_NOT_ACCESSIBLE/);
  assert.deepEqual(await visible(UA,'SELECT name FROM storage.objects WHERE bucket_id=$1',['qa44-family-photos']),[]);
  pass('missing verified consent alone fails closed even with active-looking membership');
 
@@ -165,6 +176,7 @@ try{
   status:'PASS',checks,simulatedFamilies:2,simulatedViewerChild:1,
   crossFamilyBackupDenied:true,crossFamilyPhotoDenied:true,
   guardianOnlyParentReview:true,viewerExportDenied:true,viewerDeleteDenied:true,
+  existingSameIdHistorySyncBlocked:true,
   revocation:true,consentMissingDenied:true,privilegedPoolBypassGuard:true,
   previousAppCodeUnchanged:true,realOAuth:false,realSupabase:false,realChildren:0,
   mobileOrProductionAuthApproved:false
