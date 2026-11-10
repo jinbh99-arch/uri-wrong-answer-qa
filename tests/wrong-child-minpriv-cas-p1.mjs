@@ -169,7 +169,7 @@ try{
  assert.deepEqual(firstState.records[0].generalRetryHistory[0].review,'not_checked');
  assert.equal(firstState.records[0].generalRetryHistory[0].answer,'12');
  assert.equal(firstState.records[0].checkHistory[0].memo,'부모 전용 합성 관찰');
- assert.deepEqual(firstState.photos,backupA.photos);
+ assert.deepEqual({...firstState.photos},{...backupA.photos});
  assert.equal(firstState.integrity.algorithm,'SHA-256');
  assert.equal((await child.childRead(TCA,FA,'mathA')).ownAttempts.length,1);
  assertNoParents(await child.childRead(TCA,FA,'mathA'));
