@@ -145,7 +145,7 @@ try{
  const label=await dates.innerText();
  assert.match(label,/부모님이 적어 둔 다음 확인 희망일/);
  assert.ok(label.includes(mathPast)&&label.includes(koreanFuture));
- assert.ok(!label.includes(secret),'private parent's question must never be shown on child home');
+ assert.ok(!label.includes(secret),'parent private question must never be shown on child home');
  assert.ok(!label.includes('확인 완료로 기록'),'expired date cannot pretend to be observed');
  assert.equal(canon(await stored(page)),canon(beforeChoice),'render date references must be read-only');
  const invalidDate=await page.evaluate(()=>{
