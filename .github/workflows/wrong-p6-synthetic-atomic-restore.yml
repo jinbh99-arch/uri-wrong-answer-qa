@@ -1,0 +1,61 @@
+name: WRONG P6 synthetic atomic ledger restore and rollback PostgreSQL16
+on:
+  push:
+    branches: ['qa/wrong-p6-atomic-restore-20261111']
+    paths:
+      - 'db/wrong-p6-synthetic-restore-only.sql'
+      - 'scripts/wrong-p6-synthetic-atomic-restore.mjs'
+      - 'tests/wrong-p6-synthetic-atomic-restore.mjs'
+      - '.github/workflows/wrong-p6-synthetic-atomic-restore.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-p6-transaction-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      synthetic_pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm A, P5 source, main application and qa44 unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin ca5b0fd35c85df2564c164797c06aec42fa2c4ff
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only ca5b0fd35c85df2564c164797c06aec42fa2c4ff HEAD -- index.html db/qa44_supabase_staging_rls.sql db/qa44_child_retry_stage_only.sql db/qa44_guardian_observation_stage_only.sql scripts/qa44-supabase-family-store.mjs scripts/qa-family-merge-preflight.mjs scripts/wrong-p4-synthetic-ledger-preflight.mjs scripts/wrong-p5-synthetic-bundle-preflight.mjs supabase)"
+          git diff --name-only ca5b0fd35c85df2564c164797c06aec42fa2c4ff HEAD
+          echo WRONG_P6_FIXED_A_P5_AND_QA44_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ephemeral PostgreSQL test client only
+        run: npm install --no-save pg@8.16.3
+      - name: Run NEW P6 atomic transaction and rollback checks only
+        env:
+          QA44_STAGE_ONLY: '1'
+          WRONG_P4_SYNTHETIC_BACKUP_ONLY: '1'
+          WRONG_P5_SYNTHETIC_BUNDLE_ONLY: '1'
+          WRONG_P6_SYNTHETIC_ATOMIC_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p6-synthetic-atomic-restore.mjs
+          node --check tests/wrong-p6-synthetic-atomic-restore.mjs
+          node tests/wrong-p6-synthetic-atomic-restore.mjs | tee /tmp/wrong-p6.log
+          grep -q 'WRONG_P6_ATOMIC_RESULT={"status":"PASS"' /tmp/wrong-p6.log
+          echo WRONG_P6_SYNTHETIC_PG_ATOMIC_ONLY=PASS
