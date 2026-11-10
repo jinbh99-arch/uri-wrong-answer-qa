@@ -1,0 +1,84 @@
+name: WRONG child P0 home choose one targeted browser RC
+on:
+  push:
+    branches: ['qa/wrong-child-next-one-p0-20261110']
+    paths: ['index.html','tests/wrong-child-next-one-p0.mjs','scripts/wrong-child-next-one-package.py','.github/workflows/wrong-child-next-one-p0.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  targeted-nonoperating-rc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout one exact isolated branch commit
+        uses: actions/checkout@v4
+      - name: Confirm fixed base change and product blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "732000a95c815cce86edaff2f52085a83188b587"
+          git fetch --no-tags origin da0d969a8b4d6838f40804958b4561c389950625
+          git diff --name-only da0d969a8b4d6838f40804958b4561c389950625 HEAD
+          test "$(git diff --name-only da0d969a8b4d6838f40804958b4561c389950625 HEAD -- index.html)" = "index.html"
+          echo "WRONG_CHILD_NEXT_PC_PRODUCT_INDEX_BLOB=PASS"
+      - name: Package existing 9 source files with exact current commit
+        run: python3 scripts/wrong-child-next-one-package.py
+      - name: Extract ZIP and verify bytes are identical to source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir /tmp/wrong-child-next-rc
+          python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile
+          src=pathlib.Path.cwd()
+          name="WRONG_CHILD_NEXT_ONE_PC_v1.3_20261110.zip"
+          expected=(src/(name+".sha256")).read_text().split()[0]
+          assert hashlib.sha256((src/name).read_bytes()).hexdigest()==expected
+          with zipfile.ZipFile(src/name) as z:
+           assert z.testzip() is None
+           z.extractall("/tmp/wrong-child-next-rc")
+          manifest=json.loads(pathlib.Path("/tmp/wrong-child-next-rc/RC_MANIFEST.json").read_text())
+          assert manifest["source_commit"] and len(manifest["source_commit"])==40
+          assert manifest["index_git_blob"]=="732000a95c815cce86edaff2f52085a83188b587"
+          assert len(manifest["source_files"])==9
+          for row in manifest["source_files"]:
+           f=pathlib.Path("/tmp/wrong-child-next-rc")/row["path"]
+           assert f.read_bytes()==(src/row["path"]).read_bytes()
+           assert hashlib.sha256(f.read_bytes()).hexdigest()==row["sha256"]
+          print("WRONG_CHILD_NEXT_PC_CRC_SHA_SOURCE_9_OF_9=PASS")
+          print("WRONG_CHILD_NEXT_PC_SHA256="+expected)
+          PY
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test-only Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve only extracted PC ZIP on local 127.0.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/wrong-child-next-rc >/tmp/wrong-child-next-http.log 2>&1 &
+          sleep 2
+          curl --fail --silent http://127.0.0.1:4173/ -o /tmp/wrong-child-next-served-index.html
+          cmp /tmp/wrong-child-next-served-index.html index.html
+          echo WRONG_CHILD_NEXT_PC_HTTP_SOURCE_EQUALS_ZIP=PASS
+      - name: Run only child first-home selection, existing retry, guardian observation and restore
+        run: |
+          set -euo pipefail
+          node tests/wrong-child-next-one-p0.mjs | tee /tmp/wrong-child-next-ci.log
+          grep -q 'WRONG_CHILD_NEXT_ONE_P0_RESULT={"status":"PASS"' /tmp/wrong-child-next-ci.log
+          echo WRONG_CHILD_NEXT_PC_REAL_BROWSER=PASS
+      - name: Upload PC ZIP and source manifest after targeted success only
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_CHILD_NEXT_ONE_PC_v1.3_20261110
+          path: |
+            WRONG_CHILD_NEXT_ONE_PC_v1.3_20261110.zip
+            WRONG_CHILD_NEXT_ONE_PC_v1.3_20261110.zip.sha256
+            WRONG_CHILD_NEXT_ONE_PC_v1.3_20261110_report.json
+          retention-days: 14
+          if-no-files-found: error
