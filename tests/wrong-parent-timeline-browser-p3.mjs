@@ -242,7 +242,9 @@ try{
  await revokedA.goto(server.origin+'/qa-p3/parent');
  await revokedA.waitForFunction(()=>document.getElementById('app-state')?.textContent?.includes('요청이 거부됐습니다'));
  const revokedData=await fetchPage(revokedA,'/qa-p3/api/parent/timeline');
- assert.equal(revokedData.status,403);
+ // B4 deliberately returns null for a revoked guardian; HTTP conceals
+ // the record with 404 instead of revealing whether that family exists.
+ assert.equal(revokedData.status,404);
  assert.ok(!revokedData.text.includes('비가 와서 젖지'));
  pass('role-separated routes, revoked guardian, CSRF header and direct HTTP cross-role observation denied; no private timeline returned');
 
