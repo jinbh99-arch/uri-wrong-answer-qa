@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const BASE='http://127.0.0.1:4173/',DB='uriaimath-github-qa-v224-only';
-const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
+const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 const examples=[
  {subject:'math',grade:'3',concept:'math.natural.addition',title:'가상 수학 17+8=?',answer:'25',explanation:'받아올림을 다시 확인했어요.',review:'explained',photo:false},
  {subject:'korean',grade:'2',title:'가상 국어 중심 문장 찾기',answer:'두 번째 문장',explanation:'글에 반복된 말을 찾았어요.',review:'explained',photo:false},
