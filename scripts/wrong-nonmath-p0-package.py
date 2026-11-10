@@ -25,7 +25,7 @@ assert len(source_sha)==40 and all(c in "0123456789abcdef" for c in source_sha)
 def sha(b):
  return hashlib.sha256(b).hexdigest()
 def git_blob(b):
- return hashlib.sha1(b"blob "+str(len(b)).encode()+b"\\0"+b).hexdigest()
+ return hashlib.sha1(b"blob "+str(len(b)).encode()+b"\0"+b).hexdigest()
 # The actual Git blob of the modified product must match this pin.
 index_blob="faae9b784032a0c517ea5ab0800cf593e2db3e4e"
 assert git_blob((root/"index.html").read_bytes())==index_blob
@@ -66,17 +66,17 @@ HTML을 file://로 직접 열지 마세요. 종료는 실행창 Ctrl+C.
 """
 (out/"실행_안내.txt").write_text(guide,encoding="utf-8")
 (out/"start_windows.bat").write_bytes(
- b'@echo off\\r\\ncd /d "%~dp0"\\r\\necho http://127.0.0.1:43173/\\r\\n'
- b'where py >nul 2>&1\\r\\nif %errorlevel%==0 (py -3 -m http.server 43173 --bind 127.0.0.1) else (python -m http.server 43173 --bind 127.0.0.1)\\r\\npause\\r\\n'
+ b'@echo off\r\ncd /d "%~dp0"\r\necho http://127.0.0.1:43173/\r\n'
+ b'where py >nul 2>&1\r\nif %errorlevel%==0 (py -3 -m http.server 43173 --bind 127.0.0.1) else (python -m http.server 43173 --bind 127.0.0.1)\r\npause\r\n'
 )
-(out/"start_mac_linux.sh").write_text('#!/bin/sh\\ncd "$(dirname "$0")"\\necho http://127.0.0.1:43173/\\nexec python3 -m http.server 43173 --bind 127.0.0.1\\n',encoding="utf-8")
+(out/"start_mac_linux.sh").write_text('#!/bin/sh\ncd "$(dirname "$0")"\necho http://127.0.0.1:43173/\nexec python3 -m http.server 43173 --bind 127.0.0.1\n',encoding="utf-8")
 (out/"start_mac_linux.sh").chmod(0o755)
 manifest=dict(kind="WRONG_NONMATH_P0_PC_NONOPERATING",source_commit=source_sha,
  base_commit="eaf87d1fafa830a4c0121df45df8616cd3eaa5de",index_git_blob=index_blob,
  local_origin="http://127.0.0.1:43173",source_files=entries,
  real_children=0,production_approved=False,synthetic_only=True,
  new_db_fields=False,auto_grading=False,official_curriculum_claimed=False)
-(out/"RC_MANIFEST.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\\n",encoding="utf-8")
+(out/"RC_MANIFEST.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
 name="WRONG_NONMATH_P0_PC_v1.2_20261110.zip"
 with zipfile.ZipFile(root/name,"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
  for f in sorted(out.rglob("*")):
@@ -92,9 +92,9 @@ with zipfile.ZipFile(root/name) as archive:
  for entry in entries:
   assert sha(archive.read(entry["path"]))==entry["sha256"]
 digest=sha((root/name).read_bytes())
-(root/(name+".sha256")).write_text(digest+"  "+name+"\\n",encoding="utf-8")
+(root/(name+".sha256")).write_text(digest+"  "+name+"\n",encoding="utf-8")
 report=dict(status="PASS",zip_name=name,zip_sha256=digest,
  index_blob=index_blob,source_commit=source_sha,
  tracked_source_files=9,zip_bytes=(root/name).stat().st_size)
-(root/"WRONG_NONMATH_P0_PC_v1.2_20261110_report.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+(root/"WRONG_NONMATH_P0_PC_v1.2_20261110_report.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 print("WRONG_NONMATH_RC_PACKAGE="+json.dumps(report,ensure_ascii=False))
