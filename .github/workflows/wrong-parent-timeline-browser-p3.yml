@@ -1,0 +1,74 @@
+name: WRONG P3 actual local parent-child timeline Chromium and two-family auth
+on:
+  push:
+    branches: ['qa/wrong-parent-timeline-browser-p3-20261110']
+    paths:
+      - 'scripts/wrong-p3-local-timeline-server.mjs'
+      - 'scripts/wrong-p3-local-timeline.html'
+      - 'scripts/wrong-p3-local-timeline.js'
+      - 'scripts/wrong-p3-local-timeline.css'
+      - 'tests/wrong-parent-timeline-browser-p3.mjs'
+      - '.github/workflows/wrong-parent-timeline-browser-p3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  new-p3-browser-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      stage_postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm fixed A v1.4/B4 assets and SQL unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          git fetch --no-tags origin f951eeb9d6bb1469d2498620933de5e821a8d282
+          test -z "$(git diff --name-only f951eeb9d6bb1469d2498620933de5e821a8d282 HEAD -- index.html db scripts/qa44-supabase-family-store.mjs scripts/qa-family-merge-preflight.mjs supabase)"
+          git diff --name-only f951eeb9d6bb1469d2498620933de5e821a8d282 HEAD
+          echo WRONG_FIXED_A_B4_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ephemeral synthetic PostgreSQL and real Chromium test dependencies
+        run: |
+          npm install --no-save pg@8.16.3 playwright@1.56.1
+          npx playwright install chromium
+      - name: Check syntax and run ONLY new P3 local browser data path
+        shell: bash
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          WRONG_P3_SYNTHETIC_LOCAL_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p3-local-timeline-server.mjs
+          node --check scripts/wrong-p3-local-timeline.js
+          node --check tests/wrong-parent-timeline-browser-p3.mjs
+          node tests/wrong-parent-timeline-browser-p3.mjs | tee /tmp/wrong-p3-browser.log
+          grep -q 'WRONG_PARENT_TIMELINE_P3_RESULT={"status":"PASS"' /tmp/wrong-p3-browser.log
+          echo WRONG_P3_LOOPBACK_CHROMIUM_DB=PASS
+      - name: Upload real synthetic parent-child UI screenshots and evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P3_SYNTHETIC_BROWSER_EVIDENCE
+          path: test-results/wrong-p3
+          if-no-files-found: warn
+          retention-days: 14
