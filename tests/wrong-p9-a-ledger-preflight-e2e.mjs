@@ -32,7 +32,7 @@ function denied(label,result,code){
 function testNegative(label,base,mutate,reason){
  const obj=clone(base);mutate(obj);denied(label,preflightWrongP9(obj),reason);
 }
-function makeLedger(aRecord,aPhoto){
+function makeLedger(aRecord,aPhoto,aBackup){
  const attempts=[
   {at:now(1),answer:'비가 왔기 때문입니다',explanation:'그림만 보다가 까닭을 다시 설명했어요.',review:'not_checked'},
   {at:now(3),answer:'젖지 않으려고 우산을 썼습니다',explanation:'행동과 이유를 이어서 설명했어요.',review:'not_checked'}
@@ -57,7 +57,7 @@ function makeLedger(aRecord,aPhoto){
  }));
  const snapshot={format:'uriaimath-offline-backup-v02',profile:{grade:3,nickname:'SYNTHETIC-ONLY'},
   records:[{...clone(aRecord),generalRetryHistory:attempts}],
-  photos:{[aRecord.id]:'synthetic-only-image-is-not-transferred'},
+  photos:{[aRecord.id]:aBackup.photos[aRecord.id]},
   backupSummary:{recordCount:1,photoCount:1}};
  return {syntheticOnly:true,ledgerIncluded:true,familyId:familyA,recordId:aRecord.id,
   snapshot,photoSignature:clone(aPhoto),revision:5,childEvents,parentEvents,
@@ -172,7 +172,7 @@ try{
  assert.equal(aBackup.guardianObservations,undefined);
  pass('actual A Export button downloads v02 JSON with same record/photo but NO independent B3 parent ledger');
 
- const ledger=makeLedger(aRecord,aPhoto);
+ const ledger=makeLedger(aRecord,aPhoto,aBackup);
  const input={aRecord,aPhoto,aBackup,expectedFamilyId:familyA,ledger};
  const good=preflightWrongP9(input);
  assert.equal(good.contractMatched,true);assert.equal(good.blocked,false);
@@ -187,6 +187,7 @@ try{
  testNegative('missing B3 ledger',input,x=>{delete x.ledger.parentEvents},'B3_LEDGER_NOT_INCLUDED');
  testNegative('dropped one B3 observation',input,x=>{x.ledger.parentEvents.pop()},'B3_LEDGER_MISSING_OR_COUNT_MISMATCH');
  testNegative('photo hash mismatch',input,x=>{x.ledger.photoSignature.sha256='f'.repeat(64)},'B2_PHOTO_SHA_OR_META_MISMATCH');
+ testNegative('P6 snapshot photo bytes differ',input,x=>{x.ledger.snapshot.photos[x.aRecord.id]='data:image/png;base64,AA=='},'B2_SNAPSHOT_PHOTO_BYTES_MISMATCH');
  testNegative('A v02 downloaded photo data mismatch',input,x=>{x.aBackup.photos[x.aRecord.id]='data:image/png;base64,AA=='},'A_INDEXEDDB_BACKUP_PHOTO_MISMATCH');
  testNegative('cross-family ledger mix',input,x=>{x.ledger.familyId=familyB},'LEDGER_FAMILY_OR_RECORD_MISMATCH');
  testNegative('cross-family guardian observation',input,x=>{x.ledger.parentEvents[0].family_id=familyB},'B3_PARENT_EVENT_INVALID');
@@ -200,7 +201,7 @@ try{
  testNegative('whole separate B2/B3 ledger missing, v02 alone',input,x=>{
   delete x.ledger;
  },'LEDGER_FAMILY_OR_RECORD_MISMATCH');
- pass('12 negative scenarios all fail closed with explicit reason and safeToRestore false');
+ pass('13 negative scenarios all fail closed with explicit reason and safeToRestore false');
 
  const reread=await readA(page);
  assert.deepEqual(reread,original);
