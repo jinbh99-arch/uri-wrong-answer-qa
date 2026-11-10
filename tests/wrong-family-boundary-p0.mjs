@@ -166,7 +166,7 @@ try{
  assert.deepEqual((await visible(UB,"SELECT name FROM storage.objects WHERE bucket_id='qa44-family-photos'")).map(r=>r.name),[PB]);
  pass('synthetic consent revocation immediately blocks family A backup/photo/read/write, B remains intact');
 
- await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=NULL,consent_verified_at=NULL WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
+ await admin.query('UPDATE qa44.guardian_memberships SET revoked_at=NULL,verification_source=\'pending\',consent_verified_at=NULL WHERE family_id=$1 AND guardian_user_id=$2',[FA,UA]);
  assert.equal(await store.read(TOKEN_A,FA),null);
  await assert.rejects(store.put(TOKEN_A,FA,2,appendedA),/FAMILY_NOT_ACCESSIBLE/);
  assert.deepEqual(await visible(UA,'SELECT name FROM storage.objects WHERE bucket_id=$1',['qa44-family-photos']),[]);
