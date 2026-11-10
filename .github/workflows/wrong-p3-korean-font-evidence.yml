@@ -1,0 +1,74 @@
+name: WRONG P3 Korean font evidence only (2 real Chromium PNG)
+on:
+  push:
+    branches: ['qa/wrong-p3-korean-font-evidence-20261111']
+    paths:
+      - 'tests/wrong-parent-timeline-browser-p3.mjs'
+      - '.github/workflows/wrong-p3-korean-font-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  korean-glyph-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      stage_postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Protect P3 implementation and A v1.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin dfbc30ca8073f296fa543d25475f9ef7772cc7f0
+          test -z "$(git diff --name-only dfbc30ca8073f296fa543d25475f9ef7772cc7f0 HEAD -- index.html scripts db supabase)"
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install actual Korean glyph fonts and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk fontconfig
+          fc-cache -f
+          fc-match -f '%{family}\n' 'Noto Sans CJK KR:lang=ko' | tee /tmp/wrong-korean-font.txt
+          grep -q 'Noto Sans CJK KR' /tmp/wrong-korean-font.txt
+          npm install --no-save pg@8.16.3 playwright@1.56.1
+          npx playwright install chromium
+      - name: Targeted Korean two-screen real data loop only
+        shell: bash
+        env:
+          QA44_STAGE_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          WRONG_P3_SYNTHETIC_LOCAL_ONLY: '1'
+          WRONG_P3_FONT_EVIDENCE_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-parent-timeline-browser-p3.mjs
+          node tests/wrong-parent-timeline-browser-p3.mjs | tee /tmp/wrong-p3-korean.log
+          grep -q 'WRONG_P3_KOREAN_EVIDENCE_RESULT={"status":"PASS"' /tmp/wrong-p3-korean.log
+          echo WRONG_P3_KOREAN_FONT_2PNG=PASS
+      - name: Preserve only two Korean screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P3_KOREAN_GLYPH_2PNG
+          path: test-results/wrong-p3-korean
+          if-no-files-found: warn
+          retention-days: 14
