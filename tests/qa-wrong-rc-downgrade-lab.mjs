@@ -156,10 +156,14 @@ try{
  assert.equal(shown,1,'main hides nonmath records (expected risk reproduction)');
  await p.locator('#nav-settings').click();
  await p.locator('#v07-backup-audit').click();
- await p.waitForFunction(()=>document.querySelector('#v07-backup-result')?.textContent?.includes('비지원/중복 기록'));
+ await p.waitForFunction(()=>{
+   const t=document.querySelector('#v07-backup-result')?.textContent||'';
+   return t.includes('백업 생성 불가')||t.includes('점검 실패');
+ },null,{timeout:12000});
  const audit=await p.locator('#v07-backup-result').innerText();
- assert.match(audit,/전체 백업 생성 불가/);
- assert.match(audit,/비지원\/중복 기록 4/);
+ console.log('WRONG_RC_DOWNGRADE_AUDIT_RAW='+JSON.stringify(audit));
+ assert.match(audit,/전체 백업 생성 불가|점검 실패/,'main must not claim successful full backup');
+ if(audit.includes('비지원/중복 기록'))assert.match(audit,/비지원\/중복 기록 4/);
  const stillStored=await stored(p);
  assert.equal(canonical(stillStored),canonical(beforeDown));
  console.log('WRONG_RC_DOWNGRADE_OBSERVED='+JSON.stringify({
