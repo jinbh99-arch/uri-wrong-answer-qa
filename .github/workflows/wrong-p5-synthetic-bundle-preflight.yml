@@ -1,0 +1,55 @@
+name: WRONG P5 synthetic bundle preflight (no restore)
+on:
+  push:
+    branches: ['qa/wrong-p5-bundle-preflight-20261111']
+    paths:
+      - 'scripts/wrong-p5-synthetic-bundle-preflight.mjs'
+      - 'tests/wrong-p5-synthetic-bundle-preflight.mjs'
+      - '.github/workflows/wrong-p5-synthetic-bundle-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      stage_postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure A and P4 remain byte-identical
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 0b46832bfdfec6b3506705a0784ca807f1aa81ce
+          test -z "$(git diff --name-only 0b46832bfdfec6b3506705a0784ca807f1aa81ce HEAD -- index.html db supabase scripts/wrong-p4-synthetic-ledger-preflight.mjs tests/wrong-p4-backup-ledger-risk.mjs)"
+          echo WRONG_P5_A_P4_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ephemeral PostgreSQL client
+        run: npm install --no-save pg@8.16.3
+      - name: Run only new P5 synthetic bundle checks
+        shell: bash
+        env:
+          QA44_STAGE_ONLY: '1'
+          WRONG_P4_SYNTHETIC_BACKUP_ONLY: '1'
+          WRONG_P5_SYNTHETIC_BUNDLE_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p5-synthetic-bundle-preflight.mjs
+          node --check tests/wrong-p5-synthetic-bundle-preflight.mjs
+          node tests/wrong-p5-synthetic-bundle-preflight.mjs | tee /tmp/wrong-p5.log
+          grep -q 'WRONG_P5_BUNDLE_RESULT={"status":"PASS","checks":6' /tmp/wrong-p5.log
