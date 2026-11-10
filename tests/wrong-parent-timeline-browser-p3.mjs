@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {randomBytes} from 'node:crypto';
+import {request as httpRequest} from 'node:http';
 import pg from 'pg';
 import {chromium} from 'playwright';
 import {createQa44ServerFamilyStore} from '../scripts/qa44-supabase-family-store.mjs';
@@ -135,8 +136,12 @@ try{
  const childB=await getPage(4,320);
  const noAuth=await fetch(server.origin+'/qa-p3/parent');
  assert.equal(noAuth.status,401);
- const noHost=await fetch(server.origin+'/qa-p3/parent',{headers:{Host:'evil.example'}});
- assert.equal(noHost.status,403);
+ const noHostStatus=await new Promise((resolve,reject)=>{
+  const req=httpRequest(server.origin+'/qa-p3/parent',{headers:{host:'evil.example'}},
+   res=>{res.resume();res.on('end',()=>resolve(res.statusCode))});
+  req.on('error',reject);req.end();
+ });
+ assert.equal(noHostStatus,403);
  await parentA.goto(server.origin+'/qa-p3/parent');
  await parentA.locator('#register-panel:visible').waitFor();
  assert.ok((await parentA.locator('body').innerText()).includes('로컬 비운영 합성 연결시험'));
@@ -144,7 +149,7 @@ try{
  pass('local browser requires synthetic session; wrong Host denied; unregistered guardian has no invented timeline');
 
  await childA.goto(server.origin+'/qa-p3/child');
- await childA.locator('#app-state').getByText('요청이 거부됐습니다',{exact:false}).waitFor();
+ await childA.waitForFunction(()=>document.getElementById('app-state')?.textContent?.includes('요청이 거부됐습니다'));
  assert.ok((await childA.locator('body').innerText()).includes('보호자 관찰 기록은 이 화면에 표시하지 않습니다'));
  await parentA.locator('#problem-input').fill('합성 국어 문제: 우산을 쓴 까닭은 무엇인가요?');
  await parentA.locator('#register-form button').click();
@@ -235,7 +240,7 @@ try{
  });
  assert.equal(withoutHeader.status,403);
  await revokedA.goto(server.origin+'/qa-p3/parent');
- await revokedA.locator('#app-state').getByText('요청이 거부됐습니다',{exact:false}).waitFor();
+ await revokedA.waitForFunction(()=>document.getElementById('app-state')?.textContent?.includes('요청이 거부됐습니다'));
  const revokedData=await fetchPage(revokedA,'/qa-p3/api/parent/timeline');
  assert.equal(revokedData.status,403);
  assert.ok(!revokedData.text.includes('비가 와서 젖지'));
