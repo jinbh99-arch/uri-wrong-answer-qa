@@ -66,10 +66,30 @@ async function backup(p){
 
 async function dayShift(p,by){
  return p.evaluate(delta=>{
-  const [y,m,d]=localToday().split('-').map(Number);
-  const shifted=new Date(y,m-1,d+delta,12);
+  const now=new Date(),shifted=new Date(now.getFullYear(),now.getMonth(),now.getDate()+delta,12);
   return [shifted.getFullYear(),String(shifted.getMonth()+1).padStart(2,'0'),String(shifted.getDate()).padStart(2,'0')].join('-');
  },by);
+}
+async function injectInvalidSyntheticLegacyDate(p,id){
+ await p.evaluate(({dbName,id})=>new Promise((resolve,reject)=>{
+  const opening=indexedDB.open(dbName);
+  opening.onerror=()=>reject(opening.error);
+  opening.onsuccess=()=>{
+   const db=opening.result,tx=db.transaction('mistakes','readwrite'),store=tx.objectStore('mistakes');
+   tx.oncomplete=()=>{db.close();resolve()};
+   tx.onerror=()=>{db.close();reject(tx.error)};
+   const request=store.get(id);
+   request.onerror=()=>reject(request.error);
+   request.onsuccess=()=>{
+    const row=request.result;
+    if(!row){reject(Error('synthetic record not found'));return}
+    row.checkHistory=[...(row.checkHistory||[]),{
+     at:new Date().toISOString(),status:'not_checked',
+     memo:'다음 확인 메모: 2026-02-30 · 학부모 질문: 가상 비공개 정보',by:'parent_observation'}];
+    store.put(row);
+   };
+  };
+ }),{dbName:DB,id});
 }
 async function openDateChild(p,id){
  await p.locator('#nav-home').click();
@@ -131,6 +151,10 @@ try{
  assert.ok(afterParent.checkHistory[0].memo.includes(secret));
  assert.equal(afterParent.generalRetryHistory[0].review,'not_checked');
  pass('parent Korean manual next-check saved separately as not_checked; no false observation');
+ // The old backup schema allows literal manual memos. Synthetically seed one
+ // malformed calendar day in English to check the child date panel excludes it.
+ await injectInvalidSyntheticLegacyDate(page,ids.english);
+ await page.reload({waitUntil:'domcontentloaded'});
  const beforeChoice=await stored(page);
  await page.locator('#nav-home').click();
  await page.locator('#v218-child-mode').click();
@@ -148,18 +172,8 @@ try{
  assert.ok(!label.includes(secret),'parent private question must never be shown on child home');
  assert.ok(!label.includes('확인 완료로 기록'),'expired date cannot pretend to be observed');
  assert.equal(canon(await stored(page)),canon(beforeChoice),'render date references must be read-only');
- const invalidDate=await page.evaluate(()=>{
-   const invalid={subject:'english',checkHistory:[
-    {status:'not_checked',memo:'다음 확인 메모: 2026-02-30 · 학부모 질문: 미검증 구형 메모'}]};
-   return wrongChildParentDate(invalid);
- });
- assert.equal(invalidDate,null,'bad legacy calendar date must be ignored');
- const olderDate=await page.evaluate(()=>wrongChildParentDate({
-   subject:'science',checkHistory:[
-    {status:'not_checked',memo:'다음 확인 메모: 2026-12-12 · 학부모 질문: 비공개'},
-    {status:'explained',memo:'다음 확인 메모: 2026-12-13 · 학부모 질문: 관찰은 날짜 메모가 아님'}
-   ]}));
- assert.equal(olderDate,'2026-12-12');
+ assert.equal(await dates.locator('[data-wrong-child-date-pick="'+ids.english+'"]').count(),0,
+  'English invalid legacy 2026-02-30 note must not render as a valid day');
  pass('child home shows exactly 2 parent-saved dates and hides private text, missing/invalid dates; no auto completion');
  // Old math record is not in the latest three; date jump must still select its original ID.
  await dates.locator('[data-wrong-child-date-pick="'+ids.math+'"]').click();
