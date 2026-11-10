@@ -122,9 +122,7 @@ try{
  const secret='가상 보호자 개인 질문 상세는 아이 홈 노출 금지';
  await page.locator('#wrong008-next-question').fill(secret);
  await page.locator('#wrong008-save-note').click();
- await page.locator('#wrong008-last-manual-note').getByText(koreanFuture,{exact:false}).waitFor({timeout:25000}).catch(async()=>{
-  await page.waitForFunction(day=>document.querySelector('#wrong008-last-manual-note')?.textContent?.includes(day),koreanFuture,{timeout:25000});
- });
+ await page.waitForFunction(day=>document.querySelector('#wrong008-last-manual-note')?.textContent?.includes(day),koreanFuture,{timeout:25000});
  const afterParent=get(await stored(page),ids.korean);
  assert.equal(afterParent.generalRetryHistory.length,1);
  assert.equal(afterParent.checkHistory.length,1);
