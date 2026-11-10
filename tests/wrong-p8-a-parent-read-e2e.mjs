@@ -199,6 +199,7 @@ try{
  assert.equal(initialA.records[0].subject,'korean');
  assert.equal(initialA.records[0].hasPhoto,true);
  sessions.set(sessionA,{role:'guardian',token:TGA,family:FA,recordId:id});
+ sessions.set(sessionB,{role:'guardian',token:TGB,family:FB,recordId:id});
  sessions.set(sessionRevoked,{role:'guardian',token:TGR,family:FA,recordId:id});
  sessions.set(sessionChild,{role:'child',token:TCA,family:FA,recordId:id});
  await openRecord(page,id);
@@ -211,10 +212,10 @@ try{
 
  await pool.query('INSERT INTO wrong_p7_synthetic.child_grants(family_id,child_user_id,record_id,consent_verified_at) VALUES($1,$2,$3,now())',[FA,CA,id]);
  const sourceA=source(FA,CA,GA,id,title,attempts,statusNotes,true);
- const sourceB=source(FB,CB,GB,'foreign','가상 국어: 가족 B 독립 문제',
+ const sourceB=source(FB,CB,GB,id,'가상 국어: 가족 B 독립 문제',
   [{at:at(6),answer:'B answer',explanation:'B reason',review:'not_checked'}],
   [{status:'explained',note:'FOREIGN_PARENT_ONLY'}],false);
- await pool.query('INSERT INTO wrong_p7_synthetic.child_grants(family_id,child_user_id,record_id,consent_verified_at) VALUES($1,$2,$3,now())',[FB,CB,'foreign']);
+ await pool.query('INSERT INTO wrong_p7_synthetic.child_grants(family_id,child_user_id,record_id,consent_verified_at) VALUES($1,$2,$3,now())',[FB,CB,id]);
  const [doneA,doneB]=await Promise.all([
   importSyntheticBundleAtomic({
    pool,bundleText:exportSyntheticBundle(sourceA),expectedFamilyId:FA,
@@ -262,40 +263,27 @@ try{
  assert.deepEqual(await state(FA),beforeDbA);
  pass('A and P7 data read-only across browser reload: original IndexedDB rows/photos and restored snapshot/SHA/event payloads bit-for-bit unchanged');
 
- // Exact-record fail-closed check: change only a synthetic local A field,
- // never DB, then verify we do not reveal P7 events on mismatch.
- await page.evaluate(async id=>{
-  const db=await new Promise((ok,no)=>{
-   const r=indexedDB.open('uriaimath-github-qa-v224-only');
-   r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
-  });
-  await new Promise((ok,no)=>{
-   const tx=db.transaction('mistakes','readwrite');
-   const req=tx.objectStore('mistakes').get(id);
-   req.onsuccess=()=>{
-    tx.objectStore('mistakes').put({...req.result,problemText:'불일치 가상 문제'});
-   };
-   tx.oncomplete=ok;tx.onerror=()=>no(tx.error);
-  });db.close();
- },id);
+ // Genuine A record remains byte-identical. Family B is synthetically
+ // restored under the SAME record ID but with different problem content.
+ // Even a verified B guardian must not join B history to A's local detail.
+ await context.addCookies([{name:'wrong_p3_demo_session',value:sessionB,
+  url:server.origin,httpOnly:true,sameSite:'Strict'}]);
+ await page.reload();
+ await openRecord(page,id);
+ const bOwn=await bodyAPI(page,'/qa-p3/api/parent/timeline');
+ assert.equal(bOwn.status,200);
+ assert.ok(bOwn.text.includes('FOREIGN_PARENT_ONLY'));
  await page.locator('#wrong-p8-read-action').click();
  await page.waitForFunction(()=>document.querySelector('#wrong-p8-read-status')?.textContent?.includes('조회 차단'));
  assert.equal(await page.locator('#wrong-p8-read-events li').count(),0);
+ assert.ok(!(await page.locator('#wrong-p8-restored-read').innerText()).includes('FOREIGN_PARENT_ONLY'));
  assert.ok(!(await page.locator('#wrong-p8-restored-read').innerText()).includes('첫 번째 설명을 직접 들었습니다'));
- // Restore ONLY synthetic A test row to continue with original bytes.
- await page.evaluate(async value=>{
-  const db=await new Promise((ok,no)=>{
-   const r=indexedDB.open('uriaimath-github-qa-v224-only');
-   r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
-  });
-  await new Promise((ok,no)=>{
-   const tx=db.transaction('mistakes','readwrite');
-   tx.objectStore('mistakes').put(value);
-   tx.oncomplete=ok;tx.onerror=()=>no(tx.error);
-  });db.close();
- },initialA.records[0]);
+ await context.addCookies([{name:'wrong_p3_demo_session',value:sessionA,
+  url:server.origin,httpOnly:true,sameSite:'Strict'}]);
+ await page.reload();
+ await openRecord(page,id);
  assert.deepEqual(await storedA(page),initialA);
- pass('local A record mutated metadata cannot be silently joined to P7 same-ID data; fail closed and synthetic local record fully recovered');
+ pass('same local A record ID with verified family B but mismatched subject/problem/photo refuses join without mutating any A record');
 
  // Revoked guardian and child share an otherwise matching local record and
  // cannot see restored guardian events, even if A shows a parent-mode button.
