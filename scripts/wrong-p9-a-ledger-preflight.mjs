@@ -68,10 +68,6 @@ function compare(aRecord,aPhoto,aBackup,expectedFamilyId,ledger) {
      c.revision<3||c.revision!==ledger.revision||
      c.childCount!==ledger.childEvents.length||c.parentCount!==ledger.parentEvents.length)
     fail('B3_LEDGER_MISSING_OR_COUNT_MISMATCH');
-  if(c.childDigest!==digestJSON(ledger.childEvents)||
-     c.parentDigest!==digestJSON(ledger.parentEvents)||
-     c.snapshotDigest!==digestJSON(ledger.snapshot))
-    fail('B2_B3_CHECKPOINT_DIGEST_MISMATCH');
   const revisions=new Set(), children=new Map(), childAttempts=[];
   for(const e of ledger.childEvents){
     if(!isObject(e)||e.family_id!==expectedFamilyId||e.record_id!==aRecord.id||
@@ -119,6 +115,10 @@ function compare(aRecord,aPhoto,aBackup,expectedFamilyId,ledger) {
   if(revisions.size!==ledger.revision-1||
      [...revisions].some(r=>r>ledger.revision||r<2))
     fail('B2_B3_REVISION_GAP');
+  if(c.childDigest!==digestJSON(ledger.childEvents)||
+     c.parentDigest!==digestJSON(ledger.parentEvents)||
+     c.snapshotDigest!==digestJSON(ledger.snapshot))
+    fail('B2_B3_CHECKPOINT_DIGEST_MISMATCH');
   return {recordId:aRecord.id,subject:aRecord.subject,grade:aRecord.gradeAtEntry,
     problemTextSha256:sha(aRecord.problemText),photo,revision:ledger.revision,
     b2ChildCount:children.size,b3ObservationCount:parents.size};
