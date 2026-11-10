@@ -66,7 +66,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
   async read(token,family){
    const id=familyId(family);
    return scoped(token,async c=>{
-    const result=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW',[id]);
+    const result=await c.query("SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW,[id]);
     if(result.rowCount!==1)return null;
     const row=result.rows[0];
     if(row.snapshot_text!==null&&
@@ -80,7 +80,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
    const id=familyId(family),expected=revision(expectedRevision);
    const next=prepared(doc);
    return scoped(token,async c=>{
-    const res=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW',[id]);
+    const res=await c.query("SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW,[id]);
     if(res.rowCount!==1)throw error('FAMILY_NOT_ACCESSIBLE');
     const before=res.rows[0];
     if(Number(before.revision)!==expected)throw error('STALE_REVISION');
