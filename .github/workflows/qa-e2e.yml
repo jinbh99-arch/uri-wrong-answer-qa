@@ -26,6 +26,7 @@ on:
       - 'tests/wrong007-grade-subject-journey.mjs'
       - 'tests/wrong008-nonmath-manual-recheck.mjs'
       - 'tests/wrong009-nonmath-record-list-context.mjs'
+      - 'tests/wrong-rc-fast-input-risk.mjs'
       - 'tests/wrong010-multisubject-first-contact.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
@@ -255,6 +256,8 @@ jobs:
         run: node tests/wrong008-nonmath-manual-recheck.mjs
       - name: WRONG-009 subject and photo/text status filter no-math-leak 390/320px real app regression
         run: node tests/wrong009-nonmath-record-list-context.mjs
+      - name: WRONG-RC synthetic early input/photo-read stale form regression
+        run: node tests/wrong-rc-fast-input-risk.mjs
       - name: WRONG-009 save actual 390 and 320px nonmath subject-filter screen evidence
         uses: actions/upload-artifact@v4
         with:
