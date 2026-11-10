@@ -29,6 +29,7 @@ on:
       - 'tests/wrong-rc-fast-input-risk.mjs'
       - 'tests/qa-wrong-rc-downgrade-lab.mjs'
       - 'scripts/qa-wrong-release-dryrun.mjs'
+      - '.github/workflows/qa-e2e.yml'
       - 'scripts/qa-wrong-rollback-release-gate.mjs'
       - 'tests/wrong010-multisubject-first-contact.mjs'
       - 'tests/qa-general-retry.mjs'
@@ -605,6 +606,10 @@ jobs:
         with:
           name: wrong-rc-synthetic-release-evidence
           path: wrong-rc-synthetic-release-evidence
+      - name: Set up Node.js for synthetic release preflight
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Fetch pinned original product RC to verify identical staging source blobs
         shell: bash
         run: |
@@ -631,8 +636,11 @@ jobs:
             test ! -e "$path"
             grep -F "${expected}" "$RUNNER_TEMP/wrong-block-$case_id.log"
           }
-          block_case main d95b07ac1d9d846525418fb1bcea63402ea9036f normal DUMMY_DO_NOT_USE
-          echo "THIS MUST NOT BE REACHED"
+          block_case legacy-main 47b6645df5ac75a45b8038e4f416b1c53c6da949 normal TARGET_UNSUPPORTED_SUBJECT
+          block_case missing-photo d95b07ac1d9d846525418fb1bcea63402ea9036f partial PARTIAL_PHOTO_BACKUP
+          block_case photo-tamper d95b07ac1d9d846525418fb1bcea63402ea9036f corrupt-photo BACKUP_PHOTO_BYTES_CHANGED
+          block_case bad-restore d95b07ac1d9d846525418fb1bcea63402ea9036f failed-restore RESTORE_RECORDS_CHANGED
+          echo "WRONG_RC_MOCK_DEPLOY_BLOCKS_RESULT=PASS rejected=4 produced_staging=0"
       - name: Mock deployment may stage ONLY exact original RC when all safety proofs pass
         shell: bash
         env:
