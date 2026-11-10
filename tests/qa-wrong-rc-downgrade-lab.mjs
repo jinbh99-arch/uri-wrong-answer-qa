@@ -276,7 +276,7 @@ try{
    original:{live:oldSnapshot,backup:oldBackup,restored:upgrade},
    latest:{live:beforeDown,backup:rcJson,restored:recovered}
  };
- await writeFile(evidenceDir+'/input.json',JSON.stringify(evidence,null,2)+'\\n','utf8');
+ await writeFile(evidenceDir+'/input.json',JSON.stringify(evidence,null,2),'utf8');
  console.log('WRONG_RC_RELEASE_EVIDENCE_CREATED='+JSON.stringify({
    syntheticOnly:true,records:beforeDown.records.length,
    photoCount:beforeDown.photos.length,mainSha:WRONG_MAIN_SHA,
