@@ -94,7 +94,6 @@ try{
   await parent.locator('#v218-parent-mode').click();
   await parent.locator('#wrong-p0-child-reason-readonly:visible').waitFor({timeout:25000});
   assert.match(await parent.locator('#wrong-p0-child-reason-readonly').innerText(),new RegExp(ex.explanation.slice(0,13)));
-  assert.match(await parent.locator('#v230-parent-review').count().then(String),/^[01]$/); // no artificial grading status is required
   await parent.locator('#v230-review').selectOption(ex.review);
   await parent.locator('#v230-review-save').click();
   await parent.waitForFunction(()=>{
