@@ -157,7 +157,7 @@ try{
  }));
  assert.equal(hierarchy.problem,title);
  assert.ok(hierarchy.image?.includes('문제'));
- assert.ok(Boolean(hierarchy.cardPosition&Node.DOCUMENT_POSITION_FOLLOWING));
+ assert.ok(Boolean(hierarchy.cardPosition&4 /* DOCUMENT_POSITION_FOLLOWING */));
  assert.equal(hierarchy.summaryHidden,true);
  assert.equal(hierarchy.eventCount,0);
  mkdirSync('test-results/wrong-p10',{recursive:true});
