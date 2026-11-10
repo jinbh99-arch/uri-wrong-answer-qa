@@ -181,6 +181,37 @@ try{
  assert.equal(afterObserve.text,priorObserve.text);
  assert.equal(afterObserve.hash,priorObserve.hash);
  pass('child answer/explanation button -> B2 childAppend -> real parent B4 timeline -> B3 observation button; original snapshot/SHA bytes unchanged by parent observation');
+ if(process.env.WRONG_P3_FONT_EVIDENCE_ONLY==='1'){
+  // Targeted P3 font evidence: stop after first real B2/B3/B4 connected flow.
+  // Do NOT re-run old 8/8 full browser suite or create new product UI.
+  const korean='우리 아이가 다시 생각한 과정';
+  assert.ok((await parentA.locator('body').innerText()).includes(korean));
+  assert.equal(await parentA.locator('#timeline li[data-kind="child_retry"]').count(),1);
+  assert.equal(await parentA.locator('#timeline li[data-kind="guardian_observation"]').count(),1);
+  assert.ok((await parentA.locator('#backup-limitation').innerText()).includes('부모 관찰 이벤트 원장'));
+  const font=await parentA.evaluate(()=>({
+   supported:document.fonts.check('16px "Noto Sans CJK KR"'),
+   title:getComputedStyle(document.querySelector('h1')).fontFamily,
+   glyphCount:document.querySelector('h1').textContent.length
+  }));
+  assert.equal(font.supported,true,'Korean Noto font missing from Chromium environment');
+  mkdirSync('test-results/wrong-p3-korean',{recursive:true});
+  await parentA.screenshot({path:'test-results/wrong-p3-korean/parent-timeline-390-korean.png',fullPage:true});
+  await childA.reload();
+  await childA.locator('#child-problem').getByText('합성 국어 문제',{exact:false}).waitFor();
+  await childA.screenshot({path:'test-results/wrong-p3-korean/child-retry-320-korean.png',fullPage:true});
+  const result={status:'PASS',scope:'P3 Korean font visual evidence only',
+   synthetic:true,localhostOnly:true,realChromium:true,
+   font,fontCheck:true,networkExternalRequests:evidence.networkExternalRequests,
+   parent390:'parent-timeline-390-korean.png',child320:'child-retry-320-korean.png',
+   b2RetryCount:1,b3ObservationCount:1,
+   backupWarningVisible:true,fullP3SuiteRepeated:false,
+   humanVisualAcceptance:'PENDING_INDEPENDENT_06'};
+  assert.equal(evidence.networkExternalRequests,0);
+  writeFileSync('test-results/wrong-p3-korean/evidence.json',JSON.stringify(result,null,2));
+  console.log('WRONG_P3_KOREAN_EVIDENCE_RESULT='+JSON.stringify(result));
+ }else{
+
 
  await childA.reload();
  await childA.locator('#retry-answer').fill('비가 와서 젖지 않으려고 우산을 썼습니다.');
@@ -278,6 +309,7 @@ try{
  assert.equal(evidence.networkExternalRequests,0);
  pass('real Chromium 390px parent + 320px child screenshots captured from B2/B3/B4 backed HTTP; zero external requests',
   {screenshots:4});
+ }
  evidence.result='PASS';evidence.checkCount=evidence.checks.length;
  evidence.finalRevisionA=(await dbState(FA)).revision;
  evidence.eventsA=await eventCounts(FA);
