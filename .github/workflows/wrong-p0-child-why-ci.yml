@@ -38,6 +38,9 @@ jobs:
         shell: bash
         run: |
           echo "WRONG_P0_EXPLANATION_CANDIDATE_SHA=$(git rev-parse HEAD)"
-          git diff --quiet d95b07ac1d9d846525418fb1bcea63402ea9036f -- index.html || true
+          # actions/checkout uses a shallow tree: retrieve the pinned product base
+          # before comparing only the isolated, never-merged candidate.
+          git fetch --no-tags origin d95b07ac1d9d846525418fb1bcea63402ea9036f
+          git cat-file -e d95b07ac1d9d846525418fb1bcea63402ea9036f^{commit}
           git diff --stat d95b07ac1d9d846525418fb1bcea63402ea9036f
           echo "WRONG_P0_PRODUCT_DEPLOYMENT=false"
