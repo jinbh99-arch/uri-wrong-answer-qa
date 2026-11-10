@@ -149,6 +149,12 @@ try{
  // Roll back just the app JS/HTML, not the browser origin or the persisted DB.
  await p.route(URL,mainRoute);
  await p.reload({waitUntil:'domcontentloaded'});
+ // main's existing v221 audit deliberately enters fail-closed mode for nonmath.
+ // This must be a settled safety decision, NOT an early-click initialization race.
+ await p.waitForFunction(()=>document.querySelector('#storage-state')?.textContent?.includes('저장 차단:'),null,{timeout:25000});
+ const downgradeGuard=await p.locator('#storage-state').innerText();
+ assert.match(downgradeGuard,/화면에서 보이지 않는 미지원·손상 오답/);
+ console.log('WRONG_RC_DOWNGRADE_STORAGE_GUARD='+JSON.stringify(downgradeGuard));
  const persisted=await stored(p);
  assert.equal(canonical(persisted),canonical(beforeDown),'rollback must never physically mutate IDB');
  await p.locator('#nav-records').click();
