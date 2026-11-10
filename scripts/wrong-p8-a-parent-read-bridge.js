@@ -1,4 +1,4 @@
-// WRONG-P8 QA ONLY. Attach P7's verified, restored read-only records to
+// WRONG-P10 QA ONLY (P8 bridge retained). Attach P7 verified read-only records to
 // EXISTING A v1.4 parent detail DOM, NOT to an invented stand-alone mock UI.
 // No local IndexedDB writes, no auto-sync or restore, no browser JWT/DB secret.
 (()=>{
@@ -7,29 +7,50 @@
   return;
  const DB='uriaimath-github-qa-v224-only';
  const $=id=>document.getElementById(id);
- let selectedId=null,epoch=0,busy=false;
+ let selectedId=null,epoch=0,busy=false,verifiedItems=[];
  const panel=document.createElement('section');
  panel.id='wrong-p8-restored-read';panel.className='card';panel.hidden=true;
  panel.setAttribute('aria-label','복원된 학습 변화 확인 · 가상 읽기 전용');
  const heading=document.createElement('h3');
- heading.textContent='복원된 아이 재풀이·부모 관찰 확인 (가상 읽기 전용)';
+ heading.textContent='아이 재풀이·부모 관찰 (가상 읽기 전용)';
  const warning=document.createElement('p');warning.className='small';
- warning.textContent='실제 계정 연결이 아닙니다. 로컬 가상 보호자 권한과 동일 오답 ID·과목·문제 내용·학년·사진 표시가 확인된 경우에만 조회합니다. A의 기기 내 기록과 서버 복원 원장을 자동 병합하거나 저장하지 않습니다.';
+ warning.textContent='실제 계정이 아닙니다. 위 문제·사진을 확인한 뒤 가상 이력을 안전 조회하세요. 자동 복원·합치기·저장하지 않습니다.';
  const btn=document.createElement('button');btn.type='button';btn.className='secondary';
  btn.id='wrong-p8-read-action';btn.textContent='가상 복원 이력 안전 조회';
  const status=document.createElement('p');status.id='wrong-p8-read-status';
  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- const list=document.createElement('ol');list.id='wrong-p8-read-events';
+ const summary=document.createElement('p');summary.id='wrong-p10-read-summary';
+ summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');summary.hidden=true;
+ const expand=document.createElement('button');expand.type='button';expand.className='secondary';
+ expand.id='wrong-p10-expand';expand.hidden=true;
+ expand.setAttribute('aria-expanded','false');expand.setAttribute('aria-controls','wrong-p8-read-events');
+ expand.textContent='학습 변화 4건 자세히 보기';
+ const list=document.createElement('ol');list.id='wrong-p8-read-events';list.hidden=true;
  list.setAttribute('aria-label','검증된 가상 복원 학습 변화');
  const end=document.createElement('p');end.className='small';
- end.textContent='기존 v02 JSON에는 별도 부모 관찰 원장이 포함되지 않습니다. 운영 인증·동의·암호키·사진 이관·실 DB 적용 미완료 · safeToRestore:false.';
- panel.append(heading,warning,btn,status,list,end);
+ end.textContent='기존 v02 JSON에는 별도 부모 관찰 원장이 포함되지 않습니다. 운영 인증·동의·암호키·사진 이관·실 DB 적용 미완료 · safeToRestore:false.';end.hidden=true;
+ panel.append(heading,warning,btn,status,summary,expand,list,end);
+ const resetView=()=>{
+  verifiedItems=[];list.replaceChildren();list.hidden=true;end.hidden=true;
+  summary.hidden=true;summary.textContent='';
+  expand.hidden=true;expand.setAttribute('aria-expanded','false');
+  expand.textContent='학습 변화 자세히 보기';
+ };
+ expand.addEventListener('click',()=>{
+  if(expand.hidden||!parentActive()||!verifiedItems.length)return;
+  const opening=expand.getAttribute('aria-expanded')!=='true';
+  expand.setAttribute('aria-expanded',String(opening));
+  list.hidden=!opening;end.hidden=!opening;
+  if(opening){list.replaceChildren(...verifiedItems);expand.textContent='학습 변화 접기'}
+  else{list.replaceChildren();expand.textContent='학습 변화 자세히 보기'}
+ });
  const insert=()=>{
   const d=$('page-detail'),card=$('detail-card');
-  if(d&&card&&!panel.isConnected)card.before(panel);
+  // Existing A problem text/photo detail comes FIRST. No mock page.
+  if(d&&card&&panel.previousElementSibling!==card)card.after(panel);
  };
  const clear=(message)=>{
-  epoch++;list.replaceChildren();status.textContent=message||'조회 전 · 원본 데이터 변경 없음';
+  epoch++;resetView();status.textContent=message||'조회 전 · 원본 데이터 변경 없음';
  };
  const parentActive=()=>Boolean(
   $('page-detail')&&!$('page-detail').classList.contains('hide')&&
@@ -79,7 +100,7 @@
   insert();
   const id=selectedId;
   const started=++epoch;
-  list.replaceChildren();
+  resetView();
   if(!id||!parentActive()){
    status.textContent='차단: A 부모 화면의 실제 오답 상세에서만 조회할 수 있습니다.';return;
   }
@@ -130,11 +151,17 @@
     t.observationEventsIncludedInJsonBackup!==false)
     throw Error('P7_READ_ONLY_CONTRACT_MISSING');
    // Commit only after *all* checks. Never render an unverified partial list.
-   list.replaceChildren(fragment);
-   status.textContent='연결 검증 완료 · 가상 복원 기록 '+t.order.length+
-    '개 · 서버 개정 '+t.revision+' · 읽기 전용 · 로컬 A 데이터 무변경';
+   verifiedItems=[...fragment.children];
+   const children=t.order.filter(x=>x.kind==='child_retry').length;
+   const observations=t.order.filter(x=>x.kind==='guardian_observation').length;
+   summary.textContent='아이 재풀이 '+children+'회 · 부모 관찰 '+observations+
+    '회 (가상 읽기 전용)';summary.hidden=false;
+   expand.hidden=false;expand.textContent='학습 변화 '+t.order.length+'건 자세히 보기';
+   end.textContent='서버 개정 '+t.revision+
+    ' · v02 JSON에는 별도 부모 관찰 원장이 포함되지 않습니다. 운영 인증·동의·사진 이관·실 DB 미검증 · safeToRestore:false.';
+   status.textContent='연결 검증 완료 · 원본 A 데이터 변경 없음 · 아래에서 이력을 펼쳐 보세요.';
   }catch(e){
-   list.replaceChildren();
+   resetView();
    status.textContent='조회 차단: 신원·오답 일치·복원 무결성 계약을 확인하지 못했습니다 ('+
     String(e?.message||'UNKNOWN').slice(0,70)+'). A의 원본은 변경하지 않았습니다.';
   }finally{
