@@ -150,14 +150,21 @@ try{
  const hierarchy=await page.evaluate(()=>({
   problem:document.querySelector('#detail-text')?.textContent,
   image:document.querySelector('#detail-image img')?.getAttribute('alt'),
-  cardPosition:document.querySelector('#detail-card')?.compareDocumentPosition(
+  photoPosition:document.querySelector('#detail-image')?.compareDocumentPosition(
     document.querySelector('#wrong-p8-restored-read')),
+  beforeStudent:document.querySelector('#wrong-p8-restored-read')?.compareDocumentPosition(
+    document.querySelector('#detail-student-answer')),
   summaryHidden:document.querySelector('#wrong-p10-read-summary')?.hidden,
   eventCount:document.querySelectorAll('#wrong-p8-read-events li').length
  }));
  assert.equal(hierarchy.problem,title);
  assert.ok(hierarchy.image?.includes('문제'));
- assert.ok(Boolean(hierarchy.cardPosition&4 /* DOCUMENT_POSITION_FOLLOWING */));
+ assert.ok(Boolean(hierarchy.photoPosition&4 /* DOCUMENT_POSITION_FOLLOWING */));
+ assert.ok(Boolean(hierarchy.beforeStudent&4 /* DOCUMENT_POSITION_FOLLOWING */));
+ const gap=await page.evaluate(()=>Math.round(
+  document.querySelector('#wrong-p8-restored-read').getBoundingClientRect().top-
+  document.querySelector('#detail-image').getBoundingClientRect().bottom));
+ assert.ok(gap>=0&&gap<100,'QA bridge should follow actual A photo closely, not below old forms');
  assert.equal(hierarchy.summaryHidden,true);
  assert.equal(hierarchy.eventCount,0);
  mkdirSync('test-results/wrong-p10',{recursive:true});
