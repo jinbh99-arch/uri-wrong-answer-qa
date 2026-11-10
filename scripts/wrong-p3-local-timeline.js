@@ -44,6 +44,12 @@ async function parentLoad(){
  }
  const t=await api('parent/timeline');
  revision=t.revision;attempts=t.attempts;
+ // A restored P6 snapshot is inspection-only. Hide P3 write controls and
+ // never present an unimplemented guardianObserve action as live.
+ if(t.readOnlyRestored===true){
+  $('observe-form').closest('.panel').hidden=true;
+  $('observation-save').disabled=true;
+ }
  $('parent-problem').textContent=t.record.problemText;
  $('parent-photo').textContent=t.record.hasPhoto?'합성 사진이 연결돼 있습니다. 사진 데이터 자체는 이 페이지에 표시하지 않습니다.':'사진 없음';
  const parentItems=new Map();
