@@ -446,31 +446,31 @@ jobs:
             entries.append({'path':rel,'bytes':len(copied),
                 'sha256':hashlib.sha256(copied).hexdigest()})
           guide=(
-            '우리아이 오답노트 · 로컬 RC 체험본 (운영·교육·개인정보 승인 전)\\n'
-            'GitHub 기준 SHA: '+commit+'\\n'
-            '※ 공개 GitHub 시험용 개발본을 PC에서 로컬로 띄우는 패키지입니다.\\n'
-            '※ 기존 GitHub Pages 공개 QA 사이트/운영 Netlify와 서로 다른 코드일 수 있습니다.\\n'
-            '※ 실제 아이 이름·학교·문제 사진·가족 정보·로그인을 입력하지 마세요.\\n'
-            '※ 테스트는 가상 아이/가상 문제만 사용합니다. OCR·인증·가족 서버 실험 메뉴는 누르지 마세요.\\n'
-            '※ 저장 내용은 이 PC/브라우저의 IndexedDB에만 저장됩니다. 브라우저 데이터 지우면 사라질 수 있습니다.\\n'
-            '\\n실행: 압축을 풀고 이 폴더에서 서버를 시작하세요. index.html을 파일로 직접 열지 마세요.\\n'
-            'Windows: start_windows.bat 더블클릭 (Python 필요)\\n'
-            'macOS/Linux: 터미널에서 sh start_mac_linux.sh\\n'
-            '직접 실행: python3 -m http.server 43173 --bind 127.0.0.1\\n'
-            '주소: http://127.0.0.1:43173/ (실행한 PC의 브라우저에서만)\\n'
-            '종료: 서버 창에서 Ctrl+C. 재시작할 때 같은 주소/포트를 사용합니다.\\n'
-            '\\n합성 체험 순서(권장 5~10분):\\n'
-            '1) 홈에서 5과목 오답 등록과 수학 개념 시범의 차이를 확인합니다.\\n'
-            '2) 새 오답에서 과목=국어, 학년=3, 문제 내용=가상 문장을 입력합니다.\\n'
-            '3) 틀린 이유 후보(복수)를 선택한 뒤 저장, 목록에서 국어만 필터링합니다.\\n'
-            '4) 상세에서 아이 재풀이 답을 저장하고 부모 모드에서 관찰 결과를 기록합니다.\\n'
-            '5) 설정에서 JSON 백업 후 같은 가상 데이터를 안전하게 확인합니다.\\n'
-            '6) 별도의 합성 사진 테스트는 본인 사진이 아닌 테스트용 그림만 사용합니다.\\n'
-            '\\n권한·운영 주의: 부모/아이 모드 구분은 로그인이나 법적 보호자 인증이 아닙니다.\\n'
-            '이 패키지는 안전한 비공개 운영 서비스가 아니므로 합성 시험 자료만 사용하세요.\\n'
-            '과거 WRONG-009 국어 재풀이 간헐 타임아웃 원인은 아직 미확정입니다.\\n'
-            'RC 검증은 실제 Android/iOS, 실아동, 실계정, 운영 Netlify/Supabase를 뜻하지 않습니다.\\n'
-            '출처·검증: GitHub Actions의 동일 SHA qa-e2e + WRONG009 집중 반복 5회.\\n'
+            '우리아이 오답노트 · 로컬 RC 체험본 (운영·교육·개인정보 승인 전)\n'
+            'GitHub 기준 SHA: '+commit+'\n'
+            '※ 공개 GitHub 시험용 개발본을 PC에서 로컬로 띄우는 패키지입니다.\n'
+            '※ 기존 GitHub Pages 공개 QA 사이트/운영 Netlify와 서로 다른 코드일 수 있습니다.\n'
+            '※ 실제 아이 이름·학교·문제 사진·가족 정보·로그인을 입력하지 마세요.\n'
+            '※ 테스트는 가상 아이/가상 문제만 사용합니다. OCR·인증·가족 서버 실험 메뉴는 누르지 마세요.\n'
+            '※ 저장 내용은 이 PC/브라우저의 IndexedDB에만 저장됩니다. 브라우저 데이터 지우면 사라질 수 있습니다.\n'
+            '\n실행: 압축을 풀고 이 폴더에서 서버를 시작하세요. index.html을 파일로 직접 열지 마세요.\n'
+            'Windows: start_windows.bat 더블클릭 (Python 필요)\n'
+            'macOS/Linux: 터미널에서 sh start_mac_linux.sh\n'
+            '직접 실행: python3 -m http.server 43173 --bind 127.0.0.1\n'
+            '주소: http://127.0.0.1:43173/ (실행한 PC의 브라우저에서만)\n'
+            '종료: 서버 창에서 Ctrl+C. 재시작할 때 같은 주소/포트를 사용합니다.\n'
+            '\n합성 체험 순서(권장 5~10분):\n'
+            '1) 홈에서 5과목 오답 등록과 수학 개념 시범의 차이를 확인합니다.\n'
+            '2) 새 오답에서 과목=국어, 학년=3, 문제 내용=가상 문장을 입력합니다.\n'
+            '3) 틀린 이유 후보(복수)를 선택한 뒤 저장, 목록에서 국어만 필터링합니다.\n'
+            '4) 상세에서 아이 재풀이 답을 저장하고 부모 모드에서 관찰 결과를 기록합니다.\n'
+            '5) 설정에서 JSON 백업 후 같은 가상 데이터를 안전하게 확인합니다.\n'
+            '6) 별도의 합성 사진 테스트는 본인 사진이 아닌 테스트용 그림만 사용합니다.\n'
+            '\n권한·운영 주의: 부모/아이 모드 구분은 로그인이나 법적 보호자 인증이 아닙니다.\n'
+            '이 패키지는 안전한 비공개 운영 서비스가 아니므로 합성 시험 자료만 사용하세요.\n'
+            '과거 WRONG-009 국어 재풀이 간헐 타임아웃 원인은 아직 미확정입니다.\n'
+            'RC 검증은 실제 Android/iOS, 실아동, 실계정, 운영 Netlify/Supabase를 뜻하지 않습니다.\n'
+            '출처·검증: GitHub Actions의 동일 SHA qa-e2e + WRONG009 집중 반복 5회.\n'
           )
           (out/'실행_안내.txt').write_text(guide,encoding='utf-8')
           (out/'start_windows.bat').write_bytes(
@@ -480,7 +480,7 @@ jobs:
               b'if %errorlevel%==0 (py -3 -m http.server 43173 --bind 127.0.0.1) else (python -m http.server 43173 --bind 127.0.0.1)\r\n'
               b'pause\r\n')
           (out/'start_mac_linux.sh').write_text(
-              '#!/bin/sh\\ncd "$(dirname "$0")"\\necho "Open http://127.0.0.1:43173/"\\nexec python3 -m http.server 43173 --bind 127.0.0.1\\n',
+              '#!/bin/sh\ncd "$(dirname "$0")"\necho "Open http://127.0.0.1:43173/"\nexec python3 -m http.server 43173 --bind 127.0.0.1\n',
               encoding='utf-8')
           (out/'start_mac_linux.sh').chmod(0o755)
           manifest={'kind':'LOCAL_RC_SOURCE_ONLY_NOT_DEPLOYMENT',
@@ -491,7 +491,7 @@ jobs:
             'synthetic_only':True,'production_approved':False,
             'release_approved':False,'real_children':0,
             'verified_files':entries}
-          (out/'RC_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\\n',encoding='utf-8')
+          (out/'RC_MANIFEST.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           for row in entries:
             assert hashlib.sha256((out/row['path']).read_bytes()).hexdigest()==row['sha256']
           required_files={'scripts/qa-inapp-sync-bridge.mjs',
