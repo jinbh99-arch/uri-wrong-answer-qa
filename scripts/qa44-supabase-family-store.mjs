@@ -8,6 +8,19 @@ const error=code=>Object.assign(new Error(code),{code});
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function familyId(id){if(typeof id!=='string'||!UUID.test(id))throw error('INVALID_FAMILY_ID');return id}
 function revision(n){if(!Number.isSafeInteger(n)||n<0)throw error('INVALID_REVISION');return n}
+// Defense in depth: never rely on DB RLS being enabled for the backend pool.
+// This predicate is checked again on EVERY snapshot read and conditional write,
+// even if a synthetic QA connection accidentally runs with elevated SQL rights.
+// Viewer/child, absent consent, unverified and revoked memberships are DENIED.
+const VERIFIED_GUARDIAN_FOR_ROW=`EXISTS (
+ SELECT 1 FROM qa44.guardian_memberships m
+ WHERE m.family_id=qa44.family_snapshots.family_id
+  AND m.guardian_user_id=(SELECT auth.uid())
+  AND m.role='guardian'
+  AND m.verification_source='externally_verified'
+  AND m.verified_at IS NOT NULL AND m.consent_verified_at IS NOT NULL
+  AND m.revoked_at IS NULL
+)`;
 function prepared(doc){
  checkBackup(doc);
  const text=JSON.stringify(doc);
@@ -53,7 +66,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
   async read(token,family){
    const id=familyId(family);
    return scoped(token,async c=>{
-    const result=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1',[id]);
+    const result=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW',[id]);
     if(result.rowCount!==1)return null;
     const row=result.rows[0];
     if(row.snapshot_text!==null&&
@@ -67,7 +80,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
    const id=familyId(family),expected=revision(expectedRevision);
    const next=prepared(doc);
    return scoped(token,async c=>{
-    const res=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1',[id]);
+    const res=await c.query('SELECT revision,snapshot_text,content_sha256 FROM qa44.family_snapshots WHERE family_id=$1 AND "+VERIFIED_GUARDIAN_FOR_ROW',[id]);
     if(res.rowCount!==1)throw error('FAMILY_NOT_ACCESSIBLE');
     const before=res.rows[0];
     if(Number(before.revision)!==expected)throw error('STALE_REVISION');
@@ -79,7 +92,7 @@ export function createQa44ServerFamilyStore({pool,authClient}={}){
       merged.proposedPhotos!==Object.keys(doc.photos).length)
       throw error('SILENT_RECORD_OR_PHOTO_LOSS');
     }
-    const updated=await c.query("UPDATE qa44.family_snapshots SET revision=revision+1,snapshot_text=$3,content_sha256=$4,updated_at=now() WHERE family_id=$1 AND revision=$2 RETURNING revision",
+    const updated=await c.query("UPDATE qa44.family_snapshots SET revision=revision+1,snapshot_text=$3,content_sha256=$4,updated_at=now() WHERE family_id=$1 AND revision=$2 AND "+VERIFIED_GUARDIAN_FOR_ROW+" RETURNING revision",
      [id,expected,next.text,next.hash]);
     if(updated.rowCount!==1)throw error('STALE_OR_REVOKED_GUARDIAN');
     return Object.freeze({stored:true,revision:Number(updated.rows[0].revision),sha256:next.hash});
