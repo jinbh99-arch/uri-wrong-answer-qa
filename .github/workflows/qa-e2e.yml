@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, 'feature/wrong010-multisubject-home-copy-20261110']
+    branches: [main, 'feature/wrong010-multisubject-home-copy-20261110', 'qa/wrong-rc-synthetic-rollback-20261110']
     paths:
       - 'index.html'
       - 'check.html'
@@ -27,6 +27,7 @@ on:
       - 'tests/wrong008-nonmath-manual-recheck.mjs'
       - 'tests/wrong009-nonmath-record-list-context.mjs'
       - 'tests/wrong-rc-fast-input-risk.mjs'
+      - 'tests/qa-wrong-rc-downgrade-lab.mjs'
       - 'tests/wrong010-multisubject-first-contact.mjs'
       - 'tests/qa-general-retry.mjs'
       - 'tests/qa-concept-support.mjs'
@@ -258,6 +259,37 @@ jobs:
         run: node tests/wrong009-nonmath-record-list-context.mjs
       - name: WRONG-RC synthetic early input/photo-read stale form regression
         run: node tests/wrong-rc-fast-input-risk.mjs
+      - name: Checkout exact pre-RC main into isolated legacy fixture
+        if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
+        uses: actions/checkout@v4
+        with:
+          ref: 47b6645df5ac75a45b8038e4f416b1c53c6da949
+          path: baseline-main
+          persist-credentials: false
+      - name: Synthetic main -> RC -> main -> RC rollback and JSON recovery
+        if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
+        env:
+          WRONG_BASELINE_SHA: 47b6645df5ac75a45b8038e4f416b1c53c6da949
+          WRONG_RC_SHA: d95b07ac1d9d846525418fb1bcea63402ea9036f
+        run: node tests/qa-wrong-rc-downgrade-lab.mjs
+      - name: Simulate QA50 plus RC merge-tree and authenticate synthetic Edge regression
+        if: github.ref == 'refs/heads/qa/wrong-rc-synthetic-rollback-20261110'
+        shell: bash
+        run: |
+          set -euo pipefail
+          QA50=7d8fca370d8607922d57b0da691f1b0fb465463b
+          git fetch --no-tags --unshallow origin
+          git fetch --no-tags origin "$QA50"
+          test "$(git merge-base HEAD "$QA50")" = '47b6645df5ac75a45b8038e4f416b1c53c6da949'
+          TREE="$(git merge-tree --write-tree HEAD "$QA50")"
+          test -n "$TREE"
+          for file in supabase/functions/qa47-auth-status/handler.js tests/qa47-edge-auth-status.mjs; do
+            test "$(git rev-parse "$TREE:$file")" = "$(git rev-parse "$QA50:$file")"
+          done
+          mkdir -p "$RUNNER_TEMP/wrong-rc-qa50-synthetic-tree"
+          git archive "$TREE" | tar -x -C "$RUNNER_TEMP/wrong-rc-qa50-synthetic-tree"
+          node "$RUNNER_TEMP/wrong-rc-qa50-synthetic-tree/tests/qa47-edge-auth-status.mjs"
+          echo "WRONG_RC_QA50_MERGE_TREE_RESULT=PASS base=main all_rc_files_preserved=true qa50_handler_test_preserved=true conflict_count=0"
       - name: WRONG-009 save actual 390 and 320px nonmath subject-filter screen evidence
         uses: actions/upload-artifact@v4
         with:
