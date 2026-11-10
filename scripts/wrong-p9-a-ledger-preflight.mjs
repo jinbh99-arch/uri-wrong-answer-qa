@@ -55,6 +55,11 @@ function compare(aRecord,aPhoto,aBackup,expectedFamilyId,ledger) {
   if(!isObject(ledger.snapshot)||ledger.snapshot.format!=='uriaimath-offline-backup-v02'||
      !Array.isArray(ledger.snapshot.records)||ledger.snapshot.records.length!==1||
      !sameRecord(aRecord,ledger.snapshot.records[0]))fail('B2_SNAPSHOT_RECORD_MISMATCH');
+  // B2/P6 signed snapshot carries a photo data URI; compare its real
+  // decoded bytes to the A IndexedDB Blob, not merely a claimed hasPhoto flag.
+  // This never writes, imports, or exposes a photo on another device.
+  try{actualBackupPhoto(ledger.snapshot,aRecord.id,aPhoto)}
+  catch{fail('B2_SNAPSHOT_PHOTO_BYTES_MISMATCH')}
   if(!isObject(ledger.photoSignature))fail('B2_PHOTO_SIGNATURE_MISSING');
   if(ledger.photoSignature.sha256!==photo?.sha256||
      ledger.photoSignature.byteLength!==photo?.byteLength||
