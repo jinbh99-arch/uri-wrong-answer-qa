@@ -1,0 +1,79 @@
+name: WRONG P8 original A guardian detail to P7 synthetic restored read Chromium
+on:
+  push:
+    branches: ['qa/wrong-p8-a-parent-read-bridge-20261111']
+    paths:
+      - 'scripts/wrong-p8-a-parent-read-bridge.js'
+      - 'scripts/wrong-p3-local-timeline-server.mjs'
+      - 'tests/wrong-p8-a-parent-read-e2e.mjs'
+      - '.github/workflows/wrong-p8-a-parent-read-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-synthetic-restored-guardian:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      synthetic_pg:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa39_admin
+          POSTGRES_PASSWORD: QA39_SYNTHETIC_CI_ONLY_2026
+          POSTGRES_DB: qa39_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa39_admin -d qa39_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve actual A v1.4 and P7/qa44 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 1eeb6f9dea6a50a9f76611b546b95b3ada1145c0
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 1eeb6f9dea6a50a9f76611b546b95b3ada1145c0 HEAD -- index.html db scripts/qa44-supabase-family-store.mjs scripts/wrong-p6-synthetic-atomic-restore.mjs scripts/wrong-p7-restored-guardian-read-adapter.mjs scripts/wrong-p3-local-timeline.js supabase)"
+          git diff --name-only 1eeb6f9dea6a50a9f76611b546b95b3ada1145c0 HEAD
+          echo WRONG_P8_A_P7_QA44_ORIGINAL_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install synthetic PostgreSQL and real Chromium dependencies
+        run: |
+          npm install --no-save pg@8.16.3 playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          fc-match 'Noto Sans CJK KR'
+      - name: Run only new P8 original A detail bridge E2E
+        shell: bash
+        env:
+          QA44_STAGE_ONLY: '1'
+          WRONG_P4_SYNTHETIC_BACKUP_ONLY: '1'
+          WRONG_P5_SYNTHETIC_BUNDLE_ONLY: '1'
+          WRONG_P6_SYNTHETIC_ATOMIC_ONLY: '1'
+          WRONG_P7_SYNTHETIC_RESTORED_READONLY: '1'
+          WRONG_P8_SYNTHETIC_A_PARENT_ONLY: '1'
+          QA44_SYNTHETIC_CHILD_ONLY: '1'
+          QA44_SYNTHETIC_GUARDIAN_OBS_ONLY: '1'
+          WRONG_P3_SYNTHETIC_LOCAL_ONLY: '1'
+          QA39_TEST_DATABASE_URL: postgres://qa39_admin:QA39_SYNTHETIC_CI_ONLY_2026@127.0.0.1:5432/qa39_ci
+        run: |
+          set -euo pipefail
+          node --check scripts/wrong-p8-a-parent-read-bridge.js
+          node --check scripts/wrong-p3-local-timeline-server.mjs
+          node --check tests/wrong-p8-a-parent-read-e2e.mjs
+          node tests/wrong-p8-a-parent-read-e2e.mjs | tee /tmp/wrong-p8.log
+          grep -q 'WRONG_P8_A_PARENT_READ_RESULT={"status":"PASS"' /tmp/wrong-p8.log
+          echo WRONG_P8_ACTUAL_A_PARENT_P7_READONLY=PASS
+      - name: Upload new 390px A parent capture and result JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P8_ORIGINAL_A_PARENT_TO_RESTORED_READ
+          path: test-results/wrong-p8
+          if-no-files-found: warn
+          retention-days: 14
