@@ -166,8 +166,21 @@ try{
   url:server.origin,httpOnly:true,sameSite:'Strict'}]);
  contexts.push(context);
  const page=await context.newPage();
+ // Existing A's local image previews use blob:/data: fetches, which
+ // are NOT external network requests. Block any real HTTP(S) outside the
+ // loopback origin, never load real services in synthetic QA.
+ await context.route('**/*',route=>{
+  const url=route.request().url();
+  if(/^https?:\\/\\//.test(url)&&new URL(url).origin!==server.origin){
+   evidence.blockedExternalHTTP=(evidence.blockedExternalHTTP||0)+1;
+   return route.abort();
+  }
+  return route.continue();
+ });
  page.on('request',req=>{
-  if(!req.url().startsWith(server.origin))evidence.externalRequests++;
+  const url=req.url();
+  if(/^https?:\\/\\//.test(url)&&new URL(url).origin!==server.origin)
+   evidence.externalRequests++;
  });
  const response=await page.goto(server.origin+'/qa-p8/a-parent');
  assert.equal(response.status(),200);
