@@ -140,7 +140,7 @@ try{
  updatedA.records[0].checkHistory.push({at:'2026-11-11T00:00:00Z',
   status:'needs_help',memo:'가상 A 부모 추가 관찰',by:'parent_observation'});
  signSynthetic(updatedA);
- await assert.rejects(store.put(TOKEN_A,FA,1,updatedA),/RECORD_CONFLICT/);
+ await assert.rejects(store.put(TOKEN_A,FA,1,updatedA),e=>e?.code==='RECORD_CONFLICT');
  assert.equal((await store.read(TOKEN_A,FA)).revision,1);
  assert.equal((await store.read(TOKEN_A,FA)).snapshot.records[0].checkHistory.length,1);
  // Guardian may still safely append a NEW record via the existing same-family
