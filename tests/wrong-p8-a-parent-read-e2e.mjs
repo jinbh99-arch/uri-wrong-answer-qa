@@ -171,7 +171,7 @@ try{
  // loopback origin, never load real services in synthetic QA.
  await context.route('**/*',route=>{
   const url=route.request().url();
-  if(/^https?:\\/\\//.test(url)&&new URL(url).origin!==server.origin){
+  if((url.startsWith('http://')||url.startsWith('https://'))&&new URL(url).origin!==server.origin){
    evidence.blockedExternalHTTP=(evidence.blockedExternalHTTP||0)+1;
    return route.abort();
   }
@@ -179,7 +179,7 @@ try{
  });
  page.on('request',req=>{
   const url=req.url();
-  if(/^https?:\\/\\//.test(url)&&new URL(url).origin!==server.origin)
+  if((url.startsWith('http://')||url.startsWith('https://'))&&new URL(url).origin!==server.origin)
    evidence.externalRequests++;
  });
  const response=await page.goto(server.origin+'/qa-p8/a-parent');
