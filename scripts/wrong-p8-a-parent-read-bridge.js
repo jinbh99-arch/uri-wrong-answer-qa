@@ -45,9 +45,10 @@
   else{list.replaceChildren();expand.textContent='학습 변화 자세히 보기'}
  });
  const insert=()=>{
-  const d=$('page-detail'),card=$('detail-card');
-  // Existing A problem text/photo detail comes FIRST. No mock page.
-  if(d&&card&&panel.previousElementSibling!==card)card.after(panel);
+  const d=$('page-detail'),photo=$('detail-image');
+  // Place immediately AFTER the genuine A question + saved photo and BEFORE
+  // A's subsequent answer/review forms. It is still the existing A DOM.
+  if(d&&photo?.isConnected&&panel.previousElementSibling!==photo)photo.after(panel);
  };
  const clear=(message)=>{
   epoch++;resetView();status.textContent=message||'조회 전 · 원본 데이터 변경 없음';
@@ -183,5 +184,8 @@
  });
  if($('qa-main'))obs.observe($('qa-main'),{subtree:false,childList:true,attributes:true});
  if($('page-detail'))obs.observe($('page-detail'),{attributes:true,attributeFilter:['class']});
+ // A renderDetail replaces nested detail content asynchronously after a
+ // record click. Observe only that native container to reattach safely.
+ if($('detail-card'))obs.observe($('detail-card'),{subtree:true,childList:true});
  insert();
 })();
