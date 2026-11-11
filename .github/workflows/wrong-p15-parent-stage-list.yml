@@ -1,0 +1,53 @@
+name: WRONG P15 original A parent-stage record-list read-only clarity
+on:
+  push:
+    branches: ['qa/wrong-p15-parent-stage-list-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p15-parent-stage-list-e2e.mjs'
+      - '.github/workflows/wrong-p15-parent-stage-list.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-parent-stage-list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve P14 baseline, A v1.4, prior QA and storage paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin ffcaffbdaeee589d3b73bd028b867af4a8d237ed
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only ffcaffbdaeee589d3b73bd028b867af4a8d237ed HEAD -- scripts db supabase tests/wrong-p14-multi-record-cta-e2e.mjs)"
+          echo WRONG_P15_A_BASELINE_PRESERVED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium and Korean font
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: New P15 stage discoverability only, original A records 320 390
+        shell: bash
+        env:
+          WRONG_P15_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p15-parent-stage-list-e2e.mjs
+          node tests/wrong-p15-parent-stage-list-e2e.mjs | tee /tmp/wrong-p15.log
+          grep -q 'WRONG_P15_STAGE_RESULT={"status":"PASS"' /tmp/wrong-p15.log
+          echo WRONG_P15_ORIGINAL_A_PARENT_STAGE_DISCOVERY_READ_ONLY=PASS
+      - name: Archive before/after mobile A records/date state screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P15_A_PARENT_STAGE_LIST_READ_ONLY
+          path: test-results/wrong-p15
+          if-no-files-found: warn
+          retention-days: 14
