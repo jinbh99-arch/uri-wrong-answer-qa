@@ -4914,6 +4914,36 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     return result;
   };
 
+  // WRONG scoped-back EXPERIMENT: loopback QA opt-in only, NOT production
+  // navigation and NOT guardian/child access control. No record IDs in URL
+  // or history.state; photo/retry/check data are never written here.
+  if(location.hostname==='127.0.0.1'&&
+     new URLSearchParams(location.search).get('wrongHistoryQa')==='1'){
+    let scoped=null;
+    document.addEventListener('click',event=>{
+      if(scoped||route!=='records'||v218Mode!=='parent')return;
+      const item=event.target.closest('#records-list > [data-record]');
+      if(!item||!records.some(r=>r.id===item.dataset.record))return;
+      try{
+        history.pushState({wrongScopedDetailOnly:true},'',location.href);
+        scoped={filter:wrongP17Filter.value};
+      }catch{scoped=null}
+    },true);
+    document.addEventListener('click',event=>{
+      if(!scoped||route!=='detail'||
+         !event.target.closest('#page-detail [data-route="records"]'))return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      history.back();
+    },true);
+    addEventListener('popstate',event=>{
+      if(!scoped||route!=='detail'||event.state?.wrongScopedDetailOnly)return;
+      const state=scoped;scoped=null;
+      wrongP17Filter.value=state.filter;
+      navigate('records');
+    });
+  }
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
