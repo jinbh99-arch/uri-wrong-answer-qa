@@ -24,7 +24,7 @@ jobs:
           test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
           test -z "$(git diff --name-only ff20d6caa2f23a7c610f574b86a61587d8b8b644 HEAD -- scripts db supabase)"
           git diff --numstat ff20d6caa2f23a7c610f574b86a61587d8b8b644 HEAD -- index.html | awk '$1<=2 && $2<=2 && $3=="index.html" {ok=1} END {exit !ok}'
-          grep -q '안전한 백업·복원은 보장되지 않습니다' index.html
+          grep -q '로컬 오답·사진·관찰은 백업·복원이 보장되지 않습니다' index.html
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
