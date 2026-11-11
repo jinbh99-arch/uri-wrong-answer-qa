@@ -1,0 +1,54 @@
+name: WRONG P13 first viewport original A record CTA
+on:
+  push:
+    branches: ['qa/wrong-p13-first-action-cta-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p13-first-action-cta-e2e.mjs'
+      - '.github/workflows/wrong-p13-first-action-cta.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  first-viewport-original-record-cta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve A v1.4 baseline and P12; ensure scoped candidate only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 11743ddc3d95821a47aa20b712325d252230cabb
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse 11743ddc3d95821a47aa20b712325d252230cabb:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 11743ddc3d95821a47aa20b712325d252230cabb HEAD -- db supabase scripts tests/wrong-p11-a-local-parent-child-journey-e2e.mjs tests/wrong-p12-role-reminder-clarity-e2e.mjs)"
+          echo WRONG_P13_A_BASELINE_AND_PREVIOUS_QA_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium with Korean font
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: P13 only A before-after first action parent390 child320
+        shell: bash
+        env:
+          WRONG_P13_SYNTHETIC_A_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p13-first-action-cta-e2e.mjs
+          node tests/wrong-p13-first-action-cta-e2e.mjs | tee /tmp/wrong-p13.log
+          grep -q 'WRONG_P13_CTA_RESULT={"status":"PASS"' /tmp/wrong-p13.log
+          echo WRONG_P13_REAL_A_FIRST_VIEWPORT_CTA=PASS
+      - name: Archive original A before-after 320x720 390x844 PNG JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P13_A_ORIGINAL_RECORD_FIRST_ACTION
+          path: test-results/wrong-p13
+          if-no-files-found: warn
+          retention-days: 14
