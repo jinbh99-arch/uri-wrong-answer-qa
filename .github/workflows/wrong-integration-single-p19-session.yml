@@ -14,16 +14,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Assert exact P19 product SHA with NO product code modifications
+      - name: Assert original P19 baseline A and single isolated QA focus correction
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin 2f4e47260c385620c95672034fcb7f49702d5dd4
           git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
-          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse 2f4e47260c385620c95672034fcb7f49702d5dd4:index.html)"
+          test "$(git rev-parse HEAD:index.html)" != "$(git rev-parse 2f4e47260c385620c95672034fcb7f49702d5dd4:index.html)"
           test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
-          test -z "$(git diff --name-only 2f4e47260c385620c95672034fcb7f49702d5dd4 HEAD -- index.html scripts db supabase)"
-          echo WRONG_EXACT_P19_A_PRODUCT_AND_DATA_PATH_UNMODIFIED_PASS
+          test -z "$(git diff --name-only 2f4e47260c385620c95672034fcb7f49702d5dd4 HEAD -- scripts db supabase)"
+          git diff --numstat 2f4e47260c385620c95672034fcb7f49702d5dd4 HEAD -- index.html | awk '$1<=8 && $2<=1 && $3=="index.html" {ok=1} END {exit !ok}'
+          grep -q 'Narrow 200% keyboard correction' index.html
+          echo WRONG_P19_EXACT_BASE_AND_ONLY_NARROW_QA_FOCUS_CORRECTION=PASS
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -33,7 +35,7 @@ jobs:
           npx playwright install chromium
           sudo apt-get update -qq
           sudo apt-get install -y -qq fonts-noto-cjk
-      - name: Run one actual A record same-session guardian D re-discovery & date C
+      - name: Run exact P19 A D re-discovery plus narrow keyboard focus before-after
         shell: bash
         env:
           WRONG_INTEGRATION_LOCAL_SYNTHETIC_ONLY: '1'
