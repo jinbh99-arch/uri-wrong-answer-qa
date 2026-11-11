@@ -1,5 +1,5 @@
-// WRONG-P18 targeted E2E: four real original A local records, not P13/P11 reruns.
-// Compare P13 first-record/observed fallback against P14 timestamp-state CTA.
+// WRONG-P18 targeted A guardian integrated journey across sixteen actual synthetic records.
+// Reuse P17 seeding helpers, but validate new combined user task, not old P17 filter tests.
 // NO live users, network backend, real family auth, old B2/B3 ledger or restore.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
@@ -23,7 +23,7 @@ assert.ok(before.includes('wrongP15Stage'));
 assert.ok(after.includes('새 관찰할 설명 없음'));
 assert.ok(after.includes('wrongP15Stage'));
  assert.ok(after.includes('WRONG-P16: same read-only'));
-assert.ok(after.includes('WRONG-P18 non-operating candidate'));
+assert.ok(after.includes('WRONG-P17 non-operating candidate'));
 
 const js={
  '/scripts/qa-inapp-sync-bridge.mjs':readFileSync(new URL('../scripts/qa-inapp-sync-bridge.mjs',import.meta.url)),
