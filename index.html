@@ -4710,30 +4710,47 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     if(route!=='home'||!entries.length){
       wrongP13Selection=null;wrongP13Bar.classList.add('hide');return;
     }
-    const viewed=entries.find(r=>r.id===detailId);
-    const recent=[viewed,...entries.filter(r=>r!==viewed)].filter(Boolean);
-    const parentEligible=r=>String(r.generalRetryHistory?.at(-1)?.explanation||'').trim();
-    const parentNext=recent.find(r=>parentEligible(r)&&
-      r.generalRetryHistory.at(-1).review==='not_checked')||
-      recent.find(r=>parentEligible(r));
-    wrongP13Selection=childMode?(viewed||entries[0]):(parentNext||null);
+    // WRONG-P14: selection is based ONLY on explicit, timestamped local
+    // activity, not array order, last screen viewed or inferred learning need.
+    const validAt=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?
+      Date.parse(value):-Infinity;
+    const byTimeThenId=(a,b)=>b.at-a.at||
+      String(a.record.id).localeCompare(String(b.record.id));
+    const childCandidates=entries.map(record=>({record,at:validAt(record.createdAt)}))
+      .filter(x=>x.at!==-Infinity).sort(byTimeThenId);
+    const pendingParent=entries.map(record=>{
+      const attempt=Array.isArray(record.generalRetryHistory)?
+        record.generalRetryHistory.at(-1):null;
+      return {record,at:validAt(attempt?.at),attempt};
+    }).filter(x=>x.at!==-Infinity&&x.attempt?.review==='not_checked'&&
+      typeof x.attempt?.explanation==='string'&&x.attempt.explanation.trim())
+      .sort(byTimeThenId);
+    wrongP13Selection=childMode?(childCandidates[0]?.record||null):
+      (pendingParent[0]?.record||null);
     wrongP13Button.textContent=childMode?
-      '✏️ 이번 오답 다시 풀기':'👀 아이 설명 보고 관찰하기';
+      '✏️ 가장 최근 등록한 오답 다시 풀기':
+      (wrongP13Selection?'👀 아직 관찰 전인 아이 설명 보기':'새 관찰할 설명 없음');
+    wrongP13Button.dataset.recordId=wrongP13Selection?.id||'';
     wrongP13Button.disabled=!wrongP13Selection;
     wrongP13Context.textContent=wrongP13Selection?
-      (childMode?'아이 화면 · ':'부모 화면 · ')+
+      (childMode?'최근 등록순 · ':'미관찰 재풀이 저장순 · ')+
       (wrong007SubjectName(wrongP13Selection.subject)||'오답')+' · '+
       String(wrongP13Selection.problemText||'사진으로 등록한 문제').slice(0,44)+
-      ' (이 기기 기존 기록)':
-      '아이의 설명이 아직 없습니다. 아이가 먼저 다시 풀고 설명을 저장하면 이 버튼이 활성화됩니다.';
+      ' (이 기기 기존 기록 · 학습 우선순위 판정 아님)':
+      (childMode?
+        '등록 시점을 확인할 수 있는 오답이 없습니다. 오답 목록에서 직접 선택하세요.':
+        '새 관찰할 설명 없음 · 아이의 최신 재풀이 설명이 없거나 이미 관찰했습니다. 기록을 열어 이전 관찰을 볼 수 있습니다.');
     wrongP13Bar.classList.remove('hide');
   }
   wrongP13Button.onclick=async()=>{
     const chosen=wrongP13Selection;
     const childMode=v218Mode==='child';
     const live=chosen&&records.find(r=>r.id===chosen.id);
-    if(!live||route!=='home'||(!childMode&&
-       !String(live.generalRetryHistory?.at(-1)?.explanation||'').trim())){
+    const last=Array.isArray(live?.generalRetryHistory)?
+      live.generalRetryHistory.at(-1):null;
+    if(!live||route!=='home'||v218Mode!==(childMode?'child':'parent')||
+       (!childMode&&!(last?.review==='not_checked'&&
+       typeof last.explanation==='string'&&last.explanation.trim()))){
       wrongP13Update();return;
     }
     const targetId=live.id,question=live.problemText||'(사진으로만 등록한 문제)';
