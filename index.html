@@ -4904,6 +4904,11 @@ $('wrong-child-next-all').addEventListener('click',()=>{
         // on add page, pin heading to show real original A form.
         const visualTop=next==='records'?12:18;
         window.scrollBy({top:b.top-visualTop,behavior:'instant'});
+        // Narrow 200% keyboard correction: after scroll, DOM focus was still on
+        // the offscreen "오답 목록" nav, so Tab jumped back above the filter.
+        // Do not focus on ordinary route changes that already fit on screen.
+        if(next==='records'&&v218Mode==='parent')
+          $('wrong-p17-state-filter')?.focus({preventScroll:true});
       });
     }
     return result;
