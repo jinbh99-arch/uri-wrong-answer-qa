@@ -4884,6 +4884,31 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     return result;
   };
 
+  // WRONG-P19 QA only: P18 route resets scrollY=0 after navigation.
+  // At 200% CSS zoom both existing guardian choices sit >1500px below the
+  // first viewport; do not leave the user at the global banner. Reuse A
+  // controls, merely scroll to the actual destination when it is offscreen.
+  // No auth, DB writes, new CTA, reminder or completion automation.
+  const wrongP19NavigateBase=navigate;
+  navigate=function(next){
+    const result=wrongP19NavigateBase(next);
+    if(next==='records'||next==='add'){
+      requestAnimationFrame(()=>{
+        if(route!==next)return;
+        const target=next==='records'&&v218Mode==='parent'?
+          $('wrong-p17-state-filter'):$('add-heading');
+        if(!target)return;
+        const b=target.getBoundingClientRect();
+        if(b.bottom<=innerHeight&&b.top>=0)return;
+        // Pin state selector near top so original '+ 새 기록' remains in view;
+        // on add page, pin heading to show real original A form.
+        const visualTop=next==='records'?22:18;
+        window.scrollBy({top:b.top-visualTop,behavior:'instant'});
+      });
+    }
+    return result;
+  };
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
