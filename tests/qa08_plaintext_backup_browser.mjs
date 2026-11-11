@@ -60,7 +60,7 @@ async function main(){
     await page.locator('#export-json').click();
     check(width+'px explicit modal visible',await page.locator('#wrong-backup-confirm').isVisible());
     check(width+'px cancel receives initial focus',await page.evaluate(()=>document.activeElement?.id==='wrong-backup-cancel'));
-    check(width+'px informed warning present',(await page.locator('#wrong-backup-description').innerText()).includes('암호화되지'));
+    check(width+'px informed warning present',(await page.locator('#wrong-backup-description').innerText()).includes('비밀번호로 보호되지'));
     await page.keyboard.press('Shift+Tab');
     check(width+'px reverse focus trap',await page.evaluate(()=>document.activeElement?.id==='wrong-backup-continue'));
     await page.keyboard.press('Tab');
