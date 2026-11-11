@@ -1,0 +1,53 @@
+name: WRONG v1 original in-app list return 320 390 normal zoom touch keyboard
+on:
+  push:
+    branches: ['qa/wrong-v1-original-inapp-back-usability-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-v1-inapp-back-touch-keyboard-e2e.mjs'
+      - '.github/workflows/wrong-v1-inapp-back.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-original-a-inapp-list-return:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard original P19 integrated product unchanged and A original blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin d212f7708c83a80bb94f652ba0ecc70ec4cd77c9
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse d212f7708c83a80bb94f652ba0ecc70ec4cd77c9:index.html)"
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only d212f7708c83a80bb94f652ba0ecc70ec4cd77c9 HEAD -- index.html scripts db supabase)"
+          echo WRONG_V1_ORIGINAL_A_EXACT_HTML_NO_PRODUCT_CHANGE_PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and Korean UI font
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Exact original A D detail to in-app back and same photo 4 viewport states
+        env:
+          WRONG_INAPP_BACK_LOCAL_ONLY: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-v1-inapp-back-touch-keyboard-e2e.mjs
+          node tests/wrong-v1-inapp-back-touch-keyboard-e2e.mjs | tee /tmp/wrong-v1-inapp-back.log
+          grep -q 'WRONG_V1_INAPP_BACK_RESULT={"status":"PASS"' /tmp/wrong-v1-inapp-back.log
+      - name: Save real screenshots and geometry JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_V1_INAPP_BACK_4VIEW_EVIDENCE
+          path: test-results/wrong-v1-inapp-back
+          if-no-files-found: warn
+          retention-days: 14
