@@ -1,0 +1,47 @@
+name: QA08 WRONG plaintext backup one-session synthetic browser
+on:
+  push:
+    branches: ['qa/qa08-wrong-backup-harness-20261112']
+    paths:
+      - 'tests/qa08_plaintext_backup_browser.mjs'
+      - '.github/workflows/qa08-wrong-backup.yml'
+permissions:
+  contents: read
+jobs:
+  wrong-local-backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source/ref and JS syntax
+        run: |
+          test "$(git merge-base b5219947a247a90753369a2d63681238fd222314 HEAD)" = b5219947a247a90753369a2d63681238fd222314
+          git diff --exit-code b5219947a247a90753369a2d63681238fd222314 HEAD -- index.html scripts data
+          node --check tests/qa08_plaintext_backup_browser.mjs
+      - name: Reuse existing Chromium/Playwright QA versions
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start synthetic loopback app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/qa08-wrong-http.log 2>&1 &
+          for i in 1 2 3 4 5; do curl --fail -s http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Actual Chrome backup cancel/Escape/save and IndexedDB/photo invariant
+        env:
+          QA_BASE: http://127.0.0.1:4173/
+        run: node tests/qa08_plaintext_backup_browser.mjs
+      - name: Preserve synthetic PNG+summary only (not raw plaintext backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa08-wrong-backup-evidence
+          path: tests/artifacts/qa08-wrong-backup/
+          if-no-files-found: warn
+          retention-days: 14
+# Non-deploy QA branch only. No real photo, plaintext backup artifact or operational credentials.
