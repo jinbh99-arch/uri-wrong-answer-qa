@@ -4827,7 +4827,7 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     ['manual','다음 확인 수동 날짜 메모 있음']
   ]){const option=make('option',null,label);option.value=value;wrongP17Filter.append(option)}
   const wrongP17Hint=make('p','small',
-    '현재 기기에서 읽기만 합니다. 날짜 메모는 알림·예약·완료가 아니며, 부모 화면 선택은 인증이 아닙니다.');
+    '읽기 전용입니다. 날짜 메모는 알림·예약·완료가 아니며, 보기 모드는 인증이 아닙니다.');
   wrongP17Hint.style.cssText='margin:4px 0 0;line-height:1.45';
   wrongP17FilterBox.append(wrongP17FilterLabel,wrongP17Filter,wrongP17Hint);
   // WRONG-P18 verified 320x720 P1: selector at y708..755 fell below 720px.
@@ -4896,13 +4896,13 @@ $('wrong-child-next-all').addEventListener('click',()=>{
       requestAnimationFrame(()=>{
         if(route!==next)return;
         const target=next==='records'&&v218Mode==='parent'?
-          $('wrong-p17-state-filter'):$('add-heading');
+          document.querySelector('#wrong-p17-filter-wrap label'):$('add-heading');
         if(!target)return;
         const b=target.getBoundingClientRect();
         if(b.bottom<=innerHeight&&b.top>=0)return;
         // Pin state selector near top so original '+ 새 기록' remains in view;
         // on add page, pin heading to show real original A form.
-        const visualTop=next==='records'?22:18;
+        const visualTop=next==='records'?12:18;
         window.scrollBy({top:b.top-visualTop,behavior:'instant'});
       });
     }
