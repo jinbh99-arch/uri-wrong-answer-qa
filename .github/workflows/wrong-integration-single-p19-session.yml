@@ -1,0 +1,53 @@
+name: WRONG one exact P19 product session D observe to rediscover to C
+on:
+  push:
+    branches: ['qa/wrong-p19-single-session-integration-20261111']
+    paths:
+      - 'tests/wrong-integration-single-p19-session-e2e.mjs'
+      - '.github/workflows/wrong-integration-single-p19-session.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-p19-consecutive-parent-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert exact P19 product SHA with NO product code modifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 2f4e47260c385620c95672034fcb7f49702d5dd4
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse 2f4e47260c385620c95672034fcb7f49702d5dd4:index.html)"
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 2f4e47260c385620c95672034fcb7f49702d5dd4 HEAD -- index.html scripts db supabase)"
+          echo WRONG_EXACT_P19_A_PRODUCT_AND_DATA_PATH_UNMODIFIED_PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium and Korean fonts
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Run one actual A record same-session guardian D re-discovery & date C
+        shell: bash
+        env:
+          WRONG_INTEGRATION_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-integration-single-p19-session-e2e.mjs
+          node tests/wrong-integration-single-p19-session-e2e.mjs | tee /tmp/wrong-integration.log
+          grep -q 'WRONG_INTEGRATED_P19_RESULT={"status":"PASS"' /tmp/wrong-integration.log
+          echo WRONG_EXACT_P19_SAME_SESSION_GUARDIAN_CYCLE_PASS
+      - name: Save actual A parent/child photos, screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_EXACT_P19_SINGLE_SESSION_INTEGRATION
+          path: test-results/wrong-integration-p19
+          if-no-files-found: warn
+          retention-days: 14
