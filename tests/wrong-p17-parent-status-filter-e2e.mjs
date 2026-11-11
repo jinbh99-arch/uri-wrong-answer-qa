@@ -22,7 +22,8 @@ assert.ok(before.includes('wrongP15Stage'));
 
 assert.ok(after.includes('새 관찰할 설명 없음'));
 assert.ok(after.includes('wrongP15Stage'));
- assert.ok(after.includes('WRONG-P17: same read-only'));
+ assert.ok(after.includes('WRONG-P16: same read-only'));
+assert.ok(after.includes('WRONG-P17 non-operating candidate'));
 
 const js={
  '/scripts/qa-inapp-sync-bridge.mjs':readFileSync(new URL('../scripts/qa-inapp-sync-bridge.mjs',import.meta.url)),
