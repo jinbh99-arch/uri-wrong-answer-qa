@@ -254,8 +254,9 @@ try{
  ev.evidenceBefore.parentLabel=preParent.context;
  await page.locator('#wrong-p13-go').click();
  await page.locator('#detail-text:visible').waitFor();
+ const oldParentOpenedQuestion=await page.locator('#detail-text').innerText();
  ev.evidenceBefore.parentTarget=Object.keys(questions)
-   .find(k=>questions[k]===(await page.locator('#detail-text').innerText()));
+   .find(k=>questions[k]===oldParentOpenedQuestion);
  assert.deepEqual(await local(page),mixed,'reading baseline parent CTA does not mutate A records');
  pass('P13 original measured: child stale A selected, parent pending order directly observed; CTA click itself writes nothing');
 
