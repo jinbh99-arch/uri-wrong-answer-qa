@@ -1,0 +1,54 @@
+name: WRONG P18 original A integrated parent/child path
+on:
+  push:
+    branches: ['qa/wrong-p18-parent-journey-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p18-parent-journey-e2e.mjs'
+      - '.github/workflows/wrong-p18-parent-journey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-guardian-real-local-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert unchanged P17 A source, original A, no restoration/migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 74599175a099bd38e742a1ce727bc4e517934938
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse 74599175a099bd38e742a1ce727bc4e517934938:index.html)"
+          test -z "$(git diff --name-only 74599175a099bd38e742a1ce727bc4e517934938 HEAD -- index.html scripts db supabase)"
+          echo WRONG_P18_PRODUCT_AND_A_SOURCE_UNCHANGED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install synthetic Chromium and Korean fonts
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Parent 16 A records filter through explicit review date and child
+        shell: bash
+        env:
+          WRONG_P18_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p18-parent-journey-e2e.mjs
+          node tests/wrong-p18-parent-journey-e2e.mjs | tee /tmp/wrong-p18.log
+          grep -q 'WRONG_P18_PARENT_JOURNEY_RESULT={"status":"PASS"' /tmp/wrong-p18.log
+          echo WRONG_P18_A_PARENT_CHILD_INTEGRATED_JOURNEY=PASS
+      - name: Archive full parent/child before-after screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P18_A_ORIGINAL_PARENT_CHILD_INTEGRATED_JOURNEY
+          path: test-results/wrong-p18
+          if-no-files-found: warn
+          retention-days: 14
