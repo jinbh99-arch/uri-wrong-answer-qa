@@ -78,6 +78,21 @@ async function readA(page){
   }finally{db.close()}
  });
 }
+async function waitForSavedParentRetryReview(page,recordId,expected){
+ await page.waitForFunction(async ([id,status])=>{
+  const req=indexedDB.open('uriaimath-github-qa-v224-only');
+  const db=await new Promise((yes,no)=>{
+   req.onsuccess=()=>yes(req.result);req.onerror=()=>no(req.error)});
+  try{
+   const tx=db.transaction('mistakes','readonly');
+   const row=await new Promise((yes,no)=>{
+    const r=tx.objectStore('mistakes').get(id);
+    r.onsuccess=()=>yes(r.result);r.onerror=()=>no(r.error)});
+   const last=row?.generalRetryHistory?.at(-1);
+   return last?.review===status&&Boolean(last.reviewedAt);
+  }finally{db.close()}
+ },[recordId,expected],{timeout:20000});
+}
 function checkPhoto(a,b){
  assert.equal(a.records.length,1);
  assert.equal(a.records[0].id,b.records[0].id);
@@ -201,7 +216,7 @@ try{
  assert.ok((await page.locator('#wrong-p0-child-reason-readonly').innerText()).includes(self1));
  await screenshot(page,'04-parent-reads-child-explanation-390');
  await page.locator('#v230-review-save').click();
- await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='explained');
+ await waitForSavedParentRetryReview(page,id,'explained');
  const reviewed=await readA(page);
  checkPhoto(reviewed,created);
  assert.equal(reviewed.records[0].generalRetryHistory.length,1);
@@ -280,7 +295,7 @@ try{
  assert.ok((await page.locator('#wrong-p0-child-reason-readonly').innerText()).includes(self2));
  await page.locator('#v230-review').selectOption('needs_help');
  await page.locator('#v230-review-save').click();
- await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help');
+ await waitForSavedParentRetryReview(page,id,'needs_help');
  await page.locator('#check-status').selectOption('needs_help');
  await page.locator('#check-memo').fill(recheckObserved);
  await page.locator('#check-save').click();
