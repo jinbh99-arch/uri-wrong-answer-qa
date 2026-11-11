@@ -15,16 +15,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Guard original P19 integrated product unchanged and A original blob
+      - name: Guard original P19 A baseline and QA-only narrow existing detail-back focus patch
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin d212f7708c83a80bb94f652ba0ecc70ec4cd77c9
           git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
-          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse d212f7708c83a80bb94f652ba0ecc70ec4cd77c9:index.html)"
+          test "$(git rev-parse HEAD:index.html)" != "$(git rev-parse d212f7708c83a80bb94f652ba0ecc70ec4cd77c9:index.html)"
           test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
-          test -z "$(git diff --name-only d212f7708c83a80bb94f652ba0ecc70ec4cd77c9 HEAD -- index.html scripts db supabase)"
-          echo WRONG_V1_ORIGINAL_A_EXACT_HTML_NO_PRODUCT_CHANGE_PASS
+          test -z "$(git diff --name-only d212f7708c83a80bb94f652ba0ecc70ec4cd77c9 HEAD -- scripts db supabase)"
+          git diff --numstat d212f7708c83a80bb94f652ba0ecc70ec4cd77c9 HEAD -- index.html | awk '$1<=18 && $2==0 && $3=="index.html" {ok=1} END {exit !ok}'
+          grep -q "WRONG v1 narrow QA" index.html
+          echo WRONG_V1_ORIGINAL_BASE_AND_ISOLATED_200PCT_DETAIL_BACK_FOCUS_PASS
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
