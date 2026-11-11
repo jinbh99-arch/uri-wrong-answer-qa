@@ -5,6 +5,7 @@ on:
     paths:
       - 'tests/qa08_plaintext_backup_browser.mjs'
       - '.github/workflows/qa08-wrong-backup.yml'
+      - 'docs/QA08_공통QA실행환경_오답노트_v1.0.md'
 permissions:
   contents: read
 jobs:
