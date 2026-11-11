@@ -298,7 +298,7 @@ try{
   assert.ok(data.overflow<=1,name+' must have no horizontal overflow');
   return data;
  }
- await page.locator('#toast.hide').waitFor({timeout:6000});
+ await page.locator('#toast').waitFor({state:'hidden',timeout:6000});
  const first={};
  for(const [width,height] of [[390,844],[320,720]]){
   await page.setViewportSize({width,height});
