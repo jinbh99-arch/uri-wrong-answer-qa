@@ -4911,6 +4911,21 @@ $('wrong-child-next-all').addEventListener('click',()=>{
           $('wrong-p17-state-filter')?.focus({preventScroll:true});
       });
     }
+    // WRONG v1 narrow QA: with CSS Zoom200 the existing A "← 목록으로"
+    // is 1,829–2,226 px below the first viewport after opening D detail.
+    // Align the ORIGINAL detail title/back row (not a new CTA) only when
+    // off-screen. Focus it for keyboard access; do not touch records/history.
+    if(next==='detail'&&v218Mode==='parent'){
+      requestAnimationFrame(()=>{
+        if(route!=='detail'||v218Mode!=='parent')return;
+        const row=$('page-detail')?.querySelector('.row');
+        const back=$('page-detail')?.querySelector('[data-route="records"]');
+        const b=row?.getBoundingClientRect();
+        if(!b||(b.top>=0&&b.bottom<=innerHeight))return;
+        window.scrollBy({top:b.top-12,behavior:'instant'});
+        back?.focus({preventScroll:true});
+      });
+    }
     return result;
   };
 
