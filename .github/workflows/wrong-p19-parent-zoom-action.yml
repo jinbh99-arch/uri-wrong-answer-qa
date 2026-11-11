@@ -1,0 +1,53 @@
+name: WRONG P19 original A 16-record normal/200pct parent action baseline
+on:
+  push:
+    branches: ['qa/wrong-p19-zoom-action-discovery-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p19-parent-zoom-action-e2e.mjs'
+      - '.github/workflows/wrong-p19-parent-zoom-action.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parent-normal-css-zoom-action-discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve original A and P18 QA branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin a75a74064d9b0d1e42d9e05bd74171ee0b17c029
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only a75a74064d9b0d1e42d9e05bd74171ee0b17c029 HEAD -- scripts db supabase)"
+          echo WRONG_P19_A_ORIGINAL_AND_P18_STORAGE_PRESERVED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser Korean font
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Original A 16-record guardian registration/filter normal zoom200 baseline
+        shell: bash
+        env:
+          WRONG_P19_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p19-parent-zoom-action-e2e.mjs
+          node tests/wrong-p19-parent-zoom-action-e2e.mjs | tee /tmp/wrong-p19.log
+          grep -q 'WRONG_P19_ZOOM_RESULT={"status":"PASS"' /tmp/wrong-p19.log
+          echo WRONG_P19_REAL_A_PARENT_ZOOM_ACTIONS=PASS
+      - name: Save 320 390 normal zoom200 real parent/child PNG JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P19_PARENT_ZOOM_FIRST_ACTION_EVIDENCE
+          path: test-results/wrong-p19
+          if-no-files-found: warn
+          retention-days: 14
