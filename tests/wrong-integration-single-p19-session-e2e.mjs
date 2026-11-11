@@ -506,7 +506,7 @@ try{
  pass('reproduced P19 zoom200 keyboard Tab focus jumps off target at 320/390; isolated QA focus correction sends existing filter→original add button, no writes');
 
  ev.integration={
-  exactProductSha:base,productCodeChangedInCoreFlow:false,isolatedCandidateFocusPatch:true,,records:16,photos:16,
+  exactProductSha:base,productCodeChangedInCoreFlow:false,isolatedCandidateFocusPatch:true,records:16,photos:16,
   targetD:ids.D,targetC:ids.C,manualDate:future,
   manualObservedD:true,DReopenedSameIdAndPhoto:true,
   DHistorySameAfterReopen:true,manualCNotChecked:true,
