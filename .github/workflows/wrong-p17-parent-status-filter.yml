@@ -1,0 +1,53 @@
+name: WRONG P17 original A 16-record parent state filter
+on:
+  push:
+    branches: ['qa/wrong-p17-parent-status-filter-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p17-parent-status-filter-e2e.mjs'
+      - '.github/workflows/wrong-p17-parent-status-filter.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parent-genuine-status-filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert unmodified A baseline P16 and no storage migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 4a099ceb381f96a5f0727a3fefc5a286078ec159
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 4a099ceb381f96a5f0727a3fefc5a286078ec159 HEAD -- scripts db supabase tests/wrong-p16-parent-list-compact-e2e.mjs)"
+          echo WRONG_P17_A_SOURCE_P16_STORAGE_INTACT=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium and Korean web fonts
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: 16 real A local records 320 390 parent state views before-after
+        shell: bash
+        env:
+          WRONG_P17_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p17-parent-status-filter-e2e.mjs
+          node tests/wrong-p17-parent-status-filter-e2e.mjs | tee /tmp/wrong-p17.log
+          grep -q 'WRONG_P17_FILTER_RESULT={"status":"PASS"' /tmp/wrong-p17.log
+          echo WRONG_P17_REAL_A_READ_ONLY_PARENT_STATUS_FILTER=PASS
+      - name: Archive 320 390 before-after real A filter PNG JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P17_A_16_RECORD_PARENT_STATUS_FILTER
+          path: test-results/wrong-p17
+          if-no-files-found: warn
+          retention-days: 14
