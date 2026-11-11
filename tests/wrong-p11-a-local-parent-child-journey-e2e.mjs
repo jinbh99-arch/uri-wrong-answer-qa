@@ -13,7 +13,7 @@ if(process.env.WRONG_P11_SYNTHETIC_LOCAL_A_ONLY!=='1')
 const read=path=>readFileSync(new URL('../'+path,import.meta.url));
 const aBytes=read('index.html');
 const blobSha=()=>createHash('sha1').update(
- Buffer.concat([Buffer.from('blob '+aBytes.length+'\\0'),aBytes])).digest('hex');
+ Buffer.concat([Buffer.from('blob '+aBytes.length+'\0'),aBytes])).digest('hex');
 assert.equal(blobSha(),'58754380d6fa764256100963d1a9da5d11873d19',
  'A original blob must match approved v1.4 SHA exactly');
 const modules={
