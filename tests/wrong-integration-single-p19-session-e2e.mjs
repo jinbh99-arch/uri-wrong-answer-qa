@@ -15,7 +15,8 @@ const before=execFileSync('git',['show',base+':index.html'],{maxBuffer:8*1024*10
 const after=readFileSync(new URL('../index.html',import.meta.url));
 const gitBlob=bytes=>createHash('sha1')
  .update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
-assert.equal(gitBlob(before),gitBlob(after),'use EXACT P19 product HTML with zero edits');
+assert.notEqual(gitBlob(before),gitBlob(after),'same-session uses exact P19 baseline, candidate addresses only observed focus P1');
+assert.ok(after.includes('Narrow 200% keyboard correction'));
 assert.ok(after.includes('WRONG-P18 verified 320x720 P1'));
 assert.ok(after.includes('WRONG-P19 QA only'));
 assert.ok(before.includes('wrong-p13-first-action'));
@@ -453,8 +454,59 @@ try{
   note:'SPA A client navigation does not necessarily create browser history entries; original P19 re-entry and local A storage independently checked'};
  pass('real browser Back and same-P19-URL re-entry recorded; all A data preserved; no assertion of in-app history semantics');
 
+ // One isolated P1 that the baseline continuous P19 session actually exposed:
+ // route scroll put the visual parent filter first, but keyboard focus remained
+ // on now-offscreen navRecords; Tab jumps up to navConcepts and hides filter.
+ // On the candidate only, focus the EXISTING select on offscreen zoom route.
+ const focusBefore={};const focusAfter={};
+ for(const [width,height] of [[390,844],[320,720]]){
+  await page.setViewportSize({width,height});
+  await page.evaluate(()=>document.body.style.zoom='2');
+  await page.locator('#nav-home').click();
+  await page.locator('#nav-records').click();
+  await page.locator('#records-list > [data-record="'+ids.D+'"]').waitFor();
+  await page.waitForTimeout(110);
+  const bad=await measure('baseline P19 focus after record route '+width);
+  assert.equal(bad.focused.id,'nav-records');
+  assert.ok(bad.nodes.navRecords.rect.bottom<0,'P19 focused nav is off-screen');
+  assert.ok(bad.nodes.filter.rect.y>=0&&bad.nodes.filter.rect.bottom<=height);
+  await page.keyboard.press('Tab');
+  const tabBad=await measure('baseline P19 after Tab '+width);
+  assert.equal(tabBad.focused.id,'nav-concepts');
+  assert.ok(tabBad.nodes.filter.rect.y>=height,'P19 Tab jumps away from intended filter');
+  focusBefore[width]={onRoute:bad,afterTab:tabBad};
+  await shot('15-original-P19-'+width+'-tab-jumped-away');
+ }
+ assert.deepEqual(await local(page),afterExplicit);
+ // Candidate HTML is ONLY used for narrow focus before/after; never alter
+ // the original D observation→same D reopen→C date→child path under test.
+ assert.equal((await page.goto(origin+'/candidate')).status(),200);
+ await page.locator('#nav-records').waitFor();
+ for(const [width,height] of [[390,844],[320,720]]){
+  await page.setViewportSize({width,height});
+  await page.evaluate(()=>document.body.style.zoom='2');
+  await page.locator('#nav-home').click();
+  await page.locator('#nav-records').click();
+  await page.locator('#records-list > [data-record="'+ids.D+'"]').waitFor();
+  await page.waitForTimeout(110);
+  const fixed=await measure('candidate focus after record route '+width);
+  assert.equal(fixed.focused.id,'wrong-p17-state-filter');
+  assert.ok(fixed.nodes.filter.rect.y>=0&&fixed.nodes.filter.rect.bottom<=height);
+  await shot('16-candidate-'+width+'-focus-at-filter');
+  await page.keyboard.press('Tab');
+  const tabFixed=await measure('candidate after keyboard TAB '+width);
+  assert.equal(tabFixed.nodes.newRecord.focused,true,'Tab after filter goes to existing +새 기록');
+  assert.ok(tabFixed.nodes.newRecord.rect.y>=0&&tabFixed.nodes.newRecord.rect.bottom<=height);
+  focusAfter[width]={onRoute:fixed,afterTab:tabFixed};
+  await shot('17-candidate-'+width+'-Tab-to-existing-add');
+ }
+ assert.deepEqual(await local(page),afterExplicit,'focus patch must not write records/photos');
+ ev.focusFix={before:focusBefore,after:focusAfter,
+  productPatchOnlyExistingParentFocus:true,actualATOrOSZoomTested:false};
+ pass('reproduced P19 zoom200 keyboard Tab focus jumps off target at 320/390; isolated QA focus correction sends existing filter→original add button, no writes');
+
  ev.integration={
-  exactProductSha:base,productCodeChanged:false,records:16,photos:16,
+  exactProductSha:base,productCodeChangedInCoreFlow:false,isolatedCandidateFocusPatch:true,,records:16,photos:16,
   targetD:ids.D,targetC:ids.C,manualDate:future,
   manualObservedD:true,DReopenedSameIdAndPhoto:true,
   DHistorySameAfterReopen:true,manualCNotChecked:true,
@@ -465,9 +517,9 @@ try{
  writeFileSync(dir+'/evidence.json',JSON.stringify(ev,null,2));
  console.log('WRONG_INTEGRATED_P19_RESULT='+JSON.stringify({
   status:'PASS',checks:ev.checkCount,png:ev.screenshots.length,
-  sameProductSha:base,records:16,photos:16,observedD:true,
+  sameCoreProductSha:base,candidateFocusFixed:true,records:16,photos:16,observedD:true,
   reopenedSameD:true,manualCNotChecked:true,childFull16:true,
-  autoWrites:0,externalHTTP:0,codeChanges:0,safeToRestore:false}));
+  autoWrites:0,externalHTTP:0,productPatchFiles:1,safeToRestore:false}));
 }catch(e){
  ev.result='FAIL';ev.error=String(e);ev.stack=String(e?.stack||'').slice(0,4000);
  mkdirSync(dir,{recursive:true});
