@@ -4864,6 +4864,13 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     $('records-count').textContent+=
       ' · 부모 상태 필터 '+shown+'건 (자동 진단·일정 실행 아님)';
   };
+  // Existing filter event handlers captured pre-P17 renderRecords functions.
+  // Always run the complete final composition so the guardian filter cannot
+  // silently drop after a subject, text, photo-status or concept edit.
+  $('wrong007-filter-subject').onchange=renderRecords;
+  $('v11-filter-status').onchange=renderRecords;
+  $('filter-concept').onchange=renderRecords;
+  $('search').oninput=renderRecords;
   wrongP17Filter.onchange=()=>{if(v218Mode==='parent'&&route==='records')renderRecords()};
   const wrongP17OriginalApplyMode=v218ApplyMode;
   v218ApplyMode=function(mode){
