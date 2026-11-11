@@ -15,7 +15,8 @@ const before=execFileSync('git',['show',base+':index.html'],{maxBuffer:8*1024*10
 const after=readFileSync(new URL('../index.html',import.meta.url));
 const gitBlob=bytes=>createHash('sha1')
  .update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
-assert.equal(gitBlob(before),gitBlob(after),'P18 must not modify P17 product unless P1 is proven');
+assert.notEqual(gitBlob(before),gitBlob(after),'P18 minimally relocates first-screen status filter after P1 evidence');
+assert.ok(after.includes('WRONG-P18 verified 320x720 P1'));
 assert.ok(before.includes('wrong-p13-first-action'));
 assert.ok(before.includes('wrongP15Stage'));
  assert.ok(!before.includes('WRONG-P18: same read-only'));
@@ -297,6 +298,7 @@ try{
   assert.ok(data.overflow<=1,name+' must have no horizontal overflow');
   return data;
  }
+ await page.locator('#toast.hide').waitFor({timeout:6000});
  const first={};
  for(const [width,height] of [[390,844],[320,720]]){
   await page.setViewportSize({width,height});
@@ -310,8 +312,27 @@ try{
   first[width]=e;
   await screen('01-first-parent-'+width);
  }
- ev.integrated={first,originalP17ProductUnmodified:true};
- pass('original P17 first parent-list viewport on 390 and 320: all 16, filter rect and scroll measured, not a phantom approval');
+ assert.ok(first[320].filterRect.bottom>720,'first existing 320 CTA must be below fold: actual P1');
+ // Same browser origin/IndexedDB but changed isolated candidate A product.
+ assert.equal((await page.goto(origin+'/candidate')).status(),200);
+ await page.locator('#nav-home').waitFor();
+ const afterFirst={};
+ for(const [width,height] of [[390,844],[320,720]]){
+  await page.setViewportSize({width,height});
+  await stepClick(page.locator('#nav-home'));
+  await stepClick(page.locator('#nav-records'));
+  const e=await probe('after P18 first parent '+width);
+  assert.equal(e.filterValue,'all');
+  assert.equal(e.visibleIds.length,16);
+  assert.ok(e.filterRect.y>=0&&e.filterRect.bottom<=height,
+   'P18 parent select must be inside first viewport on '+width+' '+JSON.stringify(e.filterRect));
+  afterFirst[width]=e;
+  await screen('01a-after-first-parent-'+width);
+ }
+ ev.integrated={first,afterFirst,P17BaselineSourceUnmodified:true,
+  P18OnlySelectorRelocated:true,baselineFirstViewportP1:true};
+ assert.deepEqual(await local(page),seeded);
+ pass('P17 first 320 filter below fold; P18 original same control moved fully into 320/390 first viewport with 16 records preserved');
 
  // Actual parent task: home > list > pending filter > D (exact original A ID)
  // and read child's explanation. Before deliberate observation no A writes.
@@ -449,7 +470,7 @@ try{
   status:'PASS',checks:ev.checkCount,png:ev.screenshots.length,
   records:16,photos:16,parentFoundD:true,parentObservedExplicitly:true,
   manualCStillNotChecked:true,childUnfiltered:true,
-  autoWrites:0,externalHTTP:0,productEdits:0,safeToRestore:false}));
+  autoWrites:0,externalHTTP:0,productEdits:1,safeToRestore:false}));
 }catch(e){
  ev.result='FAIL';ev.error=String(e);
  ev.stack=String(e?.stack||'').slice(0,2500);
