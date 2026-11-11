@@ -4812,6 +4812,67 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     return wrongP13OriginalNavigate(next);
   };
 
+  // WRONG-P17 non-operating candidate: existing parent records-list filters.
+  // UI state only; no DB writes, scheduling, automatic scores, or new ordering.
+  // Unlike arbitrary text search, matches saved review and manual-date states.
+  const wrongP17FilterBox=make('div','v218-parent-only');
+  wrongP17FilterBox.id='wrong-p17-filter-wrap';
+  const wrongP17FilterLabel=make('label','field','학부모 확인 상태로 찾기');
+  wrongP17FilterLabel.htmlFor='wrong-p17-state-filter';
+  const wrongP17Filter=make('select','control');
+  wrongP17Filter.id='wrong-p17-state-filter';
+  for(const [value,label] of [
+    ['all','전체 오답 보기 (기본)'],
+    ['pending','아이 설명 있음 · 부모 관찰 전'],
+    ['manual','다음 확인 수동 날짜 메모 있음']
+  ]){const option=make('option',null,label);option.value=value;wrongP17Filter.append(option)}
+  const wrongP17Hint=make('p','small',
+    '현재 기기에서 읽기만 합니다. 날짜 메모는 알림·예약·완료가 아니며, 부모 화면 선택은 인증이 아닙니다.');
+  wrongP17Hint.style.cssText='margin:4px 0 0;line-height:1.45';
+  wrongP17FilterBox.append(wrongP17FilterLabel,wrongP17Filter,wrongP17Hint);
+  $('page-records').querySelector('.formgrid')?.prepend(wrongP17FilterBox);
+  const wrongP17OriginalRenderRecords=renderRecords;
+  renderRecords=function(){
+    wrongP17OriginalRenderRecords();
+    if(route!=='records'||v218Mode!=='parent'||wrongP17Filter.value==='all')return;
+    const selected=wrongP17Filter.value;
+    const allowed=new Set(records.filter(record=>{
+      if(selected==='pending'){
+        const last=Array.isArray(record.generalRetryHistory)?
+          record.generalRetryHistory.at(-1):null;
+        return last?.review==='not_checked'&&
+          typeof last.explanation==='string'&&Boolean(last.explanation.trim());
+      }
+      return selected==='manual'&&Array.isArray(record.checkHistory)&&
+        record.checkHistory.some(h=>Boolean(wrong008ManualDate(h)));
+    }).map(record=>record.id));
+    const cards=Array.from($('records-list').querySelectorAll('[data-record]'));
+    let shown=0;
+    for(const card of cards){
+      const match=allowed.has(card.dataset.record);
+      card.classList.toggle('hide',!match);
+      if(match)shown++;
+    }
+    $('wrong-p17-empty')?.remove();
+    if(!shown){
+      const empty=make('p','callout small',selected==='pending'?
+        '현재 검색 조건에 부모가 아직 관찰하지 않은 최신 아이 설명이 없습니다. 다른 조건을 선택하거나 전체 오답을 보세요.':
+        '현재 검색 조건에 유효한 수동 다음 확인 날짜 메모가 없습니다. 자동 알림/일정 등록을 뜻하지 않습니다.');
+      empty.id='wrong-p17-empty';
+      $('records-list').append(empty);
+    }
+    $('records-count').textContent+=
+      ' · 부모 상태 필터 '+shown+'건 (자동 진단·일정 실행 아님)';
+  };
+  wrongP17Filter.onchange=()=>{if(v218Mode==='parent'&&route==='records')renderRecords()};
+  const wrongP17OriginalApplyMode=v218ApplyMode;
+  v218ApplyMode=function(mode){
+    const result=wrongP17OriginalApplyMode(mode);
+    // Never leave a hidden parent-only filter narrowing the child's list.
+    if(result!=='blocked'&&route==='records')renderRecords();
+    return result;
+  };
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
