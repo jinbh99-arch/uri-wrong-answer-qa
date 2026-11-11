@@ -402,6 +402,16 @@ try{
 
  // Existing subject and text filters must compose, with no false automatic
  // claim of learning priority nor record reordering.
+ await page.locator('#search').fill('가상 국어');
+ const broad=await listMeasurement('P17-pending-plus-broad-existing-search',ids.B);
+ assert.deepEqual([...broad.visibleIds].sort(),[ids.B,ids.D].sort());
+ await page.locator('#wrong007-filter-subject').selectOption('math');
+ assert.equal((await listMeasurement('P17-pending-plus-math-subject-empty',ids.B)).visibleCount,0);
+ await page.locator('#wrong007-filter-subject').selectOption('korean');
+ assert.deepEqual([...(await listMeasurement('P17-pending-plus-korean-subject',ids.B)).visibleIds].sort(),[ids.B,ids.D].sort());
+ await page.locator('#v11-filter-status').selectOption('text_ready');
+ assert.deepEqual([...(await listMeasurement('P17-pending-plus-text-ready',ids.B)).visibleIds].sort(),[ids.B,ids.D].sort());
+ await page.locator('#v11-filter-status').selectOption('all');
  await page.locator('#search').fill(questions.B.slice(0,12));
  const combined=await listMeasurement('P17-pending-plus-existing-question-search',ids.B);
  assert.deepEqual(combined.visibleIds,[ids.B]);
