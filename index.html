@@ -4712,8 +4712,10 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     }
     const viewed=entries.find(r=>r.id===detailId);
     const recent=[viewed,...entries.filter(r=>r!==viewed)].filter(Boolean);
-    const parentNext=recent.find(r=>Array.isArray(r.generalRetryHistory)&&
-      r.generalRetryHistory.some(a=>typeof a?.explanation==='string'&&a.explanation.trim()));
+    const parentEligible=r=>String(r.generalRetryHistory?.at(-1)?.explanation||'').trim();
+    const parentNext=recent.find(r=>parentEligible(r)&&
+      r.generalRetryHistory.at(-1).review==='not_checked')||
+      recent.find(r=>parentEligible(r));
     wrongP13Selection=childMode?(viewed||entries[0]):(parentNext||null);
     wrongP13Button.textContent=childMode?
       '✏️ 이번 오답 다시 풀기':'👀 아이 설명 보고 관찰하기';
@@ -4731,7 +4733,7 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     const childMode=v218Mode==='child';
     const live=chosen&&records.find(r=>r.id===chosen.id);
     if(!live||route!=='home'||(!childMode&&
-       !live.generalRetryHistory?.some(x=>String(x?.explanation||'').trim()))){
+       !String(live.generalRetryHistory?.at(-1)?.explanation||'').trim())){
       wrongP13Update();return;
     }
     const targetId=live.id,question=live.problemText||'(사진으로만 등록한 문제)';
