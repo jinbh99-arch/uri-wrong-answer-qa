@@ -4685,6 +4685,80 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     if(record&&record.subject!=='math')wrong008RenderManualRecheck(record);
   };
 
+  // WRONG-P13 non-operating A-derived candidate ONLY. One compact first
+  // action at the genuine A home header, linked to existing record detail UI.
+  // All reads are from A's existing in-memory records; NO extra write path.
+  const wrongP13Bar=make('section','card hide');
+  wrongP13Bar.id='wrong-p13-first-action';
+  wrongP13Bar.setAttribute('aria-label','기존 오답으로 이어서 할 한 가지 행동');
+  wrongP13Bar.style.cssText='max-width:1040px;box-sizing:border-box;margin:9px auto;padding:11px 15px;border:2px solid #87afe0;background:#f3f8ff;border-radius:14px;';
+  const wrongP13Title=make('strong',null,'지금 이어서 할 오답 한 가지');
+  const wrongP13Context=make('p','small');
+  wrongP13Context.id='wrong-p13-context';
+  wrongP13Context.style.cssText='margin:5px 0 8px;line-height:1.5';
+  wrongP13Context.setAttribute('role','status');
+  const wrongP13Button=make('button','primary','이번 오답 다시 풀기');
+  wrongP13Button.id='wrong-p13-go';
+  wrongP13Button.type='button';
+  wrongP13Button.style.cssText='min-height:48px;width:100%;text-align:center;white-space:normal;';
+  wrongP13Bar.append(wrongP13Title,wrongP13Context,wrongP13Button);
+  document.querySelector('.v218-mode-switch')?.after(wrongP13Bar);
+  let wrongP13Selection=null;
+  function wrongP13Update(){
+    const entries=records.filter(r=>r&&typeof r.id==='string');
+    const childMode=v218Mode==='child';
+    if(route!=='home'||!entries.length){
+      wrongP13Selection=null;wrongP13Bar.classList.add('hide');return;
+    }
+    const viewed=entries.find(r=>r.id===detailId);
+    const recent=[viewed,...entries.filter(r=>r!==viewed)].filter(Boolean);
+    const parentNext=recent.find(r=>Array.isArray(r.generalRetryHistory)&&
+      r.generalRetryHistory.some(a=>typeof a?.explanation==='string'&&a.explanation.trim()));
+    wrongP13Selection=childMode?(viewed||entries[0]):(parentNext||null);
+    wrongP13Button.textContent=childMode?
+      '✏️ 이번 오답 다시 풀기':'👀 아이 설명 보고 관찰하기';
+    wrongP13Button.disabled=!wrongP13Selection;
+    wrongP13Context.textContent=wrongP13Selection?
+      (childMode?'아이 화면 · ':'부모 화면 · ')+
+      (wrong007SubjectName(wrongP13Selection.subject)||'오답')+' · '+
+      String(wrongP13Selection.problemText||'사진으로 등록한 문제').slice(0,44)+
+      ' (이 기기 기존 기록)':
+      '아이의 설명이 아직 없습니다. 아이가 먼저 다시 풀고 설명을 저장하면 이 버튼이 활성화됩니다.';
+    wrongP13Bar.classList.remove('hide');
+  }
+  wrongP13Button.onclick=async()=>{
+    const chosen=wrongP13Selection;
+    const childMode=v218Mode==='child';
+    const live=chosen&&records.find(r=>r.id===chosen.id);
+    if(!live||route!=='home'||(!childMode&&
+       !live.generalRetryHistory?.some(x=>String(x?.explanation||'').trim()))){
+      wrongP13Update();return;
+    }
+    const targetId=live.id,question=live.problemText||'(사진으로만 등록한 문제)';
+    detailId=targetId;
+    navigate('detail'); // ORIGINAL A detail and its local photo; no extra save.
+    for(let tries=0;tries<150;tries++){
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      if(route!=='detail'||detailId!==targetId)return;
+      const questionNode=$('detail-text');
+      const target=childMode?$('v230-answer'):$('wrong-p0-child-reason-readonly');
+      if(questionNode?.textContent!==question||!target?.isConnected)continue;
+      if(live.hasPhoto&&!$('detail-image')?.querySelector('img'))continue;
+      target.scrollIntoView({block:'start',behavior:'auto'});
+      const focus=childMode?$('v230-answer'):$('v230-review');
+      focus?.focus({preventScroll:true});
+      return;
+    }
+    notify('기존 오답을 열었습니다. 사진이나 설명을 불러오는 중이면 상세 화면을 확인해주세요.');
+  };
+  const wrongP13OriginalHome=renderHome;
+  renderHome=function(){wrongP13OriginalHome();wrongP13Update()};
+  const wrongP13OriginalNavigate=navigate;
+  navigate=function(next){
+    if(next!=='home')wrongP13Bar.classList.add('hide');
+    return wrongP13OriginalNavigate(next);
+  };
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
