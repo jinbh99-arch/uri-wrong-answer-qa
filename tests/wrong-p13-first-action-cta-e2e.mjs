@@ -190,7 +190,13 @@ try{
  assert.equal(beforeParentClick.rows[0].checkHistory.length,0);
  assert.equal(beforeParentClick.rows[0].generalRetryHistory[0].review,'not_checked');
  await screenshot(page,'03-after-parent-first-390');
- pass('parent first 390 viewport shows one 48px action for original unobserved child explanation, no premature writes');
+ await page.setViewportSize({width:320,height:720});
+ const parent320=await ctaGeometry(page,'parentFirst320');
+ assert.equal(parent320.buttonText,'👀 아이 설명 보고 관찰하기');
+ assert.equal(parent320.ariaPressedParent,'true');
+ await screenshot(page,'03b-after-parent-first-320');
+ await page.setViewportSize({width:390,height:844});
+ pass('parent first 390/320 viewports show one 48px action for original unobserved child explanation, no premature writes');
 
  await page.locator('#wrong-p13-go').click();
  await page.locator('#wrong-p0-child-reason-readonly:visible').waitFor();
@@ -241,9 +247,15 @@ try{
  assert.equal(child.ariaPressedChild,'true');
  assert.ok(child.context.includes(question.slice(0,23)));
  await screenshot(page,'05-after-child-first-320');
+ await page.setViewportSize({width:390,height:844});
+ const child390=await ctaGeometry(page,'childFirst390');
+ assert.equal(child390.buttonText,'✏️ 이번 오답 다시 풀기');
+ assert.equal(child390.ariaPressedChild,'true');
+ await screenshot(page,'05b-after-child-first-390');
+ await page.setViewportSize({width:320,height:720});
  const beforeChildClick=await local(page);
  assert.deepEqual(beforeChildClick,parentSaved);
- pass('child first 320 viewport shows one role-specific 48px retry CTA with correct previously saved A record');
+ pass('child first 320/390 viewports show one role-specific 48px retry CTA with correct saved A record');
 
  await page.locator('#wrong-p13-go').click();
  await page.locator('#v230-answer:visible').waitFor();
@@ -258,6 +270,7 @@ try{
  pass('child CTA focuses actual A retry input with same ID/photo and existing saved parent observation unchanged');
 
  await page.locator('#nav-home').click();
+ await page.setViewportSize({width:390,height:844});
  await page.reload();
  await page.locator('#wrong-p13-go:visible').waitFor();
  const reload=await ctaGeometry(page,'afterReload390Parent');
@@ -288,7 +301,7 @@ try{
  writeFileSync(dir+'/evidence.json',JSON.stringify(ev,null,2));
  console.log('WRONG_P13_CTA_RESULT='+JSON.stringify({status:'PASS',
   checks:ev.checkCount,shots:ev.screenshots.length,
-  parentFirstViewport:true,childFirstViewport:true,
+  parentFirstViewport:true,childFirstViewport:true,allFourViewportCombinations:true,
   originalIdPhoto:true,readsOriginalAFields:true,
   autoParentWrites:0,safeToRestore:false}));
 }catch(error){
