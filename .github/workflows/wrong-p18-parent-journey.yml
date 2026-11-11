@@ -15,16 +15,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Assert unchanged P17 A source, original A, no restoration/migrations
+      - name: Assert original A and P17 baseline; P18 UI-only first-view patch
         shell: bash
         run: |
           set -euo pipefail
           git fetch --no-tags origin 74599175a099bd38e742a1ce727bc4e517934938
           git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
           test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
-          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse 74599175a099bd38e742a1ce727bc4e517934938:index.html)"
-          test -z "$(git diff --name-only 74599175a099bd38e742a1ce727bc4e517934938 HEAD -- index.html scripts db supabase)"
-          echo WRONG_P18_PRODUCT_AND_A_SOURCE_UNCHANGED=PASS
+          test "$(git rev-parse HEAD:index.html)" != "$(git rev-parse 74599175a099bd38e742a1ce727bc4e517934938:index.html)"
+          test -z "$(git diff --name-only 74599175a099bd38e742a1ce727bc4e517934938 HEAD -- scripts db supabase)"
+          git diff --numstat 74599175a099bd38e742a1ce727bc4e517934938 HEAD -- index.html | awk '$1<=8 && $2<=3 && $3=="index.html" { ok=1 } END { exit !ok }'
+          grep -q "WRONG-P18 verified 320x720 P1" index.html
+          echo WRONG_P18_ORIGINAL_A_UNCHANGED_AND_ISOLATED_UI_PATCH_ONLY=PASS
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
