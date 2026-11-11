@@ -15,7 +15,8 @@ const before=execFileSync('git',['show',base+':index.html'],{maxBuffer:8*1024*10
 const after=readFileSync(new URL('../index.html',import.meta.url));
 const gitBlob=bytes=>createHash('sha1')
  .update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
-assert.equal(gitBlob(before),gitBlob(after),'test exact unchanged P19 same-session product HTML, no product patch');
+assert.notEqual(gitBlob(before),gitBlob(after),'original P19 baseline and isolated QA detail-back correction must differ');
+assert.ok(after.includes('WRONG v1 narrow QA'));
 assert.ok(after.includes('Narrow 200% keyboard correction'));
 assert.ok(after.includes('WRONG-P18 verified 320x720 P1'));
 assert.ok(after.includes('WRONG-P19 QA only'));
@@ -177,8 +178,8 @@ try{
  mkdirSync(dir,{recursive:true});
  server=createServer((req,res)=>{
   const p=new URL(req.url,'http://127.0.0.1').pathname;
-  if(req.method==='GET'&&p==='/base'){
-   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});return res.end(after);
+  if(req.method==='GET'&&(p==='/base'||p==='/candidate')){
+   res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});return res.end(p==='/base'?before:after);
   }
   if(req.method==='GET'&&Object.hasOwn(js,p)){
    res.writeHead(200,{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'});return res.end(js[p]);
@@ -291,16 +292,58 @@ try{
     restoredOriginalId:id,samePhoto:true,dataWritesOnRead:0});
   pass(prefix+' zoom: original D ← 목록으로 Tab+touch and same ID/photo/observed state preserved');
  }
+ const baselineFirst=views.filter(v=>v.stage.startsWith('result-'));
+ assert.equal(baselineFirst.length,4);
+ assert.deepEqual(baselineFirst.map(v=>v.firstViewBack),[true,false,true,false],
+  'critical original P19: default 320/390 first-view back visible; CSS200 not visible');
+ pass('real P19 CSS200 parent detail has original ← 목록으로 beyond 320/390 first viewport, while one Tab finds it');
+
+ // Narrow test only: same original A IndexedDB/record/photo, QA candidate
+ // changes ONE detail navigation scroll and focus, not a global router.
+ assert.equal((await page.goto(origin+'/candidate')).status(),200);
+ await page.locator('#nav-records').waitFor();
+ assert.deepEqual(await local(page),fixed);
+ const candidateOutcomes=[];
+ for(const spec of [{w:320,h:720,zoom:2},{w:390,h:844,zoom:2}]){
+  await page.setViewportSize({width:spec.w,height:spec.h});
+  await page.evaluate(()=>{document.body.style.zoom='2'});
+  await page.locator('#v218-parent-mode').click();
+  await page.locator('#nav-home').click();
+  await page.locator('#nav-records').click();
+  await page.locator('#wrong-p17-state-filter').selectOption('all');
+  await page.locator('#records-list [data-record="'+id+'"]').click();
+  await page.locator('#detail-image img').waitFor();
+  await page.waitForTimeout(80);
+  const atEntry=await measure('QA candidate '+spec.w+' CSS200 detail after original D card click');
+  assert.equal(atEntry.route,'detail');
+  assert.equal(atEntry.backInViewport,true,'existing A back CTA must be visibly discoverable without scroll');
+  assert.ok(atEntry.activeText.includes('목록으로'),'existing A list back gets keyboard focus without tab search');
+  await snap(page,String(spec.w)+'-2-05-QA-existing-detail-title-and-back-first-viewport');
+  const rect=atEntry.backRect;
+  await page.touchscreen.tap(rect.x+rect.width/2,rect.y+rect.height/2);
+  await page.locator('#page-records:not(.hide)').waitFor();
+  assert.equal(await page.locator('#records-list [data-record="'+id+'"]').count(),1);
+  await page.locator('#records-list [data-record="'+id+'"]').click();
+  await page.locator('#detail-image img').waitFor();
+  assert.equal(await page.locator('#detail-text').innerText(),questions.D);
+  assert.equal(await page.locator('#v230-review').inputValue(),'explained');
+  assert.ok((await page.locator('#wrong-p0-child-reason-readonly').innerText()).includes(explanations.D));
+  assert.deepEqual(await local(page),fixed,'narrow QA display/focus cannot mutate records/photos');
+  candidateOutcomes.push({width:spec.w,backRect:atEntry.backRect,keyboardInitiallyFocused:true,
+   immediateTapWorked:true,originalDPhotoAndReviewUnchanged:true,autoWrites:0});
+  await snap(page,String(spec.w)+'-2-06-QA-reopened-same-original-D-photo');
+  pass('QA 200% '+spec.w+': existing ← 목록으로 now first viewport/focused/touchable; same D ID photo parent review unchanged');
+ }
  const final=await local(page);assert.deepEqual(final,fixed);assert.equal(ev.externalHttp,0);
  ev.v1OriginalBack={baselineSha:base,recordId:id,conditions:views,totalKeyboardTabs,backActions,
-  productHtmlEdited:false,historyPrototypeUsed:false,photoUnchanged:true,
+  baselineHtmlUnmodified:true,isolatedQaDetailFocusPatch:true,candidateOutcomes,historyPrototypeUsed:false,photoUnchanged:true,
   realUserTested:false,actualMobileOSZoomTested:false,restoreSafe:false};
  ev.result='PASS';ev.checkCount=ev.validations.length;
  writeFileSync(dir+'/evidence.json',JSON.stringify(ev,null,2));
  console.log('WRONG_V1_INAPP_BACK_RESULT='+JSON.stringify({
   status:'PASS',checks:ev.checkCount,png:ev.screenshots.length,
   originalProductSha:base,conditions:4,backActions,
-  sameDReopenedAll:true,photoOriginal:true,autoWrites:0,
+  sameDReopenedAll:true,zoom200BackFirstViewFixed:true,photoOriginal:true,autoWrites:0,
   externalHTTP:0,safeToRestore:false}));
 }catch(e){
  ev.result='FAIL';ev.error=String(e);ev.stack=String(e?.stack||'').slice(0,3000);
