@@ -14,7 +14,7 @@ const baseline='ff20d6caa2f23a7c610f574b86a61587d8b8b644';
 const before=execFileSync('git',['show',baseline+':index.html'],{maxBuffer:8*1024*1024}).toString('utf8');
 const after=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const original='본 버전은 저장 안정성을 검증 중입니다.</div>';
-const replacement='본 버전은 저장 안정성을 검증 중입니다. <strong>부모·아이 보기는 인증이 아닙니다. 로컬 오답·사진·관찰은 백업·복원이 보장되지 않습니다.</strong></div>';
+const replacement='<strong>이 브라우저에 저장한 사진·관찰도 안전한 복원은 보장되지 않습니다.</strong></div>';
 assert.ok(before.includes(original));
 assert.equal(after,before.replace(original,replacement),'only the one visible original first-use note text may change');
 const scriptMap={
@@ -99,18 +99,18 @@ try{
    assert.equal(r.bodyHasParentClass,true);
    assert.equal(r.signedInClaim,false);
    if(isCandidate){
-    assert.ok(r.note.text.includes('부모·아이 보기는 인증이 아닙니다'));
-    assert.ok(r.note.text.includes('오답·사진·관찰'));
-    assert.ok(r.note.text.includes('백업·복원이 보장되지 않습니다'));
+    assert.ok(r.mode.text.includes('계정·비밀번호 보호가 아닙니다'));
+    assert.ok(r.note.text.includes('사진·관찰'));
+    assert.ok(r.note.text.includes('안전한 복원은 보장되지 않습니다'));
    }else{
-    assert.ok(!r.note.text.includes('백업·복원이 보장되지 않습니다'));
+    assert.ok(!r.note.text.includes('안전한 복원은 보장되지 않습니다'));
    }
    await page.screenshot({path:dir+'/'+tag+'-'+pageName+'-firstscreen.png',fullPage:false});
    evidence.screenshots.push(tag+'-'+pageName+'-firstscreen.png');
   }
   const first=pair.base,updated=pair.candidate;
   const shift=updated.note.rect.height-first.note.rect.height;
-  assert.ok(shift<=180,'first-use text must not expand banner excessively '+tag+': '+shift);
+  assert.ok(shift<=100,'first-use text must not expand banner excessively '+tag+': '+shift);
   assert.ok(updated.navAdd.rect.height>=44,'original register nav remains touchable');
   evidence.measurements.push({stage:tag+' delta',warningNewHeight:shift,
     firstViewportNoteBaseline:first.note.rect.bottom<=spec.h,
