@@ -1,0 +1,55 @@
+name: WRONG A-only detail in-app list back synthetic no-loss
+on:
+  push:
+    branches: ['qa/wrong-a-only-detail-inapp-back-20261112']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a-detail-back-only-e2e.mjs'
+      - '.github/workflows/wrong-a-detail-back-only.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-a-original-detail-back:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard protected A ancestor and narrow additive detail-only change
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test "$(git merge-base c7d413f311df5bc983bc63f18027ac18b0445f27 HEAD)" = "c7d413f311df5bc983bc63f18027ac18b0445f27"
+          test "$(git diff --name-only c7d413f311df5bc983bc63f18027ac18b0445f27 HEAD | sort)" = "$(printf '%s\n' '.github/workflows/wrong-a-detail-back-only.yml' 'index.html' 'tests/wrong-a-detail-back-only-e2e.mjs' | sort)"
+          git diff --numstat c7d413f311df5bc983bc63f18027ac18b0445f27 HEAD -- index.html | awk '$1<=24 && $2==0 && $3=="index.html" {ok=1} END {exit !ok}'
+          grep -q WRONG-A-ONLY-INAPP-BACK index.html
+          ! grep -q WRONG-P17\ non-operating index.html
+          echo WRONG_A_ONLY_NO_P17_OR_HISTORY_OR_SERVER_CHANGES=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless Chromium and Korean glyphs
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Synthetic original D photo and parent observation navigation 4 viewport states
+        env:
+          WRONG_A_BACK_LOCAL_ONLY: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-a-detail-back-only-e2e.mjs
+          node tests/wrong-a-detail-back-only-e2e.mjs | tee /tmp/wrong-a-back.log
+          grep -q 'WRONG_A_BACK_ONLY_RESULT={"status":"PASS"' /tmp/wrong-a-back.log
+      - name: Save evidence screenshots and frozen-storage integrity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_A_ONLY_DETAIL_BACK_4VIEW
+          path: test-results/wrong-a-detail-back-only
+          if-no-files-found: warn
+          retention-days: 14
