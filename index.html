@@ -4685,6 +4685,27 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     if(record&&record.subject!=='math')wrong008RenderManualRecheck(record);
   };
 
+  // WRONG-A-ONLY-INAPP-BACK: QA-only, original A detail's existing list button.
+  // No P13-P18 selection/filter, History API, persistence, photo or review write.
+  const wrongAOnlyNavigateBase=navigate;
+  navigate=function(next){
+    const result=wrongAOnlyNavigateBase(next);
+    if(next==='detail'&&v218Mode==='parent'){
+      requestAnimationFrame(()=>{
+        if(route!=='detail'||v218Mode!=='parent')return;
+        const row=$('page-detail')?.querySelector('.row');
+        const back=$('page-detail')?.querySelector('[data-route="records"]');
+        if(!row||!back)return;
+        const bounds=row.getBoundingClientRect();
+        // Preserve original A focus/scroll at normal zoom when already visible.
+        if(bounds.top>=0&&bounds.bottom<=innerHeight)return;
+        window.scrollBy({top:bounds.top-12,behavior:'instant'});
+        back.focus({preventScroll:true});
+      });
+    }
+    return result;
+  };
+
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
