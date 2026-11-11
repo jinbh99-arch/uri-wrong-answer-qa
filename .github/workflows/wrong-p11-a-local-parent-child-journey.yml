@@ -1,0 +1,51 @@
+name: WRONG P11 original A user value parent child recheck Chromium
+on:
+  push:
+    branches: ['qa/wrong-p11-a-local-parent-child-journey-20261111']
+    paths:
+      - 'tests/wrong-p11-a-local-parent-child-journey-e2e.mjs'
+      - '.github/workflows/wrong-p11-a-local-parent-child-journey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-real-dom-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert original A and all P8 P9 P10 contracts preserved
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin d2d9bf95690dcdc38249305f8ce23d0849413250
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only d2d9bf95690dcdc38249305f8ce23d0849413250 HEAD -- index.html db supabase scripts tests/wrong-p8-a-parent-read-e2e.mjs tests/wrong-p9-a-ledger-preflight-e2e.mjs tests/wrong-p10-original-first-ui-e2e.mjs)"
+          echo WRONG_P11_EXISTING_PRODUCT_QA_INTEGRITY=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install local only Chromium and Korean font
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: E2E only original A add child parent manual recheck reload
+        shell: bash
+        env:
+          WRONG_P11_SYNTHETIC_LOCAL_A_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p11-a-local-parent-child-journey-e2e.mjs
+          node tests/wrong-p11-a-local-parent-child-journey-e2e.mjs | tee /tmp/wrong-p11.log
+          grep -q 'WRONG_P11_A_JOURNEY_RESULT={"status":"PASS"' /tmp/wrong-p11.log
+          echo WRONG_P11_ORIGINAL_A_LOCAL_VALUE_FLOW=PASS
+      - name: Archive actual A parent390 child320 original screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P11_ORIGINAL_A_PARENT_CHILD_RECHECK
+          path: test-results/wrong-p11
+          if-no-files-found: warn
+          retention-days: 14
