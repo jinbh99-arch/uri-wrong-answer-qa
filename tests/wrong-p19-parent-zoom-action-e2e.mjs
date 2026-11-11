@@ -15,7 +15,8 @@ const before=execFileSync('git',['show',base+':index.html'],{maxBuffer:8*1024*10
 const after=readFileSync(new URL('../index.html',import.meta.url));
 const gitBlob=bytes=>createHash('sha1')
  .update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
-assert.equal(gitBlob(before),gitBlob(after),'baseline measurement must use original P18 exact index');
+assert.notEqual(gitBlob(before),gitBlob(after),'candidate P19 must be an isolated P18 UI-only change');
+assert.ok(after.includes('WRONG-P19 QA only'));
 assert.ok(after.includes('WRONG-P18 verified 320x720 P1'));
 assert.ok(before.includes('wrong-p13-first-action'));
 assert.ok(before.includes('wrongP15Stage'));
@@ -334,6 +335,43 @@ try{
  }
  ev.baseline=baseline;
  pass('P18 16 genuine A IDs first viewport: parent list add CTA and state filter geometry measured 320/390 zoom 1/2');
+ // AFTER P19: same 16 original A records and photo bytes, candidate HTML
+ // must expose both old guardian actions without physical scroll in CSS200.
+ assert.equal((await page.goto(origin+'/candidate')).status(),200);
+ await page.locator('#nav-home').waitFor();
+ const candidate={};
+ for(const [width,height] of [[320,720],[390,844]]){
+  for(const zoom of [1,2]){
+   await page.setViewportSize({width,height});
+   await page.evaluate(z=>document.body.style.zoom=String(z),zoom);
+   await page.locator('#v218-parent-mode').click();
+   await page.locator('#nav-home').click();
+   await page.locator('#nav-records').click();
+   await page.waitForTimeout(120); // wait for one route RAF, not a save.
+   const m=await probe('P19 after parent '+width+' zoom '+zoom);
+   const key=width+'z'+zoom;candidate[key]=m;
+   assert.equal(m.cardsVisible.length,16);
+   assert.equal(m.parentFilterSelected,'all');
+   assert.equal(m.overflow,0,'zoom must not introduce horizontal overflow');
+   if(zoom===2){
+    assert.ok(m.nodes.parentFilter.fullyInViewport,
+      'P19 state select visible at 200% '+key+': '+JSON.stringify(m.nodes.parentFilter));
+    assert.ok(m.nodes.inListAdd.fullyInViewport,
+      'P19 original register CTA visible at 200% '+key+': '+JSON.stringify(m.nodes.inListAdd));
+    assert.ok(m.documentScrollY>0,'route should land on A content at 200%');
+   }else{
+    assert.equal(m.nodes.parentFilter.fullyInViewport,baseline[key].nodes.parentFilter.fullyInViewport,
+      'normal zoom filter discoverability regression');
+    assert.equal(m.nodes.navAdd.fullyInViewport,baseline[key].nodes.navAdd.fullyInViewport,
+      'normal zoom registration nav discoverability regression');
+   }
+   await capture('after-'+width+'-zoom-'+zoom+'-initial-list');
+  }
+ }
+ ev.candidate=candidate;
+ assert.deepEqual(await local(page),seeded,'route scroll does not save A records/photos');
+ pass('P19 same original A parent filter + register CTA visible at CSS200 320/390; normal-width old action unchanged');
+
  // Separate task: find manual-note C through *existing* guardian view;
  // parent state no changes until explicit action.
  await page.setViewportSize({width:320,height:720});
@@ -379,10 +417,12 @@ try{
  ev.result='PASS';ev.checkCount=ev.validations.length;
  writeFileSync(dir+'/evidence.json',JSON.stringify(ev,null,2));
  console.log('WRONG_P19_ZOOM_RESULT='+JSON.stringify({
-  status:'PASS',phase:'baseline',checks:ev.checkCount,png:ev.screenshots.length,
+  status:'PASS',phase:'before-after',checks:ev.checkCount,png:ev.screenshots.length,
   records:16,photos:16,overflow320z2:baseline['320z2'].overflow,
-  inListAddFirst320z2:baseline['320z2'].nodes.inListAdd.fullyInViewport,
-  parentFilterFirst320z2:baseline['320z2'].nodes.parentFilter.fullyInViewport,
+  inListAddFirst320z2Before:baseline['320z2'].nodes.inListAdd.fullyInViewport,
+  parentFilterFirst320z2Before:baseline['320z2'].nodes.parentFilter.fullyInViewport,
+  inListAddFirst320z2After:candidate['320z2'].nodes.inListAdd.fullyInViewport,
+  parentFilterFirst320z2After:candidate['320z2'].nodes.parentFilter.fullyInViewport,
   autoWrites:0,safeToRestore:false}));
 }catch(e){
  ev.result='FAIL';ev.error=String(e);ev.stack=String(e?.stack||'').slice(0,2600);
