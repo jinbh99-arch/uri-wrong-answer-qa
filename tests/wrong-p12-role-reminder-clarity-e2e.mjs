@@ -166,7 +166,8 @@ try{
  assert.ok(h.includes('다음에 다시 확인할 날짜를 메모하기'));
  assert.ok(explanation.includes('자동 알림·일정 예약·완료 판정은 없습니다'));
  assert.ok(button.includes('확인 전 상태로 메모 저장'));
- assert.ok(instruction.includes('확인 전 상태'));
+ assert.ok(instruction.includes('메모로만 추가됩니다'));
+ assert.ok(instruction.includes('별도')||instruction.includes('따로 기록하세요'));
  await panel.scrollIntoViewIfNeeded();
  const panelMeasure=await measure(page,'parent-recheck-panel-390');
  assert.ok(panelMeasure.dateHeading?.visible);
