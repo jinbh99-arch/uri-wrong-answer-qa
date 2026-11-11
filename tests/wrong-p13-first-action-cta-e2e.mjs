@@ -261,6 +261,7 @@ try{
  await page.locator('#v230-answer:visible').waitFor();
  await page.locator('#detail-image img').waitFor();
  assert.equal(await page.locator('#detail-text').innerText(),question);
+ await page.waitForFunction(()=>document.activeElement?.id==='v230-answer',{},{timeout:5000});
  const focused=await page.evaluate(()=>document.activeElement?.id);
  assert.equal(focused,'v230-answer');
  const afterChildClick=await local(page);
