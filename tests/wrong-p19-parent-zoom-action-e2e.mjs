@@ -356,6 +356,10 @@ try{
    if(zoom===2){
     assert.ok(m.nodes.parentFilter.fullyInViewport,
       'P19 state select visible at 200% '+key+': '+JSON.stringify(m.nodes.parentFilter));
+    assert.ok(m.nodes.parentFilterLabel.fullyInViewport,
+      'P19 guardian filter label must also be legible at 200% '+key+': '+JSON.stringify(m.nodes.parentFilterLabel));
+    assert.ok(m.nodes.parentFilterHint.fullyInViewport,
+      'P19 date-not-reminder and mode-not-auth warning must remain visible at 200% '+key);
     assert.ok(m.nodes.inListAdd.fullyInViewport,
       'P19 original register CTA visible at 200% '+key+': '+JSON.stringify(m.nodes.inListAdd));
     assert.ok(m.documentScrollY>0,'route should land on A content at 200%');
