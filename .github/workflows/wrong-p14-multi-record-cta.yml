@@ -1,0 +1,53 @@
+name: WRONG P14 multi-record CTA selection original A local
+on:
+  push:
+    branches: ['qa/wrong-p14-multi-record-cta-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p14-multi-record-cta-e2e.mjs'
+      - '.github/workflows/wrong-p14-multi-record-cta.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-multirecord-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert P13 ancestry and immutable A v1.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 53f6fb6ffa1ba37db30b3bb9d63c40cf00049760
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 53f6fb6ffa1ba37db30b3bb9d63c40cf00049760 HEAD -- scripts db supabase tests/wrong-p13-first-action-cta-e2e.mjs)"
+          echo WRONG_P14_A_SOURCE_AND_P13_QA_PRESERVED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium and Korean UI fonts
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: Four real A indexedDB records before and after P14
+        shell: bash
+        env:
+          WRONG_P14_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p14-multi-record-cta-e2e.mjs
+          node tests/wrong-p14-multi-record-cta-e2e.mjs | tee /tmp/wrong-p14.log
+          grep -q 'WRONG_P14_MULTIRECORD_RESULT={"status":"PASS"' /tmp/wrong-p14.log
+          echo WRONG_P14_MULTI_RECORD_TARGET_AND_AUTO_WRITE_ZERO=PASS
+      - name: Archive before-after four-record parent/child 320/390 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P14_A_MULTIRECORD_CTA_SAFE_SELECTION
+          path: test-results/wrong-p14
+          if-no-files-found: warn
+          retention-days: 14
