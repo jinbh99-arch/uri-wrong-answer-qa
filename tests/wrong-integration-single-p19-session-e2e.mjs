@@ -16,7 +16,8 @@ const after=readFileSync(new URL('../index.html',import.meta.url));
 const gitBlob=bytes=>createHash('sha1')
  .update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
 assert.equal(gitBlob(before),gitBlob(after),'use EXACT P19 product HTML with zero edits');
-assert.ok(after.includes('WRONG-INTEGRATION verified 320x720 P1'));
+assert.ok(after.includes('WRONG-P18 verified 320x720 P1'));
+assert.ok(after.includes('WRONG-P19 QA only'));
 assert.ok(before.includes('wrong-p13-first-action'));
 assert.ok(before.includes('wrongP15Stage'));
  assert.ok(!before.includes('WRONG-INTEGRATION: same read-only'));
