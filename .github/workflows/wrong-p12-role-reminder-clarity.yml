@@ -1,0 +1,51 @@
+name: WRONG P12 original A role and manual reminder clarity targeted
+on:
+  push:
+    branches: ['qa/wrong-p12-role-reminder-clarity-20261111']
+    paths:
+      - 'tests/wrong-p12-role-reminder-clarity-e2e.mjs'
+      - '.github/workflows/wrong-p12-role-reminder-clarity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-role-note:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve unmodified A and P8 P9 P10 P11 unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 45de0202a0529ea8c47dfbd30aeb6ddac4d46cdf
+          test "$(git hash-object index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 45de0202a0529ea8c47dfbd30aeb6ddac4d46cdf HEAD -- index.html db supabase scripts tests/wrong-p11-a-local-parent-child-journey-e2e.mjs tests/wrong-p10-original-first-ui-e2e.mjs)"
+          echo WRONG_P12_A_PRODUCT_NO_CHANGE=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and Korean font, no remote browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: P12 only role label and manual memo original UI inspection
+        shell: bash
+        env:
+          WRONG_P12_SYNTHETIC_A_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p12-role-reminder-clarity-e2e.mjs
+          node tests/wrong-p12-role-reminder-clarity-e2e.mjs | tee /tmp/wrong-p12.log
+          grep -q 'WRONG_P12_CLARITY_RESULT={"status":"PASS"' /tmp/wrong-p12.log
+          echo WRONG_P12_ORIGINAL_A_ROLE_REMINDER_MISINTERPRETATION_CHECK=PASS
+      - name: Upload 390px parent 320px child and manual-date screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P12_REAL_A_MODE_AND_REMINDER_CLARITY
+          path: test-results/wrong-p12
+          if-no-files-found: warn
+          retention-days: 14
