@@ -1,0 +1,53 @@
+name: WRONG P16 16 genuine A records compact parent-stage list
+on:
+  push:
+    branches: ['qa/wrong-p16-parent-list-compact-20261111']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-p16-parent-list-compact-e2e.mjs'
+      - '.github/workflows/wrong-p16-parent-list-compact.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-a-sixteen-records-mobile-scroll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve A baseline and unchanged P15 storage/save routines
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 78500b590247cddb7fed95827f5069350141942e
+          git fetch --no-tags origin c7d413f311df5bc983bc63f18027ac18b0445f27
+          test "$(git rev-parse c7d413f311df5bc983bc63f18027ac18b0445f27:index.html)" = "58754380d6fa764256100963d1a9da5d11873d19"
+          test -z "$(git diff --name-only 78500b590247cddb7fed95827f5069350141942e HEAD -- scripts db supabase tests/wrong-p15-parent-stage-list-e2e.mjs)"
+          echo WRONG_P16_ORIGINAL_A_P15_READ_ONLY_BASE_PRESERVED=PASS
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Chromium and Korean web fonts
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+      - name: 16 actual A records parent 320/390 before-after scroll and preservation
+        shell: bash
+        env:
+          WRONG_P16_LOCAL_SYNTHETIC_ONLY: '1'
+        run: |
+          set -euo pipefail
+          node --check tests/wrong-p16-parent-list-compact-e2e.mjs
+          node tests/wrong-p16-parent-list-compact-e2e.mjs | tee /tmp/wrong-p16.log
+          grep -q 'WRONG_P16_COMPACT_RESULT={"status":"PASS"' /tmp/wrong-p16.log
+          echo WRONG_P16_A_16_RECORD_PARENT_SCROLL_NO_WRITES_PASS
+      - name: Upload parent pre/post 320/390 A visual and full JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WRONG_P16_A_16_RECORD_PARENT_SCROLL_COMPARISON
+          path: test-results/wrong-p16
+          if-no-files-found: warn
+          retention-days: 14
