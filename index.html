@@ -4709,6 +4709,50 @@ $('wrong-child-next-all').addEventListener('click',()=>{
   init().then(v19CheckReentry).catch(err=>{const el=$('v19-reentry-result');if(el)el.textContent='시험 초기화 실패: '+String(err?.message||err).slice(0,140)});
 })();
 </script>
+<!-- QA-only: plaintext backup pre-download informed choice. No importer/storage changes. -->
+<style>
+#wrong-backup-risk {margin:.6rem 0;line-height:1.5}
+#wrong-backup-confirm:not([hidden]) {display:block;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.65);padding:1rem;overflow:auto}
+#wrong-backup-confirm .wrong-backup-dialog {background:var(--card,#fff);color:var(--text,#222);max-width:34rem;margin:8vh auto;padding:1.25rem;border-radius:.75rem;box-shadow:0 0 0 2px currentColor}
+#wrong-backup-confirm .wrong-backup-buttons {display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem}
+</style>
+<script>
+(()=>{
+ const trigger=document.getElementById('export-json');
+ if(!trigger||typeof trigger.onclick!=='function')return;
+ const originalExport=trigger.onclick;
+ const notice=document.createElement('p');
+ notice.id='wrong-backup-risk';notice.className='small';
+ notice.textContent='주의: 사진·아이의 문제/답·부모 메모가 암호화되지 않은 파일로 저장됩니다. 공유기기 다운로드 폴더와 클라우드 자동 동기화에 주의하세요.';
+ trigger.closest('.backup-actions')?.before(notice);
+ const overlay=document.createElement('div');
+ overlay.id='wrong-backup-confirm';overlay.hidden=true;
+ overlay.innerHTML='<section class="wrong-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="wrong-backup-title" aria-describedby="wrong-backup-description"><h2 id="wrong-backup-title" tabindex="-1">암호화되지 않은 전체 백업</h2><p id="wrong-backup-description">이 파일에는 아이의 오답·사진·부모 메모가 포함됩니다. 비밀번호로 보호되지 않으며 공유기기 다운로드 폴더나 클라우드에 자동 동기화될 수 있습니다. 저장 후 파일을 직접 안전하게 관리하세요. 파일 생성은 복원 성공을 보장하지 않습니다.</p><div class="wrong-backup-buttons"><button type="button" id="wrong-backup-cancel">취소</button><button type="button" id="wrong-backup-continue" class="secondary">내용을 이해하고 파일 저장</button></div></section>';
+ document.body.append(overlay);
+ const cancel=overlay.querySelector('#wrong-backup-cancel');
+ const proceed=overlay.querySelector('#wrong-backup-continue');
+ let pending=false;
+ const close=()=>{pending=false;overlay.hidden=true;trigger.focus({preventScroll:true})};
+ const focusable=[cancel,proceed];
+ overlay.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();close();return}
+  if(e.key==='Tab'){const i=focusable.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();proceed.focus()}else if(!e.shiftKey&&i===focusable.length-1){e.preventDefault();cancel.focus()}}
+ });
+ cancel.addEventListener('click',close);
+ proceed.addEventListener('click',async()=>{
+  if(!pending)return;
+  pending=false;overlay.hidden=true;
+  // Keep all existing coherent snapshot, integrity and restore-readiness checks.
+  await originalExport.call(trigger);
+  trigger.focus({preventScroll:true});
+ });
+ trigger.onclick=e=>{
+  if(pending)return;
+  pending=true;overlay.hidden=false;
+  cancel.focus({preventScroll:true});
+ };
+})();
+</script>
 <script type="module" src="scripts/qa-inapp-sync-bridge.mjs"></script>
 <script type="module" src="scripts/qa47-live-auth-lab.mjs"></script>
 </body></html>
