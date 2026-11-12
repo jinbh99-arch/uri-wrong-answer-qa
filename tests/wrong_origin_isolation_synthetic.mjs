@@ -175,6 +175,44 @@ try{
   await ux.evaluate(()=>{document.body.style.zoom=''});
  }
  report.cssZoom200PageOverflowFound=zoomOverflowFound;
+ // 00 #6826134113: keyboard-only navigation to horizontally-scrollable settings
+ // at synthetic CSS200; focus must reveal an offscreen tab within nav clip.
+ for(const width of [320,390]){
+  await ux.goto(A);await ux.setViewportSize({width,height:844});
+  await ux.evaluate(()=>{document.body.style.zoom='200%';window.scrollTo(0,0)});
+  const order=[];
+  for(let i=0;i<40;i++){
+   await ux.keyboard.press('Tab');
+   const id=await ux.evaluate(()=>document.activeElement?.id||document.activeElement?.tagName);
+   order.push(id);
+   if(id==='nav-settings')break;
+  }
+  const settingsReachable=order.includes('nav-settings');
+  const navMetrics=await ux.evaluate(()=>{
+    const el=document.querySelector('#nav-settings'),nav=el.closest('nav');
+    const e=el.getBoundingClientRect(),n=nav.getBoundingClientRect();
+    return {focused:document.activeElement===el,scrollLeft:nav.scrollLeft,
+      viewport:innerWidth,pageWidth:document.documentElement.scrollWidth,
+      left:e.left,right:e.right,navLeft:n.left,navRight:n.right,
+      revealed:e.left>=Math.max(0,n.left)-1&&e.right<=Math.min(innerWidth,n.right)+1};
+  });
+  await ux.screenshot({path:evidenceDir+'/nav-keyboard-zoom200-'+width+'.png'});
+  await ux.keyboard.press('Enter');
+  const opened=await ux.locator('#export-json').isVisible();
+  await ux.keyboard.press('Shift+Tab');
+  const back=await ux.evaluate(()=>{
+   const e=document.querySelector('#nav-concepts'),nav=e.closest('nav'),
+     er=e.getBoundingClientRect(),nr=nav.getBoundingClientRect();
+   return {focused:document.activeElement===e,visible:er.left>=Math.max(0,nr.left)-1&&er.right<=Math.min(innerWidth,nr.right)+1};
+  });
+  report['navKeyboardZoom200_'+width]={order,settingsReachable,...navMetrics,opened,back};
+  check('Keyboard Tab/Enter reaches and reveals settings in scrolling nav at '+width+'px CSS200',
+   settingsReachable&&navMetrics.focused&&navMetrics.revealed&&opened
+    &&navMetrics.pageWidth<=navMetrics.viewport);
+  check('Reverse keyboard Shift+Tab reveals preceding concept tab at '+width+'px CSS200',
+   back.focused&&back.visible);
+  await ux.evaluate(()=>{document.body.style.zoom=''});
+ }
  // Reuse existing app's isolated-IDB destructive-failure and backup/restore drills.
  // These only touch temporary test databases and never production records.
  await ux.locator('#nav-settings').click();
