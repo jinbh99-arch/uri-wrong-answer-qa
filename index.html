@@ -4757,6 +4757,19 @@ $('wrong-child-next-all').addEventListener('click',()=>{
  };
 })();
 </script>
+<!-- WRONG isolated QA keyboard fix: focus-visible tab must scroll into nav clip at CSS200. -->
+<script>
+(()=>{
+ const nav=document.querySelector('nav[aria-label="주요 메뉴"]');
+ if(!nav)return;
+ nav.addEventListener('focusin',event=>{
+  const target=event.target;
+  if(target instanceof HTMLButtonElement&&nav.contains(target)){
+   target.scrollIntoView({block:'nearest',inline:'nearest',behavior:'auto'});
+  }
+ });
+})();
+</script>
 <script type="module" src="scripts/qa-inapp-sync-bridge.mjs"></script>
 <script type="module" src="scripts/qa47-live-auth-lab.mjs"></script>
 </body></html>
