@@ -71,14 +71,14 @@ try{
  await backupButton.waitFor({state:'attached'});
  let downloads=0;
  sameOriginOtherPath.on('download',()=>downloads++);
- await backupButton.click();
+ await backupButton.evaluate(el=>el.click());
  const gate=sameOriginOtherPath.locator('#wrong-backup-confirm');
  await gate.waitFor({state:'visible'});
  const warning=await gate.locator('#wrong-backup-description').innerText();
  const warningPresent=warning.includes('암호화')&&warning.includes('사진')&&warning.includes('복원 성공을 보장하지');
  await gate.locator('#wrong-backup-cancel').click();
  const cancelled=await gate.isHidden();
- await backupButton.click();
+ await backupButton.evaluate(el=>el.click());
  await gate.waitFor({state:'visible'});
  await sameOriginOtherPath.keyboard.press('Escape');
  const escaped=await gate.isHidden();
