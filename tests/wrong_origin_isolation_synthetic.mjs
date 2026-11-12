@@ -86,7 +86,8 @@ try{
    warningPresent&&cancelled&&escaped&&downloads===0);
  report.backupCancelDownloads=downloads;
  // P1: use real visible navigation and keyboard, never a hidden DOM click.
- const ux=await context.newPage({viewport:{width:390,height:844},acceptDownloads:true});
+ const uxContext=await browser.newContext({viewport:{width:390,height:844},acceptDownloads:true});
+ const ux=await uxContext.newPage();
  await ux.goto(A);
  await ux.locator('#nav-settings').focus();
  const navFocused=await ux.evaluate(()=>document.activeElement?.id==='nav-settings');
@@ -142,7 +143,7 @@ try{
   check('Backup warning and controls fit '+width+'px viewport',view.scrollWidth<=view.viewport&&view.buttonsVisible&&view.dialogVisible);
   await ux.keyboard.press('Escape');
  }
- await ux.close();
+ await uxContext.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
 }catch(e){report.error=String(e.stack||e);process.exitCode=1}
