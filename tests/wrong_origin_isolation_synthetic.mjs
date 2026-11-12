@@ -192,6 +192,13 @@ try{
     const r=document.querySelector('#wrong-backup-description').getBoundingClientRect();
     return r.bottom>0&&r.top<innerHeight;
   });
+  // After reading the warning, scroll the modal itself (not the background page).
+  // A focused control may remain offscreen when the overlay is zoomed.
+  const modalScroll=await ux.locator('#wrong-backup-confirm').evaluate(el=>{
+    const before=el.scrollTop;
+    el.scrollTop=el.scrollHeight;
+    return {before,after:el.scrollTop,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight};
+  });
   await ux.locator('#wrong-backup-cancel').focus();
   const cancelReachable=await ux.evaluate(()=>{
     const r=document.querySelector('#wrong-backup-cancel').getBoundingClientRect();
@@ -201,7 +208,7 @@ try{
   await ux.keyboard.press('Enter');
   const cancelClosed=await dialog.isHidden();
   report['backupVerticalKeyboardZoom200_'+width]={...vertical,reverseFocus,forwardFocus,
-    warningReachable,cancelReachable,cancelClosed,downloadCount:uxDownloads};
+    warningReachable,modalScroll,cancelReachable,cancelClosed,downloadCount:uxDownloads};
   check('Backup CSS200 vertical warning and keyboard cancel remain reachable at '+width+'px',
     vertical.initialFocus==='wrong-backup-cancel'
     &&reverseFocus==='wrong-backup-continue'&&forwardFocus==='wrong-backup-cancel'
