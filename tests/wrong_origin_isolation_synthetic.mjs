@@ -621,6 +621,30 @@ try{
   &&Boolean(downloadAfterData)&&postSaveDownloads===1);
  check('Real app synthetic photo and guardian note remain unchanged after export',
     JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore));
+ // Shared-device re-entry risk: closing a backup dialog is not a privacy purge.
+ // A fresh tab in the SAME browser context/origin can still read the local
+ // synthetic record/photo; no operational authorization is inferred.
+ const reentry=await uxContext.newPage();
+ await reentry.goto(A);
+ const reentryBefore=await snapshot(reentry);
+ const sharedDeviceReadable=JSON.stringify(reentryBefore)===JSON.stringify(actualAppBefore);
+ await reentry.locator('#nav-settings').click();
+ const reentryExport=reentry.locator('#export-json');
+ let reentryDownloads=0;
+ reentry.on('download',()=>reentryDownloads++);
+ await reentryExport.click();
+ await reentry.locator('#wrong-backup-confirm').waitFor({state:'visible'});
+ await reentry.locator('#wrong-backup-cancel').click();
+ await reentry.reload();
+ const reentryAfter=await snapshot(reentry);
+ report.sharedDeviceReentry={sameOriginReadable:sharedDeviceReadable,
+   cancelledDownloadCount:reentryDownloads,
+   recordPhotoUnchanged:JSON.stringify(reentryAfter)===JSON.stringify(actualAppBefore),
+   exposureRisk:true,safeToRestore:false};
+ check('Shared-device same-origin new tab retains synthetic child/guardian record and photo after backup cancel',
+   sharedDeviceReadable&&reentryDownloads===0
+   &&JSON.stringify(reentryAfter)===JSON.stringify(actualAppBefore));
+ await reentry.close();
  await uxContext.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
