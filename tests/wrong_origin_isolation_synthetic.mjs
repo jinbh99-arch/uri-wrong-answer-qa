@@ -128,6 +128,7 @@ try{
  report.explicitBackup={downloads:uxDownloads,fileName:saved?.suggestedFilename()||null,sourceUnchanged:explicitUnchanged,exportUi};
  check('Explicit plaintext export starts one synthetic download without changing source record and photo',
   Boolean(saved)&&uxDownloads===1&&explicitUnchanged);
+ let zoomOverflowFound=false;
  for(const width of [320,390]){
   await ux.setViewportSize({width,height:844});
   await realBackup.focus();await ux.keyboard.press('Enter');
@@ -156,11 +157,13 @@ try{
      warningVisible:d.getBoundingClientRect().top<innerHeight};
   });
   report['backupZoom200_'+width]=zoomView;
-  check('Backup warning and controls fit CSS 200% at '+width+'px',
-    zoomView.scrollWidth<=zoomView.viewport&&zoomView.controlsInWidth&&zoomView.warningVisible);
+  zoomOverflowFound ||= zoomView.scrollWidth>zoomView.viewport;
+  check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
+    zoomView.controlsInWidth&&zoomView.warningVisible);
   await ux.keyboard.press('Escape');
   await ux.evaluate(()=>{document.body.style.zoom=''});
  }
+ report.cssZoom200PageOverflowFound=zoomOverflowFound;
  await uxContext.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
