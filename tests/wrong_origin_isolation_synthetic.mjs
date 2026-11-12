@@ -186,17 +186,17 @@ try{
   check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
     zoomView.controlsInWidth&&zoomView.warningVisible);
-  // Independent keyboard-only reachability probe: no scripted scroll-to-bottom.
-  // The baseline reset is setup; all subsequent movement is real key input.
+  // User-operable keyboard-only test: evaluate PageDown BEFORE Tab changes scroll.
+  // Never mistake Tab's focus scroll for PageDown's native visibility.
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
-  const keyboardStart=await ux.locator('#wrong-backup-confirm').evaluate(el=>({top:el.scrollTop,height:el.clientHeight,total:el.scrollHeight}));
-  // Observe natural focus and scroll owners; never inject a focus state as proof.
-  const keyboardInitial=await ux.evaluate(()=>({
-    focus:document.activeElement?.id,
-    bodyTop:document.scrollingElement?.scrollTop||0,
-    overlayTop:document.querySelector('#wrong-backup-confirm').scrollTop,
-    dialogTop:document.querySelector('.wrong-backup-dialog')?.scrollTop||0
-  }));
+  const keyboardStart=await ux.evaluate(()=>{
+    const d=document.querySelector('#wrong-backup-confirm'),w=document.querySelector('#wrong-backup-description');
+    const r=w.getBoundingClientRect(),c=d.getBoundingClientRect();
+    return {top:d.scrollTop,height:d.clientHeight,total:d.scrollHeight,
+      initialFocus:document.activeElement?.id,bodyTop:document.scrollingElement?.scrollTop||0,
+      warningStartVisible:r.top<innerHeight&&r.bottom>0&&r.bottom>c.top&&r.top<c.bottom};
+  });
+  await ux.screenshot({path:evidenceDir+'/backup-keyboard-first-warning-'+width+'.png'});
   const keyboardPositions=[];
   for(let step=0;step<8;step++){
     await ux.keyboard.press('PageDown');
@@ -207,24 +207,38 @@ try{
       focus:document.activeElement?.id
     })));
   }
-  // Tab is a separate real keyboard route, not a scripted scroll shortcut.
-  await ux.keyboard.press('Tab');
-  const tabFocus=await ux.evaluate(()=>document.activeElement?.id);
-  await ux.keyboard.press('Shift+Tab');
-  const reverseTabFocus=await ux.evaluate(()=>document.activeElement?.id);
-  const keyboardEnd=await ux.evaluate(()=>{
+  const keyControls=()=>ux.evaluate(()=>{
     const d=document.querySelector('#wrong-backup-confirm'),w=document.querySelector('#wrong-backup-description');
     const c=document.querySelector('#wrong-backup-cancel'),p=document.querySelector('#wrong-backup-continue');
-    const visible=el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight};
+    const container=d.getBoundingClientRect();
+    const visible=el=>{const r=el.getBoundingClientRect();
+      return r.top>=Math.max(0,container.top)-1&&r.bottom<=Math.min(innerHeight,container.bottom)+1
+        &&r.left>=Math.max(0,container.left)-1&&r.right<=Math.min(innerWidth,container.right)+1};
     return {top:d.scrollTop,cancelVisible:visible(c),saveVisible:visible(p),
       focus:document.activeElement?.id,warningText:w.textContent?.trim().length||0,
-      warningBeforeButtons:!!(w.compareDocumentPosition(c)&Node.DOCUMENT_POSITION_FOLLOWING)};
+      warningBeforeButtons:!!(w.compareDocumentPosition(c)&Node.DOCUMENT_POSITION_FOLLOWING),
+      cancelRect:{top:c.getBoundingClientRect().top,bottom:c.getBoundingClientRect().bottom},
+      saveRect:{top:p.getBoundingClientRect().top,bottom:p.getBoundingClientRect().bottom}};
   });
-  report['backupKeyboardOnlyZoom200_'+width]={keyboardStart,keyboardInitial,keyboardPositions,tabFocus,reverseTabFocus,keyboardEnd};
+  const beforeTab=await keyControls();
+  await ux.screenshot({path:evidenceDir+'/backup-pagedown-before-tab-'+width+'.png'});
+  report['backupKeyboardPageDownOnlyZoom200_'+width]={keyboardStart,keyboardPositions,beforeTab};
+  check('PageDown alone reveals both backup buttons at '+width+'px CSS200',
+    keyboardStart.warningStartVisible&&beforeTab.top>keyboardStart.top
+    &&beforeTab.cancelVisible&&beforeTab.saveVisible
+    &&beforeTab.warningText>0&&beforeTab.warningBeforeButtons);
+  // A distinct route: only real Tab/Shift+Tab, without scripted focus.
+  await ux.keyboard.press('Tab');
+  const tabFocus=await ux.evaluate(()=>document.activeElement?.id);
+  const afterTab=await keyControls();
+  await ux.keyboard.press('Shift+Tab');
+  const reverseTabFocus=await ux.evaluate(()=>document.activeElement?.id);
+  const afterReverseTab=await keyControls();
+  report['backupKeyboardTabZoom200_'+width]={tabFocus,reverseTabFocus,afterTab,afterReverseTab};
   await ux.screenshot({path:evidenceDir+'/backup-keyonly-zoom200-'+width+'.png'});
-  check('PageDown keyboard-only scroll reveals both backup actions at '+width+'px CSS200',
-    keyboardEnd.top>keyboardStart.top&&keyboardEnd.cancelVisible&&keyboardEnd.saveVisible
-    &&keyboardEnd.focus==='wrong-backup-cancel'&&keyboardEnd.warningText>0&&keyboardEnd.warningBeforeButtons);
+  check('Tab and Shift+Tab reveal actual focused backup controls at '+width+'px CSS200',
+    tabFocus==='wrong-backup-continue'&&reverseTabFocus==='wrong-backup-cancel'
+    &&afterTab.saveVisible&&afterReverseTab.cancelVisible);
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
   // Targeted vertical keyboard audit: a horizontal-fit check cannot establish
   // that a 200%-zoom warning and its actions are reachable in a short viewport.
