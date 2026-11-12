@@ -36,4 +36,12 @@ jobs:
           done
       - name: Probe synthetic source/target origin and rollback
         run: node tests/wrong_origin_isolation_synthetic.mjs
+      - name: Preserve synthetic browser screen and JSON evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-origin-synthetic-evidence
+          path: artifacts/wrong-origin-qa/
+          if-no-files-found: warn
+          retention-days: 14
 # Never use real family photos, live DB, public origin, or deployment.
