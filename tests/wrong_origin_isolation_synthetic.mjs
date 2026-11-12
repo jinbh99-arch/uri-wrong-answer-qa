@@ -414,7 +414,7 @@ try{
   const payload=JSON.parse(downloaded);
   const rec=Array.isArray(payload.records)?payload.records.find(r=>r.id===uiRec.id):null;
   const dataUri=payload.photos?.[uiRec.id];
-  const rawPhoto=typeof dataUri==='string'&&/^data:image\\/(?:png|jpeg|webp);base64,/.test(dataUri)
+  const rawPhoto=typeof dataUri==='string'&&/^data:image\/(?:png|jpeg|webp);base64,/.test(dataUri)
     ?Buffer.from(dataUri.slice(dataUri.indexOf(',')+1),'base64'):null;
   plaintextAudit={
     readable:payload.format==='uriaimath-offline-backup-v02',
