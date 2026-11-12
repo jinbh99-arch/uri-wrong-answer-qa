@@ -186,6 +186,44 @@ try{
   check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
     zoomView.controlsInWidth&&zoomView.warningVisible);
+  // P1 first-contact disclosure: inspect the untouched modal immediately after
+  // keyboard activation, before any test forcibly scrolls or focuses controls.
+  // Accessible text association is measurable; actual reader comprehension is not.
+  const firstContact=await ux.evaluate(()=>{
+    const overlay=document.querySelector('#wrong-backup-confirm');
+    const dialog=overlay.querySelector('[role="dialog"]');
+    const title=document.querySelector('#wrong-backup-title');
+    const warning=document.querySelector('#wrong-backup-description');
+    const cancel=document.querySelector('#wrong-backup-cancel');
+    const save=document.querySelector('#wrong-backup-continue');
+    const frame=overlay.getBoundingClientRect();
+    const visibleStart=el=>{
+      const r=el.getBoundingClientRect();
+      return r.top>=Math.max(0,frame.top)-1&&r.top<Math.min(innerHeight,frame.bottom)
+        &&r.bottom>Math.max(0,frame.top)&&r.left>=0&&r.right<=innerWidth;
+    };
+    return {focus:document.activeElement?.id,overlayTop:overlay.scrollTop,
+      titleVisible:visibleStart(title),warningStartVisible:visibleStart(warning),
+      labelledBy:dialog.getAttribute('aria-labelledby'),
+      describedBy:dialog.getAttribute('aria-describedby'),
+      isModal:dialog.getAttribute('aria-modal'),
+      warningBeforeSave:!!(warning.compareDocumentPosition(save)&Node.DOCUMENT_POSITION_FOLLOWING),
+      warningBeforeCancel:!!(warning.compareDocumentPosition(cancel)&Node.DOCUMENT_POSITION_FOLLOWING),
+      mentionsPlaintext:warning.textContent.includes('비밀번호로 보호되지'),
+      mentionsPhotos:warning.textContent.includes('사진'),
+      mentionsGuardian:warning.textContent.includes('부모 메모'),
+      mentionsRestoreLimit:warning.textContent.includes('복원 성공을 보장하지')};
+  });
+  report['backupFirstContactZoom200_'+width]=firstContact;
+  check('Keyboard opening shows linked plaintext photo and parent warning before backup controls at '+width+'px CSS200',
+    firstContact.focus==='wrong-backup-cancel'&&firstContact.overlayTop===0
+    &&firstContact.titleVisible&&firstContact.warningStartVisible
+    &&firstContact.labelledBy==='wrong-backup-title'
+    &&firstContact.describedBy==='wrong-backup-description'
+    &&firstContact.isModal==='true'&&firstContact.warningBeforeSave
+    &&firstContact.warningBeforeCancel&&firstContact.mentionsPlaintext
+    &&firstContact.mentionsPhotos&&firstContact.mentionsGuardian
+    &&firstContact.mentionsRestoreLimit&&uxDownloads===1);
   // User-operable keyboard-only test: evaluate PageDown BEFORE Tab changes scroll.
   // Never mistake Tab's focus scroll for PageDown's native visibility.
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
