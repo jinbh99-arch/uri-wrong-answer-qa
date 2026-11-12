@@ -55,6 +55,17 @@ try{
  await a.reload();await b.reload();
  check('A source persists after reload',JSON.stringify(await snapshot(a))===JSON.stringify(before));
  check('B remains empty after reload',JSON.stringify(await snapshot(b))===JSON.stringify(isolated));
+ // S-01: A browser's storage is keyed by origin, NOT path. Positive risk evidence,
+ // not a permission/access-control success or a supported migration route.
+ const sameOriginOtherPath=await context.newPage();
+ await sameOriginOtherPath.goto(A+'index.html');
+ const sameOriginLedger=await snapshot(sameOriginOtherPath);
+ const sourceStill=await snapshot(a);
+ const s01Shared=JSON.stringify(sameOriginLedger)===JSON.stringify(before);
+ check('S-01 same-origin different-path page CAN access same record and photo without changing source',
+   s01Shared&&JSON.stringify(sourceStill)===JSON.stringify(before));
+ report.s01SameOriginPathShared=s01Shared; // true is an exposure risk, not privacy protection
+ await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
 }catch(e){report.error=String(e.stack||e);process.exitCode=1}
 finally{await browser.close();console.log('WRONG_ORIGIN_SYNTHETIC_RESULT='+JSON.stringify(report))}
