@@ -164,6 +164,7 @@ try{
   });
   report['backupZoom200_'+width]=zoomView;
   zoomOverflowFound ||= zoomView.scrollWidth>zoomView.viewport;
+  check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
     zoomView.controlsInWidth&&zoomView.warningVisible);
   await ux.keyboard.press('Escape');
