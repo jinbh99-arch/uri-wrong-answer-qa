@@ -203,7 +203,7 @@ try{
   const back=await ux.evaluate(()=>{
    const e=document.querySelector('#nav-concepts'),nav=e.closest('nav'),
      er=e.getBoundingClientRect(),nr=nav.getBoundingClientRect();
-   return {focused:document.activeElement===e,visible:er.left>=Math.max(0,nr.left)-1&&er.right<=Math.min(innerWidth,nr.right)+1};
+   return {focused:document.activeElement===e,visible:er.left>=Math.max(0,nr.left)-1&&er.right<=Math.min(innerWidth,nr.right)+1,scrollLeft:nav.scrollLeft,left:er.left,right:er.right,navLeft:nr.left,navRight:nr.right};
   });
   report['navKeyboardZoom200_'+width]={order,settingsReachable,...navMetrics,opened,back};
   check('Keyboard Tab/Enter reaches and reveals settings in scrolling nav at '+width+'px CSS200',
