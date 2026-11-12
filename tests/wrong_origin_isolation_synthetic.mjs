@@ -65,6 +65,26 @@ try{
  check('S-01 same-origin different-path page CAN access same record and photo without changing source',
    s01Shared&&JSON.stringify(sourceStill)===JSON.stringify(before));
  report.s01SameOriginPathShared=s01Shared; // true is an exposure risk, not privacy protection
+ // Backup consent: opening the plaintext-export gate must not itself download.
+ // Cancel and Escape are both explicit no-export paths; synthetic page only.
+ const backupButton=sameOriginOtherPath.locator('#export-json');
+ await backupButton.waitFor({state:'attached'});
+ let downloads=0;
+ sameOriginOtherPath.on('download',()=>downloads++);
+ await backupButton.click();
+ const gate=sameOriginOtherPath.locator('#wrong-backup-confirm');
+ await gate.waitFor({state:'visible'});
+ const warning=await gate.locator('#wrong-backup-description').innerText();
+ const warningPresent=warning.includes('암호화')&&warning.includes('사진')&&warning.includes('복원 성공을 보장하지');
+ await gate.locator('#wrong-backup-cancel').click();
+ const cancelled=await gate.isHidden();
+ await backupButton.click();
+ await gate.waitFor({state:'visible'});
+ await sameOriginOtherPath.keyboard.press('Escape');
+ const escaped=await gate.isHidden();
+ check('Plaintext backup gate warns before download; cancel and Escape create no download',
+   warningPresent&&cancelled&&escaped&&downloads===0);
+ report.backupCancelDownloads=downloads;
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
 }catch(e){report.error=String(e.stack||e);process.exitCode=1}
