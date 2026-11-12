@@ -98,6 +98,21 @@ try{
  const realBackup=ux.locator('#export-json');
  await realBackup.waitFor({state:'visible'});
  const settingsVisible=await realBackup.isVisible();
+ const plaintextRisk=await ux.evaluate(()=>{
+  const notice=document.querySelector('#wrong-backup-risk');
+  const trigger=document.querySelector('#export-json');
+  const text=notice?.textContent||'';
+  return {present:!!notice,priorToDownload:!!(notice&&trigger&&(notice.compareDocumentPosition(trigger)&Node.DOCUMENT_POSITION_FOLLOWING)),
+   namesPhotos:text.includes('사진'),namesGuardianNotes:text.includes('부모 메모'),
+   saysUnencrypted:text.includes('암호화되지'),namesSharedDownloads:text.includes('공유기기 다운로드 폴더'),
+   namesCloudSync:text.includes('클라우드 자동 동기화')};
+ });
+ report.plaintextRiskBeforeDownload=plaintextRisk;
+ check('Plaintext backup risk is disclosed beside export before download',
+  plaintextRisk.present&&plaintextRisk.priorToDownload&&plaintextRisk.namesPhotos&&
+  plaintextRisk.namesGuardianNotes&&plaintextRisk.saysUnencrypted&&
+  plaintextRisk.namesSharedDownloads&&plaintextRisk.namesCloudSync);
+
  await realBackup.focus();
  const triggerFocused=await ux.evaluate(()=>document.activeElement?.id==='export-json');
  const uxBefore=await snapshot(ux);
