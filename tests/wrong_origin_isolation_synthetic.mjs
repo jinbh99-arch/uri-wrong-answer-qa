@@ -32,7 +32,7 @@ try{
  await a.evaluate(async ({dbName,bytes})=>{
   const req=indexedDB.open(dbName);
   const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
-  await new Promise((resolve,reject)=>{const tx=db.transaction(['mistakes','photos'],'readwrite');tx.objectStore('mistakes').put({id:'synthetic-1',problemText:'가상 오답',childExplanation:'가상 아이 설명',guardianObservation:'가상 부모 관찰',rechecked:false});tx.objectStore('photos').put(new Blob([new Uint8Array(bytes)],{type:'image/png'}),'synthetic-1');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  await new Promise((resolve,reject)=>{const tx=db.transaction(['mistakes','photos'],'readwrite');tx.objectStore('mistakes').put({id:'synthetic-1',problemText:'가상 오답',childExplanation:'가상 아이 설명',guardianObservation:'가상 부모 관찰',rechecked:false},'synthetic-1');tx.objectStore('photos').put(new Blob([new Uint8Array(bytes)],{type:'image/png'}),'synthetic-1');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
   db.close();
  },{dbName:DB,bytes:Array.from(photo)});
  const before=await snapshot(a);
@@ -46,7 +46,7 @@ try{
  const aborted=await b.evaluate(async dbName=>{
   const req=indexedDB.open(dbName);
   const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
-  const result=await new Promise(resolve=>{const tx=db.transaction('mistakes','readwrite');tx.objectStore('mistakes').put({id:'partial',problemText:'incomplete'});tx.abort();tx.onabort=()=>resolve(true);tx.onerror=()=>resolve(false)});
+  const result=await new Promise(resolve=>{const tx=db.transaction('mistakes','readwrite');tx.objectStore('mistakes').put({id:'partial',problemText:'incomplete'},'partial');tx.abort();tx.onabort=()=>resolve(true);tx.onerror=()=>resolve(false)});
   db.close();return result;
  },DB);
  check('B interrupted transaction abort observed',aborted);
