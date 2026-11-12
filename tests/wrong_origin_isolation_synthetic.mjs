@@ -317,6 +317,53 @@ try{
    familyLab.collisionPreserves&&familyLab.deleted);
  check('Prototype remains explicitly not operational authentication or safe restore',
    !familyLab.productionIntegration&&!familyLab.liveFamilyAccessControl&&!familyLab.safeToRestore);
+ // Actual app UI synthetic photo+text+guardian note flow, in separate blank QA browser context.
+ // Valid public-domain 1x1 PNG fixture, never a person's image.
+ const imageBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
+ await ux.locator('#v08-direct-file').setInputFiles({name:'synthetic-one-pixel.png',mimeType:'image/png',buffer:imageBytes});
+ await ux.waitForFunction(()=>document.querySelector('#v08-photo-ready')?.textContent?.includes('사진 선택 완료'),null,{timeout:15000});
+ await ux.locator('#problem').fill('가상 수학 문제: 1/2 + 1/3');
+ await ux.locator('#student-answer').fill('가상 아이가 적은 답: 2/5');
+ await ux.locator('#memo').fill('가상 보호자 관찰: 풀이를 다시 설명하도록 요청');
+ await ux.locator('#save-btn').click();
+ await ux.locator('#v09-save-confirm').waitFor({state:'visible',timeout:20000});
+ const actualAppBefore=await snapshot(ux);
+ const uiRec=actualAppBefore.records[0];
+ const appSaveValid=actualAppBefore.records.length===1&&actualAppBefore.photos.length===1
+  &&actualAppBefore.photos[0].length>0
+  &&uiRec?.problemText?.includes('가상 수학 문제')
+  &&uiRec?.studentAnswer?.includes('가상 아이가 적은 답')
+  &&uiRec?.memo?.includes('가상 보호자 관찰');
+ report.realUiSyntheticSave={records:actualAppBefore.records.length,
+   photos:actualAppBefore.photos.length,photoBytes:actualAppBefore.photos[0]?.length||0,
+   hasStudentAnswer:Boolean(uiRec?.studentAnswer),hasGuardianNote:Boolean(uiRec?.memo)};
+ check('Real app UI saves synthetic photo, text, answer and guardian note together',appSaveValid);
+ await ux.reload();
+ check('Real app UI synthetic record and photo persist byte-for-byte after reload',
+  JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore));
+ await ux.locator('#nav-settings').click();
+ const realGate=ux.locator('#wrong-backup-confirm'),realExport=ux.locator('#export-json');
+ let postSaveDownloads=0;
+ ux.on('download',()=>postSaveDownloads++);
+ await realExport.click();
+ await realGate.waitFor({state:'visible'});
+ await ux.locator('#wrong-backup-cancel').click();
+ const cancelledLedger=JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore);
+ await realExport.click();await realGate.waitFor({state:'visible'});
+ await ux.keyboard.press('Escape');
+ const escapedLedger=JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore);
+ const priorDownloadCount=postSaveDownloads;
+ await realExport.click();await realGate.waitFor({state:'visible'});
+ const liveSave=ux.waitForEvent('download',{timeout:15000}).catch(()=>null);
+ await ux.locator('#wrong-backup-continue').click();
+ const downloadAfterData=await liveSave;
+ if(downloadAfterData)await downloadAfterData.failure().catch(()=>null);
+ const savedLedger=JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore);
+ report.realUiBackupWithPhoto={downloads:postSaveDownloads,priorDownloadCount,
+  cancelledLedger,escapedLedger,savedLedger,filename:downloadAfterData?.suggestedFilename()||null};
+ check('Real UI cancel/Escape make zero downloads, explicit plaintext save exactly one without photo or note loss',
+  cancelledLedger&&escapedLedger&&savedLedger&&priorDownloadCount===0
+  &&Boolean(downloadAfterData)&&postSaveDownloads===1);
  check('Mobile layout inspection and isolated app drills do not mutate source record/photo',
     JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
  await uxContext.close();
