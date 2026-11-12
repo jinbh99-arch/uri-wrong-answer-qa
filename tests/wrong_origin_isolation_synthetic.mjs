@@ -186,6 +186,30 @@ try{
   check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
     zoomView.controlsInWidth&&zoomView.warningVisible);
+  // Independent keyboard-only reachability probe: no scripted scroll-to-bottom.
+  // The baseline reset is setup; all subsequent movement is real key input.
+  await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
+  const keyboardStart=await ux.locator('#wrong-backup-confirm').evaluate(el=>({top:el.scrollTop,height:el.clientHeight,total:el.scrollHeight}));
+  await ux.locator('#wrong-backup-cancel').focus();
+  const keyboardPositions=[];
+  for(let step=0;step<8;step++){
+    await ux.keyboard.press('PageDown');
+    keyboardPositions.push(await ux.locator('#wrong-backup-confirm').evaluate(el=>el.scrollTop));
+  }
+  const keyboardEnd=await ux.evaluate(()=>{
+    const d=document.querySelector('#wrong-backup-confirm'),w=document.querySelector('#wrong-backup-description');
+    const c=document.querySelector('#wrong-backup-cancel'),p=document.querySelector('#wrong-backup-continue');
+    const visible=el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight};
+    return {top:d.scrollTop,cancelVisible:visible(c),saveVisible:visible(p),
+      focus:document.activeElement?.id,warningText:w.textContent?.trim().length||0,
+      warningBeforeButtons:!!(w.compareDocumentPosition(c)&Node.DOCUMENT_POSITION_FOLLOWING)};
+  });
+  report['backupKeyboardOnlyZoom200_'+width]={keyboardStart,keyboardPositions,keyboardEnd};
+  await ux.screenshot({path:evidenceDir+'/backup-keyonly-zoom200-'+width+'.png'});
+  check('PageDown keyboard-only scroll reveals both backup actions at '+width+'px CSS200',
+    keyboardEnd.top>keyboardStart.top&&keyboardEnd.cancelVisible&&keyboardEnd.saveVisible
+    &&keyboardEnd.focus==='wrong-backup-cancel'&&keyboardEnd.warningText>0&&keyboardEnd.warningBeforeButtons);
+  await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
   // Targeted vertical keyboard audit: a horizontal-fit check cannot establish
   // that a 200%-zoom warning and its actions are reachable in a short viewport.
   const vertical=await ux.evaluate(()=>{
