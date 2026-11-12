@@ -4740,6 +4740,13 @@ $('wrong-child-next-all').addEventListener('click',()=>{
  const focusable=[cancel,proceed];
  overlay.addEventListener('keydown',e=>{
   if(e.key==='Escape'){e.preventDefault();close();return}
+  // 200% zoom can send PageDown to the background instead of this fixed dialog.
+  // Route it to the visible warning; never touch saved records or production state.
+  if(e.key==='PageDown'||e.key==='PageUp'){
+   e.preventDefault();
+   overlay.scrollTop+=(e.key==='PageDown'?1:-1)*Math.max(90,Math.round(overlay.clientHeight*.8));
+   return;
+  }
   if(e.key==='Tab'){const i=focusable.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();proceed.focus()}else if(!e.shiftKey&&i===focusable.length-1){e.preventDefault();cancel.focus()}}
  });
  cancel.addEventListener('click',close);
