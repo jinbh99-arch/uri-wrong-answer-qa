@@ -171,6 +171,50 @@ try{
   await ux.evaluate(()=>{document.body.style.zoom=''});
  }
  report.cssZoom200PageOverflowFound=zoomOverflowFound;
+ // Reuse existing app's isolated-IDB destructive-failure and backup/restore drills.
+ // These only touch temporary test databases and never production records.
+ await ux.locator('#nav-settings').click();
+ await ux.locator('#v21-app-guard-details > summary').click();
+ const drills=[
+  {button:'v21-app-rollback-run',status:'v21-app-rollback-result',required:'보존'},
+  {button:'v21-app-guard-run',status:'v21-app-guard-result',required:'통과'},
+  {button:'v24-restore-guard-run',status:'v24-restore-guard-result',required:'통과'},
+  {button:'v210-backup-drill-run',status:'v210-backup-drill-result',required:'8/8'},
+  {button:'v212-mixed-drill-run',status:'v212-mixed-drill-result',required:'검사 통과'},
+ ];
+ report.isolatedAppDrills=[];
+ for(const d of drills){
+  await ux.locator('#'+d.button).click();
+  await ux.waitForFunction(id=>{const t=document.getElementById(id)?.textContent?.trim()||'';
+    return t.startsWith('✅')||t.startsWith('⛔')},d.status,{timeout:45000});
+  const value=(await ux.locator('#'+d.status).innerText()).trim();
+  report.isolatedAppDrills.push({name:d.button,result:value.slice(0,220)});
+  check('Existing isolated app drill '+d.button+' passes',value.startsWith('✅')&&value.includes(d.required));
+ }
+ check('Existing app drills leave user-facing ledger/photo unchanged',
+   JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
+ // New responsive coverage on real input fields and save/cancel CTAs; no submission.
+ await ux.locator('#nav-add').click();
+ for(const width of [320,390]){
+  await ux.setViewportSize({width,height:844});
+  for(const zoom of ['','200%']){
+   await ux.evaluate(z=>{document.body.style.zoom=z},zoom);
+   const metrics=await ux.evaluate(()=>{
+    const selectors=['#problem','#student-answer','#memo','#save-btn','#cancel-edit'];
+    const controls=selectors.map(s=>{
+      const el=document.querySelector(s),r=el.getBoundingClientRect(),st=getComputedStyle(el);
+      return {selector:s,visible:st.display!=='none'&&r.width>0,left:r.left,right:r.right};
+    });
+    return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls};
+   });
+   report['addForm'+width+'Zoom'+(zoom||'100')]=metrics;
+   check('Responsive add form at '+width+'px / '+(zoom||'100%')+' zoom',
+    metrics.scrollWidth<=metrics.viewport&&metrics.controls.every(x=>x.visible&&x.left>=0&&x.right<=metrics.viewport));
+  }
+ }
+ await ux.evaluate(()=>{document.body.style.zoom=''});
+ check('Mobile layout inspection and isolated app drills do not mutate source record/photo',
+    JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
  await uxContext.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
