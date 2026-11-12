@@ -4757,6 +4757,12 @@ $('wrong-child-next-all').addEventListener('click',()=>{
  };
 })();
 </script>
+<!-- WRONG isolated QA keyboard fix: mobile nav labels wrap rather than exceed visible width at CSS200. -->
+<style>
+@media(max-width:680px){
+ nav button{white-space:normal;overflow-wrap:anywhere;max-width:135px;flex-shrink:0;line-height:1.4}
+}
+</style>
 <!-- WRONG isolated QA keyboard fix: focus-visible tab must scroll into nav clip at CSS200. -->
 <script>
 (()=>{
