@@ -2,11 +2,14 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 const A='http://127.0.0.1:4173/', B='http://127.0.0.1:4174/';
 const DB='uriaimath-github-qa-v224-only';
 const photo=new Uint8Array([137,80,78,71,13,10,26,10,0,1,2,3,4]);
 const expectedHash=createHash('sha256').update(photo).digest('hex');
 const report={scope:'synthetic loopback origin boundary',safeToRestore:false,realPersons:0,realPhotos:0,operationalWrites:0,checks:[],status:'FAIL'};
+const evidenceDir='artifacts/wrong-origin-qa';
+mkdirSync(evidenceDir,{recursive:true});
 const check=(label,ok)=>{assert.ok(ok,label);report.checks.push(label)};
 const openDb=async (page)=>page.evaluate(async dbName=>{
  const r=indexedDB.open(dbName,1);
@@ -163,6 +166,7 @@ try{
      warningVisible:d.getBoundingClientRect().top<innerHeight};
   });
   report['backupZoom200_'+width]=zoomView;
+  await ux.screenshot({path:evidenceDir+'/backup-zoom200-'+width+'.png'});
   zoomOverflowFound ||= zoomView.scrollWidth>zoomView.viewport;
   check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
@@ -208,6 +212,7 @@ try{
     return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,controls};
    });
    report['addForm'+width+'Zoom'+(zoom||'100')]=metrics;
+   if(zoom==='200%')await ux.screenshot({path:evidenceDir+'/add-form-zoom200-'+width+'.png'});
    check('Responsive add form at '+width+'px / '+(zoom||'100%')+' zoom',
     metrics.scrollWidth<=metrics.viewport&&metrics.controls.every(x=>x.visible&&x.left>=0&&x.right<=metrics.viewport));
   }
@@ -372,4 +377,4 @@ try{
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
 }catch(e){report.error=String(e.stack||e);process.exitCode=1}
-finally{await browser.close();console.log('WRONG_ORIGIN_SYNTHETIC_RESULT='+JSON.stringify(report))}
+finally{await browser.close();writeFileSync(evidenceDir+'/result.json',JSON.stringify(report,null,2));console.log('WRONG_ORIGIN_SYNTHETIC_RESULT='+JSON.stringify(report))}
