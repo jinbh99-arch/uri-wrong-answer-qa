@@ -224,6 +224,22 @@ try{
     &&firstContact.warningBeforeCancel&&firstContact.mentionsPlaintext
     &&firstContact.mentionsPhotos&&firstContact.mentionsGuardian
     &&firstContact.mentionsRestoreLimit&&uxDownloads===1);
+  // Independent accessibility-tree association: an ARIA attribute alone does not
+  // establish that the warning is exposed to assistive technology.
+  const dialogAccessibility=await ux.locator('#wrong-backup-confirm [role="dialog"]').ariaSnapshot();
+  const accessibleDisclosure={
+    treeHasTitle:dialogAccessibility.includes('백업'),
+    treeHasPhotoRisk:dialogAccessibility.includes('사진'),
+    treeHasGuardianRisk:dialogAccessibility.includes('부모 메모'),
+    treeHasPlaintextRisk:dialogAccessibility.includes('비밀번호로 보호되지'),
+    comprehensionVerified:false,
+    screenReaderVerified:false
+  };
+  report['backupAccessibleDisclosureZoom200_'+width]=accessibleDisclosure;
+  check('Dialog accessibility tree exposes plaintext, photo and guardian warning at '+width+'px CSS200',
+    accessibleDisclosure.treeHasTitle&&accessibleDisclosure.treeHasPhotoRisk
+    &&accessibleDisclosure.treeHasGuardianRisk&&accessibleDisclosure.treeHasPlaintextRisk
+    &&!accessibleDisclosure.comprehensionVerified&&!accessibleDisclosure.screenReaderVerified);
   // User-operable keyboard-only test: evaluate PageDown BEFORE Tab changes scroll.
   // Never mistake Tab's focus scroll for PageDown's native visibility.
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
