@@ -142,6 +142,24 @@ try{
   report['backupViewport'+width]=view;
   check('Backup warning and controls fit '+width+'px viewport',view.scrollWidth<=view.viewport&&view.buttonsVisible&&view.dialogVisible);
   await ux.keyboard.press('Escape');
+  // CSS 200% emulation is not a physical device/browser zoom certification.
+  await ux.evaluate(()=>{document.body.style.zoom='200%'});
+  await realBackup.focus();await ux.keyboard.press('Enter');
+  await dialog.waitFor({state:'visible'});
+  const zoomView=await ux.evaluate(()=>{
+   const d=document.querySelector('#wrong-backup-confirm');
+   const c=document.querySelector('#wrong-backup-cancel');
+   const p=document.querySelector('#wrong-backup-continue');
+   const buttons=[c,p].map(x=>{const r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}});
+   return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+     controlsInWidth:buttons.every(r=>r.left>=0&&r.right<=innerWidth),
+     warningVisible:d.getBoundingClientRect().top<innerHeight};
+  });
+  report['backupZoom200_'+width]=zoomView;
+  check('Backup warning and controls fit CSS 200% at '+width+'px',
+    zoomView.scrollWidth<=zoomView.viewport&&zoomView.controlsInWidth&&zoomView.warningVisible);
+  await ux.keyboard.press('Escape');
+  await ux.evaluate(()=>{document.body.style.zoom=''});
  }
  await uxContext.close();
  await sameOriginOtherPath.close();
