@@ -123,9 +123,10 @@ try{
  const saved=await explicitDownload;
  if(saved){await saved.failure().catch(()=>null)}
  const explicitUnchanged=JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore);
+ const exportUi=await ux.evaluate(()=>({banner:document.querySelector('#storage-banner')?.textContent?.slice(0,250),status:document.querySelector('#status')?.textContent?.slice(0,250),notify:document.querySelector('#toast')?.textContent?.slice(0,250)}));
+ report.explicitBackup={downloads:uxDownloads,fileName:saved?.suggestedFilename()||null,sourceUnchanged:explicitUnchanged,exportUi};
  check('Explicit plaintext export starts one synthetic download without changing source record and photo',
   Boolean(saved)&&uxDownloads===1&&explicitUnchanged);
- report.explicitBackup={downloads:uxDownloads,fileName:saved?.suggestedFilename()||null,sourceUnchanged:explicitUnchanged};
  for(const width of [320,390]){
   await ux.setViewportSize({width,height:844});
   await realBackup.focus();await ux.keyboard.press('Enter');
