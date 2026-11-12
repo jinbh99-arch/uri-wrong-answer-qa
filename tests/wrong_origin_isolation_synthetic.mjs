@@ -190,12 +190,28 @@ try{
   // The baseline reset is setup; all subsequent movement is real key input.
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
   const keyboardStart=await ux.locator('#wrong-backup-confirm').evaluate(el=>({top:el.scrollTop,height:el.clientHeight,total:el.scrollHeight}));
-  await ux.locator('#wrong-backup-cancel').focus();
+  // Observe natural focus and scroll owners; never inject a focus state as proof.
+  const keyboardInitial=await ux.evaluate(()=>({
+    focus:document.activeElement?.id,
+    bodyTop:document.scrollingElement?.scrollTop||0,
+    overlayTop:document.querySelector('#wrong-backup-confirm').scrollTop,
+    dialogTop:document.querySelector('.wrong-backup-dialog')?.scrollTop||0
+  }));
   const keyboardPositions=[];
   for(let step=0;step<8;step++){
     await ux.keyboard.press('PageDown');
-    keyboardPositions.push(await ux.locator('#wrong-backup-confirm').evaluate(el=>el.scrollTop));
+    keyboardPositions.push(await ux.evaluate(()=>({
+      overlay:document.querySelector('#wrong-backup-confirm').scrollTop,
+      body:document.scrollingElement?.scrollTop||0,
+      dialog:document.querySelector('.wrong-backup-dialog')?.scrollTop||0,
+      focus:document.activeElement?.id
+    })));
   }
+  // Tab is a separate real keyboard route, not a scripted scroll shortcut.
+  await ux.keyboard.press('Tab');
+  const tabFocus=await ux.evaluate(()=>document.activeElement?.id);
+  await ux.keyboard.press('Shift+Tab');
+  const reverseTabFocus=await ux.evaluate(()=>document.activeElement?.id);
   const keyboardEnd=await ux.evaluate(()=>{
     const d=document.querySelector('#wrong-backup-confirm'),w=document.querySelector('#wrong-backup-description');
     const c=document.querySelector('#wrong-backup-cancel'),p=document.querySelector('#wrong-backup-continue');
@@ -204,7 +220,7 @@ try{
       focus:document.activeElement?.id,warningText:w.textContent?.trim().length||0,
       warningBeforeButtons:!!(w.compareDocumentPosition(c)&Node.DOCUMENT_POSITION_FOLLOWING)};
   });
-  report['backupKeyboardOnlyZoom200_'+width]={keyboardStart,keyboardPositions,keyboardEnd};
+  report['backupKeyboardOnlyZoom200_'+width]={keyboardStart,keyboardInitial,keyboardPositions,tabFocus,reverseTabFocus,keyboardEnd};
   await ux.screenshot({path:evidenceDir+'/backup-keyonly-zoom200-'+width+'.png'});
   check('PageDown keyboard-only scroll reveals both backup actions at '+width+'px CSS200',
     keyboardEnd.top>keyboardStart.top&&keyboardEnd.cancelVisible&&keyboardEnd.saveVisible
