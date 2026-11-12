@@ -1,0 +1,39 @@
+name: WRONG synthetic cross-origin record preservation
+on:
+  push:
+    branches: ['qa/wrong-origin-isolation-synthetic-20261112']
+    paths:
+      - 'tests/wrong_origin_isolation_synthetic.mjs'
+      - '.github/workflows/wrong-origin-isolation-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-origin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/wrong_origin_isolation_synthetic.mjs
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start two isolated loopback origins
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-a.log 2>&1 &
+          python3 -m http.server 4174 --bind 127.0.0.1 >/tmp/wrong-b.log 2>&1 &
+          for port in 4173 4174; do
+            for i in 1 2 3 4 5; do
+              curl --fail -s "http://127.0.0.1:$port/" >/dev/null && break
+              sleep 1
+            done
+            curl --fail -s "http://127.0.0.1:$port/" >/dev/null
+          done
+      - name: Probe synthetic source/target origin and rollback
+        run: node tests/wrong_origin_isolation_synthetic.mjs
+# Never use real family photos, live DB, public origin, or deployment.
