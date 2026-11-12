@@ -239,6 +239,22 @@ try{
   check('Tab and Shift+Tab reveal actual focused backup controls at '+width+'px CSS200',
     tabFocus==='wrong-backup-continue'&&reverseTabFocus==='wrong-backup-cancel'
     &&afterTab.saveVisible&&afterReverseTab.cancelVisible);
+  // PageUp must return to the warning with native key input, preserving the
+  // background scroll position and not starting an accidental download.
+  await ux.keyboard.press('PageUp');
+  await ux.keyboard.press('PageUp');
+  const returnedToWarning=await ux.evaluate(()=>{
+    const d=document.querySelector('#wrong-backup-confirm'),w=document.querySelector('#wrong-backup-description');
+    const r=w.getBoundingClientRect(),c=d.getBoundingClientRect();
+    return {overlayTop:d.scrollTop,bodyTop:document.scrollingElement?.scrollTop||0,
+      warningVisible:r.top<innerHeight&&r.bottom>0&&r.bottom>c.top&&r.top<c.bottom,
+      focused:document.activeElement?.id};
+  });
+  report['backupKeyboardReturnToWarningZoom200_'+width]=returnedToWarning;
+  await ux.screenshot({path:evidenceDir+'/backup-pageup-return-warning-'+width+'.png'});
+  check('PageUp returns to first warning without background scroll or download at '+width+'px CSS200',
+    returnedToWarning.overlayTop===0&&returnedToWarning.bodyTop===keyboardStart.bodyTop
+    &&returnedToWarning.warningVisible&&returnedToWarning.focused==='wrong-backup-cancel');
   await ux.locator('#wrong-backup-confirm').evaluate(el=>{el.scrollTop=0});
   // Targeted vertical keyboard audit: a horizontal-fit check cannot establish
   // that a 200%-zoom warning and its actions are reachable in a short viewport.
