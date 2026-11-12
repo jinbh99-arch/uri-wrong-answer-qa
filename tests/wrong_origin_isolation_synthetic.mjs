@@ -235,6 +235,9 @@ try{
     comprehensionVerified:false,
     screenReaderVerified:false
   };
+  // Preserve the actual synthetic accessibility tree for failure diagnosis.
+  // Never infer real screen-reader speech or user comprehension from this snapshot.
+  report['backupAccessibilityTreeZoom200_'+width]=dialogAccessibility;
   report['backupAccessibleDisclosureZoom200_'+width]=accessibleDisclosure;
   check('Dialog accessibility tree exposes plaintext, photo and guardian warning at '+width+'px CSS200',
     accessibleDisclosure.treeHasTitle&&accessibleDisclosure.treeHasPhotoRisk
