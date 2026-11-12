@@ -317,6 +317,8 @@ try{
    familyLab.collisionPreserves&&familyLab.deleted);
  check('Prototype remains explicitly not operational authentication or safe restore',
    !familyLab.productionIntegration&&!familyLab.liveFamilyAccessControl&&!familyLab.safeToRestore);
+ check('Mobile layout inspection and isolated app drills do not mutate source record/photo',
+    JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
  // Actual app UI synthetic photo+text+guardian note flow, in separate blank QA browser context.
  // Valid public-domain 1x1 PNG fixture, never a person's image.
  const imageBytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
@@ -364,8 +366,8 @@ try{
  check('Real UI cancel/Escape make zero downloads, explicit plaintext save exactly one without photo or note loss',
   cancelledLedger&&escapedLedger&&savedLedger&&priorDownloadCount===0
   &&Boolean(downloadAfterData)&&postSaveDownloads===1);
- check('Mobile layout inspection and isolated app drills do not mutate source record/photo',
-    JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
+ check('Real app synthetic photo and guardian note remain unchanged after export',
+    JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore));
  await uxContext.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
