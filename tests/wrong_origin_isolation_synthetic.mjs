@@ -152,7 +152,13 @@ try{
    const c=document.querySelector('#wrong-backup-cancel');
    const p=document.querySelector('#wrong-backup-continue');
    const buttons=[c,p].map(x=>{const r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}});
-   return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+   const offenders=[...document.querySelectorAll('body *')].map(el=>{
+      const r=el.getBoundingClientRect(),st=getComputedStyle(el);
+      return {tag:el.tagName,id:el.id,cls:String(el.className||'').slice(0,45),
+       left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width),display:st.display};
+    }).filter(x=>x.display!=='none'&&x.width>0&&x.right>innerWidth+1)
+      .sort((a,b)=>b.right-a.right).slice(0,12);
+   return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,offenders,
      controlsInWidth:buttons.every(r=>r.left>=0&&r.right<=innerWidth),
      warningVisible:d.getBoundingClientRect().top<innerHeight};
   });
