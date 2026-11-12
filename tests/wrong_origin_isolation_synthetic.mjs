@@ -213,6 +213,110 @@ try{
   }
  }
  await ux.evaluate(()=>{document.body.style.zoom=''});
+ // Non-operational privacy and restoration PROTOTYPE only. Never register real families,
+ // implement a deployment key, read user records, or claim approved secure restore.
+ const familyLab=await ux.evaluate(async ({bytes})=>{
+  const encoder=new TextEncoder(),decoder=new TextDecoder();
+  const payload={familyId:'virtual-family-A',id:'synthetic-parent-child-1',problemText:'가상 문제',
+    childExplanation:'가상 아이 설명',guardianObservation:'가상 부모 관찰',photoBytes:bytes};
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const nonce=crypto.getRandomValues(new Uint8Array(12));
+  const keyFor=async password=>{
+   const material=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveKey']);
+   return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:120000,hash:'SHA-256'},
+      material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  };
+  const aad=id=>encoder.encode('isolated-poc-v1:'+id);
+  const key=await keyFor('virtual-A-long-secret-not-production');
+  const sealed=new Uint8Array(await crypto.subtle.encrypt(
+    {name:'AES-GCM',iv:nonce,additionalData:aad(payload.familyId)},key,
+    encoder.encode(JSON.stringify(payload))));
+  const reveal=async(pass,family,blob)=>{
+    const k=await keyFor(pass);
+    const pt=await crypto.subtle.decrypt(
+      {name:'AES-GCM',iv:nonce,additionalData:aad(family)},k,blob);
+    return JSON.parse(decoder.decode(pt));
+  };
+  const accepted=await reveal('virtual-A-long-secret-not-production',payload.familyId,sealed);
+  const validBytes=JSON.stringify(accepted)===JSON.stringify(payload);
+  const denied=async(pass,family,blob)=>{
+   try{await reveal(pass,family,blob);return false}catch{return true}
+  };
+  const wrongFamilyRejected=await denied('virtual-A-long-secret-not-production','virtual-family-B',sealed);
+  const wrongSecretRejected=await denied('virtual-B-secret','virtual-family-A',sealed);
+  const corrupted=new Uint8Array(sealed);corrupted[corrupted.length-1]^=1;
+  const tamperRejected=await denied('virtual-A-long-secret-not-production',payload.familyId,corrupted);
+  const dbName='wrong-privacy-restore-poc-'+crypto.randomUUID();
+  const req=indexedDB.open(dbName,1);
+  req.onupgradeneeded=()=>{
+    req.result.createObjectStore('mistakes');req.result.createObjectStore('photos');
+  };
+  const db=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)});
+  const transaction=(work)=>{
+   return new Promise((resolve,reject)=>{
+    const tx=db.transaction(['mistakes','photos'],'readwrite');
+    work(tx);
+    tx.oncomplete=()=>resolve('committed');
+    tx.onabort=()=>reject(tx.error||Error('aborted'));
+   });
+  };
+  const read=req=>new Promise((resolve,reject)=>{
+   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+  const snapshot=async()=>{
+   const tx=db.transaction(['mistakes','photos'],'readonly');
+   const [records,photos]=await Promise.all([
+    read(tx.objectStore('mistakes').getAll()),
+    read(tx.objectStore('photos').getAll())]);
+   return JSON.stringify({records,photos:photos.map(p=>Array.from(p))});
+  };
+  await transaction(tx=>{
+   tx.objectStore('mistakes').put({id:'existing-virtual',guardianObservation:'기존 가상 관찰'},'existing-virtual');
+   tx.objectStore('photos').put(new Uint8Array([1,2,3]),'existing-virtual');
+  });
+  const before=await snapshot();
+  // A cancelled import and failed authentication never start a target write.
+  const afterDeniedAndCancelled=await snapshot();
+  const rejectAndCancelPreserve=before===afterDeniedAndCancelled;
+  await transaction(tx=>{
+   tx.objectStore('mistakes').add({...accepted,id:'synthetic-restored'},'synthetic-restored');
+   tx.objectStore('photos').add(new Uint8Array(accepted.photoBytes),'synthetic-restored');
+  });
+  const afterRestore=await snapshot();
+  const parsed=JSON.parse(afterRestore);
+  const restored=parsed.records.length===2&&parsed.photos.length===2
+   &&parsed.records.some(r=>r.id==='synthetic-restored'
+     &&r.childExplanation===payload.childExplanation
+     &&r.guardianObservation===payload.guardianObservation)
+   &&parsed.photos.some(p=>JSON.stringify(p)===JSON.stringify(bytes));
+  let collisionAborted=false;
+  try{await transaction(tx=>{
+    tx.objectStore('mistakes').add({id:'synthetic-restored',problemText:'incomplete'},'synthetic-restored');
+    tx.objectStore('photos').put(new Uint8Array([9,9,9]),'synthetic-restored');
+  })}catch{collisionAborted=true}
+  const collisionPreserves=collisionAborted&&await snapshot()===afterRestore;
+  db.close();
+  const deleted=await new Promise(res=>{
+   const d=indexedDB.deleteDatabase(dbName);d.onsuccess=()=>res(true);
+   d.onerror=()=>res(false);d.onblocked=()=>res(false);
+  });
+  return {validBytes,wrongFamilyRejected,wrongSecretRejected,tamperRejected,
+    rejectAndCancelPreserve,restored,collisionPreserves,deleted,
+    productionIntegration:false,liveFamilyAccessControl:false,safeToRestore:false};
+ },{bytes:Array.from(photo)});
+ report.familyEncryptionRestorePrototype=familyLab;
+ check('Synthetic AES-GCM family-scoped backup decrypt preserves photo, child explanation and parent observation',
+   familyLab.validBytes);
+ check('Synthetic other-family key, wrong secret and tampered backup fail closed',
+   familyLab.wrongFamilyRejected&&familyLab.wrongSecretRejected&&familyLab.tamperRejected);
+ check('Synthetic cancelled/unauthenticated import writes nothing to destination',
+   familyLab.rejectAndCancelPreserve);
+ check('Synthetic verified import preserves records and photo bytes with existing ledger',
+   familyLab.restored);
+ check('Synthetic conflict abort prevents partial import and keeps source records',
+   familyLab.collisionPreserves&&familyLab.deleted);
+ check('Prototype remains explicitly not operational authentication or safe restore',
+   !familyLab.productionIntegration&&!familyLab.liveFamilyAccessControl&&!familyLab.safeToRestore);
  check('Mobile layout inspection and isolated app drills do not mutate source record/photo',
     JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore));
  await uxContext.close();
