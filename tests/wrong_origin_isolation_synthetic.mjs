@@ -85,6 +85,63 @@ try{
  check('Plaintext backup gate warns before download; cancel and Escape create no download',
    warningPresent&&cancelled&&escaped&&downloads===0);
  report.backupCancelDownloads=downloads;
+ // P1: use real visible navigation and keyboard, never a hidden DOM click.
+ const ux=await context.newPage({viewport:{width:390,height:844},acceptDownloads:true});
+ await ux.goto(A);
+ await ux.locator('#nav-settings').focus();
+ const navFocused=await ux.evaluate(()=>document.activeElement?.id==='nav-settings');
+ await ux.keyboard.press('Enter');
+ const realBackup=ux.locator('#export-json');
+ await realBackup.waitFor({state:'visible'});
+ const settingsVisible=await realBackup.isVisible();
+ await realBackup.focus();
+ const triggerFocused=await ux.evaluate(()=>document.activeElement?.id==='export-json');
+ const uxBefore=await snapshot(ux);
+ let uxDownloads=0;
+ ux.on('download',()=>uxDownloads++);
+ await ux.keyboard.press('Enter');
+ const dialog=ux.locator('#wrong-backup-confirm');
+ await dialog.waitFor({state:'visible'});
+ const cancelDefault=await ux.evaluate(()=>document.activeElement?.id==='wrong-backup-cancel');
+ await ux.keyboard.press('Shift+Tab');
+ const reverseWrap=await ux.evaluate(()=>document.activeElement?.id==='wrong-backup-continue');
+ await ux.keyboard.press('Tab');
+ const forwardWrap=await ux.evaluate(()=>document.activeElement?.id==='wrong-backup-cancel');
+ await ux.keyboard.press('Escape');
+ const escapeClosed=await dialog.isHidden();
+ const focusRestored=await ux.evaluate(()=>document.activeElement?.id==='export-json');
+ const cancelUnchanged=JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore);
+ check('Visible settings keyboard navigation, dialog focus trap and Escape restore without data mutation',
+  navFocused&&settingsVisible&&triggerFocused&&cancelDefault&&reverseWrap&&forwardWrap&&escapeClosed&&focusRestored&&cancelUnchanged&&uxDownloads===0);
+ report.keyboardBackup={navFocused,settingsVisible,triggerFocused,cancelDefault,reverseWrap,forwardWrap,escapeClosed,focusRestored,cancelUnchanged,downloadsAfterEscape:uxDownloads};
+ // Separate explicit save. The original export is intentionally plaintext and must
+ // never be interpreted as encrypted or guaranteed-restorable.
+ await realBackup.focus();await ux.keyboard.press('Enter');
+ await dialog.waitFor({state:'visible'});
+ const explicitDownload=ux.waitForEvent('download',{timeout:15000}).catch(()=>null);
+ await ux.locator('#wrong-backup-continue').click();
+ const saved=await explicitDownload;
+ if(saved){await saved.failure().catch(()=>null)}
+ const explicitUnchanged=JSON.stringify(await snapshot(ux))===JSON.stringify(uxBefore);
+ check('Explicit plaintext export starts one synthetic download without changing source record and photo',
+  Boolean(saved)&&uxDownloads===1&&explicitUnchanged);
+ report.explicitBackup={downloads:uxDownloads,fileName:saved?.suggestedFilename()||null,sourceUnchanged:explicitUnchanged};
+ for(const width of [320,390]){
+  await ux.setViewportSize({width,height:844});
+  await realBackup.focus();await ux.keyboard.press('Enter');
+  await dialog.waitFor({state:'visible'});
+  const view=await ux.evaluate(()=>{
+   const d=document.querySelector('#wrong-backup-confirm');
+   const c=document.querySelector('#wrong-backup-cancel');
+   const p=document.querySelector('#wrong-backup-continue');
+   const bounds=[d,c,p].map(x=>{const r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}});
+   return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,buttonsVisible:bounds.slice(1).every(r=>r.right<=innerWidth&&r.left>=0&&r.bottom>0),dialogVisible:bounds[0].top<innerHeight};
+  });
+  report['backupViewport'+width]=view;
+  check('Backup warning and controls fit '+width+'px viewport',view.scrollWidth<=view.viewport&&view.buttonsVisible&&view.dialogVisible);
+  await ux.keyboard.press('Escape');
+ }
+ await ux.close();
  await sameOriginOtherPath.close();
  await context.close();report.status='PASS';
 }catch(e){report.error=String(e.stack||e);process.exitCode=1}
