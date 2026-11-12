@@ -171,7 +171,41 @@ try{
   check('Full-page 200% CSS zoom has no horizontal scroll at '+width+'px',zoomView.scrollWidth<=zoomView.viewport);
   check('Backup modal controls stay inside viewport at CSS 200% and '+width+'px',
     zoomView.controlsInWidth&&zoomView.warningVisible);
-  await ux.keyboard.press('Escape');
+  // Targeted vertical keyboard audit: a horizontal-fit check cannot establish
+  // that a 200%-zoom warning and its actions are reachable in a short viewport.
+  const vertical=await ux.evaluate(()=>{
+    const modal=document.querySelector('#wrong-backup-confirm');
+    const warning=document.querySelector('#wrong-backup-description');
+    const cancel=document.querySelector('#wrong-backup-cancel');
+    const proceed=document.querySelector('#wrong-backup-continue');
+    const rect=el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
+    return {height:innerHeight,initialFocus:document.activeElement?.id,
+      modal:rect(modal),warning:rect(warning),cancel:rect(cancel),proceed:rect(proceed),
+      scrollTop:document.scrollingElement.scrollTop};
+  });
+  await ux.keyboard.press('Shift+Tab');
+  const reverseFocus=await ux.evaluate(()=>document.activeElement?.id);
+  await ux.keyboard.press('Tab');
+  const forwardFocus=await ux.evaluate(()=>document.activeElement?.id);
+  await ux.locator('#wrong-backup-description').evaluate(el=>el.scrollIntoView({block:'start'}));
+  const warningReachable=await ux.evaluate(()=>{
+    const r=document.querySelector('#wrong-backup-description').getBoundingClientRect();
+    return r.bottom>0&&r.top<innerHeight;
+  });
+  await ux.locator('#wrong-backup-cancel').focus();
+  const cancelReachable=await ux.evaluate(()=>{
+    const r=document.querySelector('#wrong-backup-cancel').getBoundingClientRect();
+    return document.activeElement?.id==='wrong-backup-cancel'&&r.bottom>0&&r.top<innerHeight;
+  });
+  await ux.screenshot({path:evidenceDir+'/backup-vertical-keyboard-zoom200-'+width+'.png'});
+  await ux.keyboard.press('Enter');
+  const cancelClosed=await dialog.isHidden();
+  report['backupVerticalKeyboardZoom200_'+width]={...vertical,reverseFocus,forwardFocus,
+    warningReachable,cancelReachable,cancelClosed,downloadCount:uxDownloads};
+  check('Backup CSS200 vertical warning and keyboard cancel remain reachable at '+width+'px',
+    vertical.initialFocus==='wrong-backup-cancel'
+    &&reverseFocus==='wrong-backup-continue'&&forwardFocus==='wrong-backup-cancel'
+    &&warningReachable&&cancelReachable&&cancelClosed&&uxDownloads===1);
   await ux.evaluate(()=>{document.body.style.zoom=''});
  }
  report.cssZoom200PageOverflowFound=zoomOverflowFound;
