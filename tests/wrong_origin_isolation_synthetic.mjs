@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 const A='http://127.0.0.1:4173/', B='http://127.0.0.1:4174/';
 const DB='uriaimath-github-qa-v224-only';
 const photo=new Uint8Array([137,80,78,71,13,10,26,10,0,1,2,3,4]);
@@ -405,6 +405,32 @@ try{
  const downloadAfterData=await liveSave;
  if(downloadAfterData)await downloadAfterData.failure().catch(()=>null);
  const savedLedger=JSON.stringify(await snapshot(ux))===JSON.stringify(actualAppBefore);
+ // Independent QA: read the actually downloaded plaintext JSON, not only the browser's
+ // download event. This proves synthetic record/photo byte preservation AND exposure risk.
+ let plaintextAudit={readable:false,recordIdentical:false,photoBytesIdentical:false,
+   guardianNoteVisible:false,studentAnswerVisible:false,unencryptedWarning:false};
+ if(downloadAfterData){
+  const downloaded=readFileSync(await downloadAfterData.path(),'utf8');
+  const payload=JSON.parse(downloaded);
+  const rec=Array.isArray(payload.records)?payload.records.find(r=>r.id===uiRec.id):null;
+  const dataUri=payload.photos?.[uiRec.id];
+  const rawPhoto=typeof dataUri==='string'&&/^data:image\\/(?:png|jpeg|webp);base64,/.test(dataUri)
+    ?Buffer.from(dataUri.slice(dataUri.indexOf(',')+1),'base64'):null;
+  plaintextAudit={
+    readable:payload.format==='uriaimath-offline-backup-v02',
+    recordIdentical:Boolean(rec)&&JSON.stringify(rec)===JSON.stringify(uiRec),
+    photoBytesIdentical:Boolean(rawPhoto)&&Buffer.from(actualAppBefore.photos[0]).equals(rawPhoto),
+    guardianNoteVisible:downloaded.includes('가상 보호자 관찰'),
+    studentAnswerVisible:downloaded.includes('가상 아이가 적은 답'),
+    unencryptedWarning:String(payload.notice||'').includes('암호화되지'),
+    localPlaintextExportOnly:true,safeToRestore:false
+  };
+ }
+ report.downloadedPlaintextAudit=plaintextAudit;
+ check('Actual downloaded plaintext file preserves synthetic record/photo bytes and exposes raw child/guardian notes',
+   plaintextAudit.readable&&plaintextAudit.recordIdentical&&plaintextAudit.photoBytesIdentical
+   &&plaintextAudit.guardianNoteVisible&&plaintextAudit.studentAnswerVisible
+   &&plaintextAudit.unencryptedWarning);
  report.realUiBackupWithPhoto={downloads:postSaveDownloads,priorDownloadCount,
   cancelledLedger,escapedLedger,savedLedger,filename:downloadAfterData?.suggestedFilename()||null};
  check('Real UI cancel/Escape make zero downloads, explicit plaintext save exactly one without photo or note loss',
