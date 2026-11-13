@@ -106,8 +106,9 @@ if(root&&location.origin===LOCAL_ORIGIN){
   return base;
  }
  async function request(path,method='GET',body,ifMatch){
-  const base=address(),headers={};
-  if(token)headers.Authorization='Bearer '+token;
+  const base=address(),requestToken=token,requestFamily=activeFamily,
+   requestRevoke=localStorage.getItem(REVOKE_KEY)||'',headers={};
+  if(requestToken)headers.Authorization='Bearer '+requestToken;
   if(body!==undefined)headers['Content-Type']='application/json';
   if(ifMatch!==undefined&&ifMatch!==null)headers['If-Match']='"'+ifMatch+'"';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
@@ -120,7 +121,11 @@ if(root&&location.origin===LOCAL_ORIGIN){
    if(!response.ok){
     // A revoked/expired gateway session must not appear active in the app.
     // Clear only ephemeral local credentials; never touch IndexedDB.
-    if(response.status===401&&token){clearSession();lockLocalView();broadcastLock()}
+    if(response.status===401&&requestToken&&token===requestToken&&
+       activeFamily===requestFamily&&
+       (localStorage.getItem(REVOKE_KEY)||'')===requestRevoke){
+     clearSession();lockLocalView();broadcastLock();
+    }
     throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
    }
    return result;
@@ -138,9 +143,13 @@ if(root&&location.origin===LOCAL_ORIGIN){
  async function perform(action){
   if(busy)return;
   busy=true;state();
+  const startedToken=token,startedFamily=activeFamily,
+   startedRevoke=localStorage.getItem(REVOKE_KEY)||'';
+  const sameSession=()=>token===startedToken&&activeFamily===startedFamily&&
+   (localStorage.getItem(REVOKE_KEY)||'')===startedRevoke;
   try{await action()}
   catch(error){
-   status('중단: '+String(error?.message||error).slice(0,180)+
+   if(sameSession())status('중단: '+String(error?.message||error).slice(0,180)+
     ' · 원본 기록을 자동 삭제하거나 복원하지 않았습니다.',true);
   }finally{busy=false;state()}
  }
