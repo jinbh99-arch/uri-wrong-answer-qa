@@ -87,6 +87,10 @@ try{
  const escaped=await gate.isHidden();
  check('Plaintext backup gate warns before download; cancel and Escape create no download',
    warningPresent&&cancelled&&escaped&&downloads===0);
+ check('Backup cancel warning explicitly states local child photo and guardian notes remain on shared device',
+   warning.includes('백업 취소는 파일 다운로드만 중단')
+   &&warning.includes('오답·사진·부모 메모를 삭제하지 않습니다')
+   &&warning.includes('같은 브라우저로 다시 열어 기록을 볼 수 있습니다'));
  report.backupCancelDownloads=downloads;
  // P1: use real visible navigation and keyboard, never a hidden DOM click.
  const uxContext=await browser.newContext({viewport:{width:390,height:844},acceptDownloads:true});
