@@ -844,6 +844,14 @@ $('v220-rescue-download').onclick=async()=>{
 function confirmBox(title,msg){$('dlg-title').textContent=title;$('dlg-text').textContent=msg;return new Promise(resolve=>{dialogResolve=resolve;$('confirm-dialog').showModal()})}
 function settle(ok){if($('confirm-dialog').open)$('confirm-dialog').close();dialogResolve?.(ok);dialogResolve=null}
 $('dlg-ok').onclick=()=>settle(true);$('dlg-cancel').onclick=()=>settle(false);$('confirm-dialog').addEventListener('cancel',()=>{dialogResolve?.(false);dialogResolve=null});
+// Synthetic localhost UI only. A family logout cancels pending destructive
+// restore or plaintext backup consent without deleting the underlying records.
+document.addEventListener('qa34:family-locked',()=>{
+ if($('confirm-dialog').open)settle(false);
+ const risk=document.getElementById('wrong-backup-confirm');
+ if(risk&&!risk.hidden)risk.querySelector('#wrong-backup-cancel')?.click();
+ const file=document.getElementById('import-file');if(file)file.value='';
+});
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
@@ -2355,7 +2363,11 @@ function v230ValidateGeneralRetries(rows){
  }
  // Export a complete, internally consistent backup with a transport checksum.
  $('export-json').onclick=async()=>{
-  if(!storageOk)return notify('저장소를 사용할 수 없습니다.');const btn=$('export-json');btn.disabled=true;
+  if(!storageOk)return notify('저장소를 사용할 수 없습니다.');
+  // QA-only: the sibling tab can revoke while photos or SHA-256 await I/O.
+  const qa34ExportEpoch=location.origin==='http://127.0.0.1:4173'
+   ?(localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||''):null;
+  const btn=$('export-json');btn.disabled=true;
   try{
    const snapshot=await v214CaptureBackupSnapshot();
    const {photoMap,profile:capturedProfile}=v214CheckSnapshot(snapshot);
@@ -2383,6 +2395,10 @@ function v230ValidateGeneralRetries(rows){
    const verified=await v18CheckBackup(data);
    v215ValidateRestoreReadiness(data); // ensure the generated backup can pass the destructive importer's record rules
    if(verified.count!==frozen.length||verified.photoCount!==photoMap.size)throw Error('생성한 백업의 내부 검사가 실패했습니다.');
+   // Fail closed before a validated export event OR plaintext photo download.
+   if(qa34ExportEpoch!==null&&
+      (localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')!==qa34ExportEpoch)
+    throw Error('다른 탭에서 가족 세션이 종료돼 사진 포함 백업 다운로드를 취소했습니다.');
    // QA34: expose an already validated, internally coherent snapshot only to
    // the isolated loopback synthetic bridge, never to public Pages or cloud.
    if(location.origin==='http://127.0.0.1:4173')
@@ -2397,10 +2413,15 @@ function v230ValidateGeneralRetries(rows){
  const v18OriginalRestore=$('import-file').onchange;
  $('import-file').onchange=async e=>{
   const f=e.target.files?.[0];if(!f)return;
+  const qa34ImportEpoch=location.origin==='http://127.0.0.1:4173'
+   ?(localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||''):null;
   if(f.size>V07_BACKUP_LIMIT){e.target.value='';return notify('백업 파일이 30MB를 초과하여 복원하지 않습니다.')}
   try{
    const data=JSON.parse(await f.text());const check=await v18CheckBackup(data);v215ValidateRestoreReadiness(data);
     const v20DryRun=await v19Drill(data); // must complete isolated restore + byte check before destructive import
+   if(qa34ImportEpoch!==null&&
+      (localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')!==qa34ImportEpoch)
+    throw Error('다른 탭에서 가족 세션이 종료돼 복원 확인을 취소했습니다.');
    $('v18-verify-result').textContent=`복원 전 검사: 오답 ${check.count}건 · 사진 ${check.photoCount}장 · ${check.check}. 독립 시험 저장소 복원 ${v20DryRun.count}건·사진 ${v20DryRun.pics}장 대조 및 복원 호환 검사 통과. 실제 기록 교체 전 확인 창에서 취소할 수 있습니다.`;
    await v18OriginalRestore(e);
   }catch(err){e.target.value='';$('v18-verify-result').textContent='⛔ 복원 전 검사에서 차단: '+String(err?.message||err).slice(0,170)+' · 기존 기록은 그대로입니다.';notify('손상·불완전 백업은 복원하지 않습니다.')}
