@@ -1,0 +1,43 @@
+name: WRONG QA34 same-family ID different gateway identity
+on:
+  push:
+    branches: ['qa/wrong-gateway-identity-collision-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-identical-family-different-gateway.mjs'
+      - '.github/workflows/wrong-qa34-gateway-identity.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-gateway-binding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact new product module and QA test syntax
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-identical-family-different-gateway.mjs
+      - name: Install Chromium only for two synthetic loopback gateways
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated synthetic product UI
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-gateway-binding.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: One focused cross-gateway collision regression
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-identical-family-different-gateway.mjs
+      - name: Record exact candidate and no deployment
+        run: |
+          echo "WRONG_QA34_GATEWAY_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# 127.0.0.1 only; no real identity provider, family data or raw photo artifacts.
