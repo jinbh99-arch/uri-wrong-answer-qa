@@ -11,6 +11,31 @@ import {checkBackup,previewMerge,SyncPreflightError} from './qa-family-merge-pre
 import {previewThreeWay} from './qa-family-threeway.mjs';
 
 const MAX_BODY=1024*1024;
+// Synthetic localhost only. Compare VALIDATED backup content, not JSON wire
+// order or export timestamps. This is NOT a signature, authorization or origin
+// check: /qa/snapshot must still validate token, If-Match and SHA-256 first.
+function canonicalValue(value){
+ if(Array.isArray(value))return value.map(canonicalValue);
+ if(value&&typeof value==='object')
+  return Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])]);
+ return value;
+}
+function sameVerifiedBackupContent(left,right){
+ if(!left||!right)return false;
+ // A malformed timestamp is NOT a transport-only difference.
+ if((left.exportedAt!==undefined&&typeof left.exportedAt!=='string')||
+    (right.exportedAt!==undefined&&typeof right.exportedAt!=='string'))return false;
+ function normalized(doc){
+  // Only integrity (which was validated separately) and export time are
+  // non-content fields. Unknown fields and provenance markers stay significant.
+  const {integrity,exportedAt,...content}=doc;
+  // Records are an ID-indexed set. Internal retry/observation array order is
+  // meaningful and deliberately NOT reordered.
+  content.records=[...content.records].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+  return JSON.stringify(canonicalValue(content));
+ }
+ return normalized(left)===normalized(right);
+}
 function reply(res,status,payload,extra={}){
  res.writeHead(status,{
   'content-type':'application/json; charset=utf-8',
@@ -435,7 +460,12 @@ export async function createIsolatedQaFamilyGateway(options={}){
     try{checkBackup(doc)}catch(err){
      throw reject(422,err instanceof SyncPreflightError?err.code:'INVALID_BACKUP');
     }
-    if(acct.snapshot){
+    // A freshly signed backup may serialize objects/record IDs in another
+    // order or carry a later exportedAt while containing exactly the same
+    // photos, student explanations and parent observations. Avoid a false
+    // merge conflict, but never relax either digest or CAS authorization.
+    const sameContent=!!acct.snapshot&&sameVerifiedBackupContent(acct.snapshot,doc);
+    if(acct.snapshot&&!sameContent){
      let plan;
      try{plan=previewMerge(acct.snapshot,doc)}
      catch(err){throw reject(409,err instanceof SyncPreflightError?err.code:'MERGE_PREVIEW_FAILED')}
@@ -450,10 +480,9 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(!fresh||fresh.revision!==oldRev
        ||tokens.get(bearer.slice(7))!==session||session.expiresAt<=clock())
      throw reject(409,'STALE_OR_REVOKED_SESSION');
-    // A lost HTTP acknowledgement must not create a second identical history
-    // entry when a parent deliberately rechecks the latest CAS and resends the
-    // exact same validated synthetic backup. A stale If-Match still gets 409.
-    if(fresh.snapshot&&JSON.stringify(fresh.snapshot)===JSON.stringify(doc))
+    // After the final session/CAS recheck, a semantically identical validated
+    // backup is a read-only no-op (even if the wire/key/record order differs).
+    if(fresh.snapshot&&sameVerifiedBackupContent(fresh.snapshot,doc))
      return reply(res,200,{stored:true,revision:fresh.revision,unchanged:true,
       qaOnly:true},{etag:'"'+fresh.revision+'"'});
     const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
