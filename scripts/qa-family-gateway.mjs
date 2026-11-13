@@ -15,10 +15,12 @@ const MAX_BODY=1024*1024;
 // order or export timestamps. This is NOT a signature, authorization or origin
 // check: /qa/snapshot must still validate token, If-Match and SHA-256 first.
 function canonicalValue(value){
- if(Array.isArray(value))return value.map(canonicalValue);
+ // Explicit type tags prevent confusing a nested object with a lookalike
+ // array of key/value pairs. Preserve all internal array positions.
+ if(Array.isArray(value))return ['array',value.map(canonicalValue)];
  if(value&&typeof value==='object')
-  return Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])]);
- return value;
+  return ['object',Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])])];
+ return [value===null?'null':typeof value,value];
 }
 function sameVerifiedBackupContent(left,right){
  if(!left||!right)return false;
