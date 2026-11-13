@@ -1,0 +1,218 @@
+TAP version 13
+# Subtest: A/B baseline photo byte digest and separate revision
+ok 1 - A/B baseline photo byte digest and separate revision
+  ---
+  duration_ms: 13.133305
+  type: 'test'
+  ...
+# Subtest: actual SQLite dry-run stages 2 photo records then ROLLBACK leaves both families byte-identical
+ok 2 - actual SQLite dry-run stages 2 photo records then ROLLBACK leaves both families byte-identical
+  ---
+  duration_ms: 10.215547
+  type: 'test'
+  ...
+# Subtest: injected interrupt AFTER first SQL INSERT restores both virtual family records/photos
+not ok 3 - injected interrupt AFTER first SQL INSERT restores both virtual family records/photos
+  ---
+  duration_ms: 10.434437
+  type: 'test'
+  location: '/mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:111:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /INTERRUPT_AFTER_WRITE/. Input:
+    
+    'AssertionError [ERR_ASSERTION]: failed transaction must preserve BOTH family ledgers and photos\n' +
+      '+ actual - expected\n' +
+      '\n' +
+      '  [\n' +
+      '    {\n' +
+      "      family: 'virtual-family-A',\n" +
+      "+     ledgerSha256: '9258f4472c13f95cfbc4a82882ad16e7336fff69379bc08461877f7d6940fec1',\n" +
+      '+     photoBytes: 32,\n' +
+      "-     ledgerSha256: '35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342',\n" +
+      '-     photoBytes: 16,\n' +
+      '      photosSha256: [\n' +
+      "        '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2',\n" +
+      "+       '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2'\n" +
+      '      ],\n' +
+      '      revision: 2,\n' +
+      '+     rows: 2\n' +
+      '-     rows: 1\n' +
+      '    },\n' +
+      '    {\n' +
+      "      family: 'virtual-family-B',\n" +
+      "      ledgerSha256: '2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1',\n" +
+      '      photoBytes: 16,\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: |-
+    failed transaction must preserve BOTH family ledgers and photos
+    + actual - expected
+    
+      [
+        {
+          family: 'virtual-family-A',
+    +     ledgerSha256: '9258f4472c13f95cfbc4a82882ad16e7336fff69379bc08461877f7d6940fec1',
+    +     photoBytes: 32,
+    -     ledgerSha256: '35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342',
+    -     photoBytes: 16,
+          photosSha256: [
+            '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2',
+    +       '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2'
+          ],
+          revision: 2,
+    +     rows: 2
+    -     rows: 1
+        },
+        {
+          family: 'virtual-family-B',
+          ledgerSha256: '2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1',
+          photoBytes: 16,
+    
+  stack: |-
+    transaction (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:93:10)
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:112:44
+    getActual (node:assert:531:5)
+    Function.throws (node:assert:677:24)
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:112:33
+    within (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:97:54)
+    TestContext.<anonymous> (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:111:98)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+  operator: 'throws'
+  stack: |-
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:112:33
+    within (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:97:54)
+    TestContext.<anonymous> (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:111:98)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: duplicate key on second SQL INSERT triggers rollback even after first insert succeeded
+not ok 4 - duplicate key on second SQL INSERT triggers rollback even after first insert succeeded
+  ---
+  duration_ms: 10.056175
+  type: 'test'
+  location: '/mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:115:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /UNIQUE constraint/. Input:
+    
+    'AssertionError [ERR_ASSERTION]: failed transaction must preserve BOTH family ledgers and photos\n' +
+      '+ actual - expected\n' +
+      '\n' +
+      '  [\n' +
+      '    {\n' +
+      "      family: 'virtual-family-A',\n" +
+      "+     ledgerSha256: '9258f4472c13f95cfbc4a82882ad16e7336fff69379bc08461877f7d6940fec1',\n" +
+      '+     photoBytes: 32,\n' +
+      "-     ledgerSha256: '35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342',\n" +
+      '-     photoBytes: 16,\n' +
+      '      photosSha256: [\n' +
+      "        '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2',\n" +
+      "+       '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2'\n" +
+      '      ],\n' +
+      '      revision: 2,\n' +
+      '+     rows: 2\n' +
+      '-     rows: 1\n' +
+      '    },\n' +
+      '    {\n' +
+      "      family: 'virtual-family-B',\n" +
+      "      ledgerSha256: '2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1',\n" +
+      '      photoBytes: 16,\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: |-
+    failed transaction must preserve BOTH family ledgers and photos
+    + actual - expected
+    
+      [
+        {
+          family: 'virtual-family-A',
+    +     ledgerSha256: '9258f4472c13f95cfbc4a82882ad16e7336fff69379bc08461877f7d6940fec1',
+    +     photoBytes: 32,
+    -     ledgerSha256: '35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342',
+    -     photoBytes: 16,
+          photosSha256: [
+            '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2',
+    +       '13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2'
+          ],
+          revision: 2,
+    +     rows: 2
+    -     rows: 1
+        },
+        {
+          family: 'virtual-family-B',
+          ledgerSha256: '2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1',
+          photoBytes: 16,
+    
+  stack: |-
+    transaction (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:93:10)
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:116:44
+    getActual (node:assert:531:5)
+    Function.throws (node:assert:677:24)
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:116:33
+    within (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:97:54)
+    TestContext.<anonymous> (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:115:99)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+  operator: 'throws'
+  stack: |-
+    file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:116:33
+    within (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:97:54)
+    TestContext.<anonymous> (file:///mnt/data/wrong02-qa/tests/wrong_family_sqlite_atomicity_synthetic.mjs:115:99)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: forged cross-family claim and stale revision reject without any family writes
+ok 5 - forged cross-family claim and stale revision reject without any family writes
+  ---
+  duration_ms: 8.240692
+  type: 'test'
+  ...
+# Subtest: photo corruption and missing buffer reject before transaction, with hash invariant
+ok 6 - photo corruption and missing buffer reject before transaction, with hash invariant
+  ---
+  duration_ms: 7.820096
+  type: 'test'
+  ...
+# Subtest: synthetic photo cap, bundle cap and repeated record IDs reject with zero writes
+ok 7 - synthetic photo cap, bundle cap and repeated record IDs reject with zero writes
+  ---
+  duration_ms: 7.290175
+  type: 'test'
+  ...
+# Subtest: explicit test-only SQLite commit + reopen persists A while family B SHA stays unchanged
+ok 8 - explicit test-only SQLite commit + reopen persists A while family B SHA stays unchanged
+  ---
+  duration_ms: 10.681411
+  type: 'test'
+  ...
+# Subtest: same-origin/shared-device plaintext is UNSOLVED by this SQLite transaction fixture
+ok 9 - same-origin/shared-device plaintext is UNSOLVED by this SQLite transaction fixture
+  ---
+  duration_ms: 8.963404
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 7
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 155.059775
