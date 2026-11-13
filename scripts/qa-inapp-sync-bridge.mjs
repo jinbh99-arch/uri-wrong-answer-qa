@@ -95,7 +95,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
    if(!response.ok){
     // A revoked/expired gateway session must not appear active in the app.
     // Clear only ephemeral local credentials; never touch IndexedDB.
-    if(response.status===401&&token)clearSession();
+    if(response.status===401&&token){clearSession();lockLocalView()}
     throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
    }
    return result;
