@@ -1,10 +1,10 @@
-name: WRONG QA34 provenance and loss counterexamples (Node only)
+name: WRONG QA35 append replay registered workflow (Node only)
 on:
   push:
-    branches: ['qa/wrong-opaque-provenance-cas-20261114']
+    branches: ['qa/wrong-append-replay-cas-20261114']
     paths:
       - 'scripts/qa-family-gateway.mjs'
-      - 'tests/qa34-opaque-provenance-reject.mjs'
+      - 'tests/qa35-append-replay-cas.mjs'
       - '.github/workflows/wrong-qa34-opaque-provenance.yml'
 permissions:
   contents: read
@@ -22,14 +22,14 @@ jobs:
       - name: Syntax-check changed product and new regression
         run: |
           node --check scripts/qa-family-gateway.mjs
-          node --check tests/qa34-opaque-provenance-reject.mjs
+          node --check tests/qa35-append-replay-cas.mjs
       - name: Real Node HTTP and temporary encrypted A/B QA ledger only
         env:
           QA_SYNTHETIC_FAMILY_ONLY: '1'
           QA_DURABLE_TEST_ONLY: '1'
-        run: node tests/qa34-opaque-provenance-reject.mjs
+        run: node tests/qa35-append-replay-cas.mjs
       - name: Report isolated SHA and no production deployment
         run: |
-          echo "WRONG_QA34_OPAQUE_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_APPEND_REPLAY_SHA=$(git rev-parse HEAD)"
           echo "WRONG_QA34_DEPLOYMENT=false"
 # Strictly localhost, test-only encrypted temporary store, no real family data.
