@@ -11,11 +11,11 @@ const report={scope:'synthetic loopback origin boundary',safeToRestore:false,rea
 const evidenceDir='artifacts/wrong-origin-qa';
 mkdirSync(evidenceDir,{recursive:true});
 const check=(label,ok)=>{assert.ok(ok,label);report.checks.push(label)};
-const openDb=async (page)=>page.evaluate(async dbName=>{
+const openDb=async (page,dbName=DB)=>page.evaluate(async dbName=>{
  const r=indexedDB.open(dbName,1);
  r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('mistakes'))db.createObjectStore('mistakes');if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos')};
  return await new Promise((resolve,reject)=>{r.onsuccess=()=>{r.result.close();resolve(true)};r.onerror=()=>reject(r.error)});
-},DB);
+},dbName);
 const snapshot=async page=>page.evaluate(async dbName=>{
  const req=indexedDB.open(dbName);
  const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
@@ -32,6 +32,46 @@ try{
  const a=await context.newPage(),b=await context.newPage();
  await a.goto(A);await b.goto(B);
  await openDb(a);await openDb(b);
+ // Directly exercise the app-equivalent fallback initializer with a fresh synthetic DB.
+ // Earlier 62 checks used the existing app-created store, so they did not cover this branch.
+ const fallbackDbName=DB+'-fallback-contract-only';
+ const fallbackOpened=await openDb(a,fallbackDbName);
+ const fallbackAudit=await a.evaluate(async ({dbName,bytes})=>{
+  const req=indexedDB.open(dbName);
+  const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+  const read=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  try {
+   const inspect=db.transaction(['mistakes','photos'],'readonly');
+   const ms=inspect.objectStore('mistakes'),ps=inspect.objectStore('photos');
+   const schema={mistakesKeyPath:ms.keyPath,photosKeyPath:ps.keyPath,mistakesAutoIncrement:ms.autoIncrement,photosAutoIncrement:ps.autoIncrement};
+   await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['mistakes','photos'],'readwrite');
+    tx.objectStore('mistakes').put({id:'fallback-1',problemText:'가상 대조 기록'},'fallback-1');
+    tx.objectStore('photos').put(new Blob([new Uint8Array(bytes)],{type:'image/png'}),'fallback-1');
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(new Error('fallback seed unexpectedly aborted'));
+   });
+   const validTx=db.transaction(['mistakes','photos'],'readonly');
+   const saved=await read(validTx.objectStore('mistakes').get('fallback-1'));
+   const storedPhoto=await read(validTx.objectStore('photos').get('fallback-1'));
+   const savedBytes=storedPhoto?Array.from(new Uint8Array(await storedPhoto.arrayBuffer())):[];
+   const aborted=await new Promise(resolve=>{
+    const tx=db.transaction('mistakes','readwrite');
+    tx.objectStore('mistakes').put({id:'fallback-partial',problemText:'should rollback'},'fallback-partial');
+    tx.onabort=()=>resolve(true);tx.oncomplete=()=>resolve(false);tx.abort();
+   });
+   const after=db.transaction('mistakes','readonly');
+   const rollbackMissing=(await read(after.objectStore('mistakes').get('fallback-partial')))===undefined;
+   const sourceUnchanged=(await read(after.objectStore('mistakes').get('fallback-1')))?.problemText==='가상 대조 기록';
+   return {schema,explicitKeySaved:saved?.id==='fallback-1',photoByteMatch:JSON.stringify(savedBytes)===JSON.stringify(bytes),aborted,rollbackMissing,sourceUnchanged};
+  } finally {db.close()}
+ },{dbName:fallbackDbName,bytes:Array.from(photo)});
+ report.fallbackInitializationAudit=fallbackAudit;
+ check('Direct fresh fallback IndexedDB matches out-of-line key contract, preserves synthetic photo and rolls back abort',
+  fallbackOpened&&fallbackAudit.schema.mistakesKeyPath===null&&fallbackAudit.schema.photosKeyPath===null
+  &&!fallbackAudit.schema.mistakesAutoIncrement&&!fallbackAudit.schema.photosAutoIncrement
+  &&fallbackAudit.explicitKeySaved&&fallbackAudit.photoByteMatch&&fallbackAudit.aborted
+  &&fallbackAudit.rollbackMissing&&fallbackAudit.sourceUnchanged);
+ await a.evaluate(async dbName=>{await new Promise((resolve,reject)=>{const req=indexedDB.deleteDatabase(dbName);req.onsuccess=resolve;req.onerror=()=>reject(req.error);req.onblocked=()=>reject(new Error('fallback audit DB cleanup blocked'))})},fallbackDbName);
  await a.evaluate(async ({dbName,bytes})=>{
   const req=indexedDB.open(dbName);
   const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
