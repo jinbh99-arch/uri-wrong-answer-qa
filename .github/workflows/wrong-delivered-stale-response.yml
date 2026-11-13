@@ -1,0 +1,40 @@
+name: WRONG isolated delivered stale 401 and success
+on:
+  push:
+    branches: ['qa/wrong-delivered-stale-response-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-delivered-stale-response-chromium.mjs'
+      - '.github/workflows/wrong-delivered-stale-response.yml'
+permissions:
+  contents: read
+jobs:
+  delivered-stale-response:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-delivered-stale-response-chromium.mjs
+      - name: Browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Local UI
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-stale-response.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Fresh delivered old 401 and success only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-delivered-stale-response-chromium.mjs
+      - name: Candidate only
+        run: echo "WRONG_DELIVERED_STALE_SHA=$(git rev-parse HEAD) DEPLOYMENT=false"
