@@ -2361,9 +2361,19 @@ function v230ValidateGeneralRetries(rows){
   if(JSON.stringify(snap.profile)!==JSON.stringify(p))throw Error('복원 직후 학부모 설정이 일치하지 않습니다.');
   return {records:desired.size,photos:wantedKeys.length,verified:true};
  }
+ // QA-local exports can outlive a sibling tab logout while awaiting photo/hash I/O.
+ // Retire old attempts without deleting records or clobbering the next export.
+ let qa34ExportGeneration=0;
+ document.addEventListener('qa34:family-locked',()=>{
+  if(location.origin==='http://127.0.0.1:4173'){
+   qa34ExportGeneration++;
+   $('export-json').disabled=false;
+  }
+ });
  // Export a complete, internally consistent backup with a transport checksum.
  $('export-json').onclick=async()=>{
   if(!storageOk)return notify('저장소를 사용할 수 없습니다.');
+  const thisExportGeneration=++qa34ExportGeneration;
   // QA-only: the sibling tab can revoke while photos or SHA-256 await I/O.
   const qa34ExportEpoch=location.origin==='http://127.0.0.1:4173'
    ?(localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||''):null;
@@ -2397,7 +2407,8 @@ function v230ValidateGeneralRetries(rows){
    if(verified.count!==frozen.length||verified.photoCount!==photoMap.size)throw Error('생성한 백업의 내부 검사가 실패했습니다.');
    // Fail closed before a validated export event OR plaintext photo download.
    if(qa34ExportEpoch!==null&&
-      (localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')!==qa34ExportEpoch)
+      ((localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')!==qa34ExportEpoch||
+       thisExportGeneration!==qa34ExportGeneration))
     throw Error('다른 탭에서 가족 세션이 종료돼 사진 포함 백업 다운로드를 취소했습니다.');
    // QA34: expose an already validated, internally coherent snapshot only to
    // the isolated loopback synthetic bridge, never to public Pages or cloud.
@@ -2406,8 +2417,14 @@ function v230ValidateGeneralRetries(rows){
    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='우리아이오답노트_전체백업_v2.23_'+iso().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),6000);
    v07Result().textContent=`✅ 같은 시점의 오답·사진·프로필 스냅샷으로 전체 백업 생성 및 자체 검사 통과 · 기록 ${frozen.length}건 · 사진 ${photoMap.size}장 · ${dig.algorithm} · 복원 호환 사전검사 통과 · ${(blob.size/1048576).toFixed(2)}MB. 다운로드 완료·외부 보관 여부는 별도로 확인하세요.`;
    notify('전체 백업 다운로드를 요청했습니다. 받은 파일을 별도로 검사·보관해 주세요.');
-  }catch(err){v07Result().textContent='⛔ 전체 백업 생성 중단 · '+String(err?.message||err).slice(0,200)+' · 기존 기록에는 변경이 없습니다.';notify('전체 백업을 생성하지 못했습니다. 안전점검 문구를 확인하세요.');}
-  finally{btn.disabled=false}
+  }catch(err){
+   if(thisExportGeneration===qa34ExportGeneration){
+    v07Result().textContent='⛔ 전체 백업 생성 중단 · '+String(err?.message||err).slice(0,200)+' · 기존 기록에는 변경이 없습니다.';
+    notify('전체 백업을 생성하지 못했습니다. 안전점검 문구를 확인하세요.');
+   }
+  }finally{
+   if(thisExportGeneration===qa34ExportGeneration)btn.disabled=false;
+  }
  };
  // Before the existing import handler can clear stores, check the file integrity if present.
  const v18OriginalRestore=$('import-file').onchange;
