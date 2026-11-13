@@ -134,6 +134,17 @@ if(root&&location.origin===LOCAL_ORIGIN){
     ' · 원본 기록을 자동 삭제하거나 복원하지 않았습니다.',true);
   }finally{busy=false;state()}
  }
+ // Capture the active synthetic identity when starting a multi-await workflow.
+ // A sibling tab can revoke its UI session while this tab awaits an HTTP reply.
+ function activeEpoch(){
+  const expectedToken=token,expectedFamily=activeFamily,
+   expectedRevoke=localStorage.getItem(REVOKE_KEY)||'';
+  return ()=>{
+   if(!expectedToken||token!==expectedToken||activeFamily!==expectedFamily||
+      (localStorage.getItem(REVOKE_KEY)||'')!==expectedRevoke)
+    throw Error('다른 탭의 가족 로그아웃 이후 도착한 응답을 폐기했습니다. 다시 로그인해 직접 확인하세요.');
+  };
+ }
  function setRevision(value,snapshot){
   revision=value;
   $('qa34-revision').textContent='서버 개정번호 '+value+' · 저장된 합성 오답 '+
@@ -200,15 +211,17 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(!$('qa34-synthetic').checked)throw Error('실제 아동 기록이 없는 합성자료 확인을 먼저 선택하세요.');
   // Trigger THE APP'S existing lossless export (photos, history, profile,
   // hash, stale-tab guards). This also downloads a separate fallback JSON.
-  const savedRevision=revision;
+  const savedRevision=revision,assertStillLoggedIn=activeEpoch();
   // QA35: fail before generating/downloading a new raw JSON backup if the
   // server is newer, or if this session was revoked by another device.
   // Keep CAS on the final PUT: a write may still race after this preflight.
   const current=await request('/qa/snapshot');
+  assertStillLoggedIn();
   if(current.revision!==savedRevision)
    throw Error('서버 기록이 다른 기기에서 변경되어 전송을 중단했습니다. 먼저 최신본을 검토하세요.');
   status('오답노트 기존 백업 보호 검사 및 JSON 내보내기를 실행 중입니다.');
   const doc=await validatedAppBackup();
+  assertStillLoggedIn();
   if(!doc||doc.format!=='uriaimath-offline-backup-v02'||
      !Array.isArray(doc.records)||!doc.photos||typeof doc.photos!=='object')
    throw Error('오답노트가 완전한 백업을 생성하지 않았습니다.');
@@ -216,6 +229,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
    throw Error('가상 게이트웨이는 최대 1MB까지만 전송합니다. 다운로드한 백업 원본을 보존하세요.');
   // CAS: never silently refresh revision to replace another device's data.
   const sent=await request('/qa/snapshot','PUT',doc,savedRevision);
+  assertStillLoggedIn();
   if(!sent.stored)throw Error('서버가 저장을 확정하지 않았습니다.');
   setRevision(sent.revision,doc);
   status('합성 오답 '+doc.records.length+'건과 사진 '+Object.keys(doc.photos).length+
@@ -223,7 +237,9 @@ if(root&&location.origin===LOCAL_ORIGIN){
  }));
  $('qa34-pull').addEventListener('click',()=>perform(async()=>{
   if(!token)throw Error('로그인이 필요합니다.');
+  const assertStillLoggedIn=activeEpoch();
   const loaded=await request('/qa/snapshot');
+  assertStillLoggedIn();
   if(!loaded.snapshot)throw Error('서버에 저장된 합성 백업이 없습니다.');
   const doc=loaded.snapshot;
   if(doc.format!=='uriaimath-offline-backup-v02'||!Array.isArray(doc.records))
