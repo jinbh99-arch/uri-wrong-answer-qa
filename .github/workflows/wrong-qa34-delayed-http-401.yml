@@ -1,0 +1,38 @@
+name: WRONG QA34 delayed HTTP 401 real Chromium
+on:
+  push:
+    branches: ['qa/wrong-delayed-401-chromium-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-stale-401-real-chromium.mjs'
+      - '.github/workflows/wrong-qa34-delayed-http-401.yml'
+permissions:
+  contents: read
+jobs:
+  delayed-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-stale-401-real-chromium.mjs
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-401.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Only new delayed HTTP response boundary
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-stale-401-real-chromium.mjs
+      - run: |
+          echo "WRONG_QA_HTTP_401_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA_DEPLOYMENT=false"
