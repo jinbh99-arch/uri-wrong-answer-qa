@@ -1,0 +1,43 @@
+name: WRONG QA34 multi-tab synthetic family logout lock
+on:
+  push:
+    branches: ['qa/wrong-cross-tab-family-lock-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-cross-tab-family-lock.mjs'
+      - '.github/workflows/wrong-qa34-multitab-lock.yml'
+permissions:
+  contents: read
+jobs:
+  cross-tab-local-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: QA source and new test syntax
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-cross-tab-family-lock.mjs
+      - name: Install Chromium for new cross-tab boundary only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve synthetic-only UI on exact loopback origin
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-multitab.log 2>&1 &
+          for i in 1 2 3 4 5; do curl --fail -s http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Already-open tabs family binding and logout event
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-cross-tab-family-lock.mjs
+      - name: Report isolated candidate only
+        run: |
+          echo "WRONG_QA34_MULTITAB_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# No real child record, family account, public deployment or backup artifact.
