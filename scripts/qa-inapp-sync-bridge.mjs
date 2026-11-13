@@ -7,9 +7,56 @@ if(root&&location.origin===LOCAL_ORIGIN){
  root.hidden=false;
  const $=id=>document.getElementById(id);
  let token='',revision=null,server='',busy=false;
+ // QA-only accidental cross-family exposure guard. A local UI cover is NOT
+ // security authentication; every IndexedDB byte is preserved on logout.
+ const BOUND_KEY='qa34-synthetic-local-family-v1';
+ let cover=null;
+ const boundFamily=()=>localStorage.getItem(BOUND_KEY)||'';
+ function lockLocalView(){
+  if(!cover){
+   cover=document.createElement('section');
+   cover.id='qa34-family-privacy-cover';
+   cover.setAttribute('role','dialog');
+   cover.setAttribute('aria-modal','true');
+   cover.setAttribute('aria-label','가상 가족 기록 화면 잠금');
+   cover.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#fff;color:#183365;overflow:auto;padding:24px;display:grid;place-content:center;gap:12px';
+   cover.innerHTML='<h2>가상 가족 기록 화면 가림</h2>'+
+    '<p>로그아웃 후 이 브라우저에 오답·사진·부모 관찰이 그대로 남아 있습니다. 같은 가상 가족으로만 다시 연결할 수 있습니다. 다른 가족은 별도 브라우저 프로필을 사용하세요.</p>'+
+    '<p>이 화면 가림은 서버 인증·암호화가 아니며 실제 가족 정보 보호 수단이 아닙니다.</p>'+
+    '<form id="qa34-family-reenter" style="display:grid;gap:10px">'+
+    '<label>시험 서버 포트<input id="qa34-reenter-port" type="number" min="1024" max="65535" required/></label>'+
+    '<label>가상 가족 ID<input id="qa34-reenter-family" type="text" autocomplete="off" required/></label>'+
+    '<label>가상 비밀번호<input id="qa34-reenter-password" type="password" autocomplete="off" required/></label>'+
+    '<button type="submit">같은 가상 가족으로 화면 다시 열기</button></form>'+
+    '<p id="qa34-reenter-status" role="alert"></p>';
+   cover.querySelector('form').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(busy)return;
+    const port=cover.querySelector('#qa34-reenter-port').value;
+    const family=cover.querySelector('#qa34-reenter-family').value.trim();
+    const password=cover.querySelector('#qa34-reenter-password').value;
+    $('qa34-port').value=port;$('qa34-family').value=family;
+    perform(()=>loginFamily(family,password));
+   });
+  }
+  if(!cover.isConnected)document.body.append(cover);
+  const main=document.getElementById('qa-main');
+  if(main)main.inert=true;
+  const header=document.querySelector('header');
+  if(header)header.inert=true;
+  cover.querySelector('#qa34-reenter-family').value=boundFamily();
+  cover.querySelector('#qa34-reenter-password').value='';
+  cover.querySelector('#qa34-reenter-family').focus();
+ }
+ function unlockLocalView(){
+  if(cover?.isConnected)cover.remove();
+  const main=document.getElementById('qa-main');if(main)main.inert=false;
+  const header=document.querySelector('header');if(header)header.inert=false;
+ }
  function status(message,error=false){
   $('qa34-status').textContent=message;
   $('qa34-status').setAttribute('data-error',String(error));
+  if(cover?.isConnected)cover.querySelector('#qa34-reenter-status').textContent=message;
  }
  function state(){
   $('qa34-login').disabled=busy;
@@ -20,6 +67,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
  function clearSession(){
   token='';server='';revision=null;
   $('qa34-password').value='';
+  if(cover)cover.querySelector('#qa34-reenter-password').value='';
   $('qa34-revision').textContent='로그아웃됨 · 서버 개정번호 미확인';
   state();
  }
@@ -98,24 +146,31 @@ if(root&&location.origin===LOCAL_ORIGIN){
    }
   });
  }
- $('qa34-login').addEventListener('click',()=>perform(async()=>{
-  const familyKey=$('qa34-family').value.trim(),password=$('qa34-password').value;
+ async function loginFamily(familyKey,password){
   if(!/^qa-[a-z0-9-]{4,32}$/.test(familyKey))throw Error('가상 가족 ID는 qa-로 시작해야 합니다.');
   if(password.length<16||password.length>160)throw Error('실제 비밀번호가 아닌 16~160자 가상 비밀번호가 필요합니다.');
   if(token)throw Error('이미 로그인했습니다. 먼저 로그아웃하세요.');
+  const bound=boundFamily();
+  if(bound&&bound!==familyKey)
+   throw Error('이 브라우저에는 다른 가상 가족의 오답·사진·관찰이 남아 있어 가족 전환을 차단했습니다. 별도 브라우저 프로필을 사용하세요.');
   const response=await request('/qa/login','POST',{familyKey,password});
   server=address();token=response.token;
   $('qa34-password').value='';
   try{
    const loaded=await request('/qa/snapshot');
    setRevision(loaded.revision,loaded.snapshot);
+   // Persist only the SYNTHETIC family label. Do not delete or move photos.
+   localStorage.setItem(BOUND_KEY,familyKey);
+   unlockLocalView();
    status('가상 가족 로그인 완료. 백업 보내기는 합성자료 체크 후 수동으로 실행하며, 가져오기는 기존 복원 확인창을 반드시 거칩니다.');
   }catch(err){clearSession();throw err}
- }));
+ }
+ $('qa34-login').addEventListener('click',()=>perform(()=>
+  loginFamily($('qa34-family').value.trim(),$('qa34-password').value)));
  $('qa34-logout').addEventListener('click',()=>perform(async()=>{
   try{if(token)await request('/qa/logout','POST')}
-  finally{clearSession()}
-  status('로컬 가상 가족 세션을 종료했습니다. 기기의 오답은 변경하지 않았습니다.');
+  finally{clearSession();lockLocalView()}
+  status('가상 가족 세션 종료. 오답·사진·관찰 기록은 삭제하지 않았고 다른 가상 가족 전환은 차단했습니다.');
  }));
  $('qa34-upload').addEventListener('click',()=>perform(async()=>{
   if(!token||revision===null)throw Error('가상 가족 로그인과 서버 개정번호 확인이 필요합니다.');
@@ -166,7 +221,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
   status('개정번호 '+loaded.revision+'의 합성 백업을 기존 오답노트 복원 검사에 전달했습니다. 복원 확인창에서 직접 허용하기 전에는 자료가 바뀌지 않습니다.');
  }));
  state();
- status('127.0.0.1 로컬 전용 기능입니다. 실제 자녀 자료는 입력하지 마세요.');
+ try{if(boundFamily())lockLocalView()}catch{lockLocalView();status('로컬 기록 소유 가족 표시를 확인할 수 없어 화면을 닫았습니다.',true)}
+ if(!cover?.isConnected)status('127.0.0.1 로컬 전용 기능입니다. 실제 자녀 자료는 입력하지 마세요.');
 }
 
 
