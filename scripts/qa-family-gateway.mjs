@@ -22,6 +22,19 @@ function canonicalValue(value){
   return ['object',Object.keys(value).sort().map(key=>[key,canonicalValue(value[key])])];
  return [value===null?'null':typeof value,value];
 }
+// A backup SHA-256 is only a checksum; it does NOT authenticate origin.
+// Nevertheless, once an opaque provenance/schema marker is present in a
+// synthetic family ledger it must not silently disappear, appear or change
+// via append-only merge. Known mutable payload/count/time fields are excluded.
+function sameOpaqueBackupMarkers(left,right){
+ const mutable=new Set(['integrity','exportedAt','records','photos',
+  'backupSummary','photosOmitted']);
+ function marker(doc){
+  return JSON.stringify(canonicalValue(Object.fromEntries(
+   Object.entries(doc).filter(([key])=>!mutable.has(key)))));
+ }
+ return marker(left)===marker(right);
+}
 function sameVerifiedBackupContent(left,right){
  if(!left||!right)return false;
  // A malformed timestamp is NOT a transport-only difference.
@@ -462,6 +475,21 @@ export async function createIsolatedQaFamilyGateway(options={}){
     try{checkBackup(doc)}catch(err){
      throw reject(422,err instanceof SyncPreflightError?err.code:'INVALID_BACKUP');
     }
+    // Do not accept a newly signed but invalid export date/count label.
+    // A false count or type could mislead a parent even if photo bytes survive.
+    if(doc.exportedAt!==undefined&&
+       (typeof doc.exportedAt!=='string'||!Number.isFinite(Date.parse(doc.exportedAt))))
+     throw reject(422,'INVALID_EXPORT_TIMESTAMP');
+    if(doc.backupSummary!==undefined&&(
+       !doc.backupSummary||typeof doc.backupSummary!=='object'||
+       Array.isArray(doc.backupSummary)||
+       !Number.isSafeInteger(doc.backupSummary.recordCount)||
+       !Number.isSafeInteger(doc.backupSummary.photoCount)||
+       doc.backupSummary.recordCount!==doc.records.length||
+       doc.backupSummary.photoCount!==Object.keys(doc.photos).length))
+     throw reject(422,'INVALID_BACKUP_SUMMARY');
+    if(acct.snapshot&&!sameOpaqueBackupMarkers(acct.snapshot,doc))
+     throw reject(409,'OPAQUE_BACKUP_MARKER_CHANGED');
     // A freshly signed backup may serialize objects/record IDs in another
     // order or carry a later exportedAt while containing exactly the same
     // photos, student explanations and parent observations. Avoid a false
