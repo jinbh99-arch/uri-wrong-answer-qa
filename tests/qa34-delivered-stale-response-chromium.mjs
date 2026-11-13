@@ -27,9 +27,10 @@ try{
  pass('동일 브라우저 두 탭의 합성 가족 세션 준비');
  await B.evaluate(()=>{
   const real=window.fetch.bind(window);
-  window.__staleDelivered={count:0,delivered:0};
+  window.__staleDelivered={count:0,delivered:0,armed:false};
   window.fetch=(url,opts)=>{
-   if(String(url).endsWith('/qa/snapshot')&&opts?.method==='GET'&&window.__staleDelivered.count<2){
+   if(String(url).endsWith('/qa/snapshot')&&opts?.method==='GET'&&window.__staleDelivered.armed&&window.__staleDelivered.count<2){
+    window.__staleDelivered.armed=false;
     const id=++window.__staleDelivered.count;
     return new Promise(resolve=>{
      window.__staleDelivered['release'+id]=(status)=>{
@@ -44,6 +45,7 @@ try{
   };
  });
  for(const status of [401,200]){
+  await B.evaluate(()=>window.__staleDelivered.armed=true);
   await B.locator('#qa34-pull').click();
   await B.waitForFunction(n=>window.__staleDelivered.count>=n,status===401?1:2);
   await A.locator('#qa34-logout').click();
