@@ -24,12 +24,13 @@ try{
  const port=new URL(gate.baseUrl).port;
  await login(A,port);await B.locator('#qa34-family-privacy-cover:visible').waitFor();await login(B,port,true);
  pass('가상 가족 같은 브라우저 두 탭 로그인');
- let release,intercepted;
+ let release,intercepted,staleResponseAborted=false;
  const hit=new Promise(resolve=>intercepted=resolve);
  await B.route('**/qa/snapshot',async route=>{
   B.unroute('**/qa/snapshot');
   await new Promise(resolve=>{release=resolve;intercepted()});
-  await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:'expired-old-A'})});
+  try{await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:'expired-old-A'})});}
+  catch(error){if(/already handled|intercepted request|target closed/i.test(String(error)))staleResponseAborted=true;else throw error;}
  });
  await B.locator('#qa34-pull').click();
  await hit;
@@ -47,7 +48,7 @@ try{
  assert.equal(await B.locator('#qa34-family-privacy-cover').count(),0);
  assert.equal(await B.locator('#qa34-pull').isEnabled(),true);
  assert.ok((await B.locator('#qa34-status').textContent()).includes('로그인 완료'));
- pass('구세대 지연 HTTP 401이 새 가족 세션·화면·상태를 변경하지 않음');
+ pass(staleResponseAborted?'구세대 HTTP 요청이 브라우저에서 이미 취소됨, 새 가족 세션 불변':'구세대 지연 HTTP 401이 새 가족 세션·화면·상태를 변경하지 않음');
  await B.route('**/qa/snapshot',route=>route.fulfill({status:401,contentType:'application/json',body:'{"error":"current-expired"}'}));
  await B.locator('#qa34-pull').click();
  await B.locator('#qa34-family-privacy-cover:visible').waitFor();
@@ -55,7 +56,7 @@ try{
  pass('현재 세션 실제 HTTP 401은 잠금·세션 종료');
  assert.deepEqual(errors,[]);pass('브라우저 JS 오류 0');
  console.log('WRONG_DELAYED_HTTP_401_RESULT='+JSON.stringify({status:'PASS',checks,realChromium:true,
- syntheticOnly:true,stale401Rejected:true,current401Locks:true,realAuth:false,safeToRestore:false}));
+ syntheticOnly:true,stale401Rejected:!staleResponseAborted,staleRequestCancelled:staleResponseAborted,current401Locks:true,realAuth:false,safeToRestore:false}));
  await ctx.close();
 }catch(e){console.error('WRONG_DELAYED_HTTP_401_RESULT='+JSON.stringify({status:'FAIL',checks,error:String(e),stack:String(e.stack).slice(0,1300),safeToRestore:false}));process.exitCode=1}
 finally{if(browser)await browser.close();if(gate)await gate.shutdown()}
