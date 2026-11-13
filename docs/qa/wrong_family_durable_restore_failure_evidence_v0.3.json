@@ -1,0 +1,72 @@
+{
+  "name": "wrong02_synthetic_filesystem_restore_failure_v0.3",
+  "dateKST": "2026-11-13",
+  "repo": "jinbh99-arch/uri-wrong-answer-qa",
+  "branch": "qa/wrong-fs-restore-crash-20261113",
+  "baseSHA": "afb3afedbadcd17a6b5c5a5840f5b72cc1d2b785",
+  "testCommit": "3a6be224425a9a0df5d3df69f944b720c08ded05",
+  "testFile": "tests/wrong_family_durable_restore_failure_synthetic.mjs",
+  "githubBlob": "ecfc7a06179da68b9cb4db5516566947672a6e09",
+  "localGitBlob": "ecfc7a06179da68b9cb4db5516566947672a6e09",
+  "testFileBytes": 8940,
+  "testFileSHA256": "314075c220d1007e886f95e2e86faee0b44e451c105428be48bdc69da997b07c",
+  "runtime": "Node.js v22.16.0",
+  "syntaxCheck": "node --check tests/wrong_family_durable_restore_failure_synthetic.mjs",
+  "testCommand": "node --test --test-reporter=tap tests/wrong_family_durable_restore_failure_synthetic.mjs",
+  "exitCode": 0,
+  "passed": 7,
+  "failed": 0,
+  "rawTapBytes": 1736,
+  "rawTapSHA256": "067bfc1359ca7c946972d873278d2b41bcb41f19390c5dcf103e25f7f8162b05",
+  "cases": [
+    "encrypted synthetic PNG roundtrip; backup payload has no plaintext note",
+    "rotation only protects the new file; retained old file remains decryptable with OLD key",
+    "wrong family, header, tag, nonce and ciphertext tampering are rejected",
+    "schema drift, missing/corrupt/oversize synthetic photo reject before temp disk write",
+    "interrupted temp staging, abort, collision, stale revision preserve both synthetic family file hashes",
+    "dry-run zero writes and explicit synthetic temp-only atomic publish",
+    "offline plaintext cannot be treated as encrypted envelope"
+  ],
+  "method": {
+    "storage": "temporary local JSON files; fs write to staging then rename",
+    "database": "NOT IndexedDB; NOT operating DB",
+    "realFamilies": 0,
+    "realPhotos": 0,
+    "productionMutations": 0,
+    "existingProduct63Reexecuted": false,
+    "existingMock13Reexecuted": false,
+    "existingMock9Reexecuted": false,
+    "newGitHubActionsRuns": 0
+  },
+  "safety": {
+    "safeToRestore": false,
+    "mainChanged": false,
+    "productionAuthChanged": false,
+    "productionBackupChanged": false,
+    "operatingRestoreRun": false,
+    "realSharedDeviceValidated": false,
+    "realIDBAtomicityValidated": false,
+    "oldOfflineBackupRetroactivelyRevoked": false
+  },
+  "assessment": {
+    "previousComplete": 7,
+    "previousIncomplete": 5,
+    "newComplete": 0,
+    "newEvidenceOnly": 7,
+    "afterComplete": 7,
+    "afterIncomplete": 5,
+    "pendingItems": [
+      4,
+      5,
+      6,
+      8,
+      9
+    ],
+    "limitations": [
+      "Standalone synthetic file model; actual browser IndexedDB may fail differently",
+      "Key rotation does not revoke encrypted offline copies retained with old keys",
+      "Shipping plaintext backup and same-origin shared-device exposure unresolved",
+      "Not live auth, family isolation, operating restore, CI or release approval"
+    ]
+  }
+}
