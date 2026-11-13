@@ -3463,7 +3463,7 @@ document.addEventListener('click',async e=>{
  if(route!=='detail')return;
  const answer=$('v230-answer'),reason=$('v230-explanation');
  if(!answer||!(String(answer.value||'').trim()||String(reason?.value||'').trim()))return;
- const nav=e.target.closest('[data-route], [data-record], #detail-concept');
+ const nav=e.target.closest('[data-route], [data-record], #detail-concept, #detail-edit');
  if(!nav)return;
  e.preventDefault();e.stopImmediatePropagation();
  const ok=await confirmBox('저장하지 않은 재풀이가 있습니다',
@@ -3474,6 +3474,9 @@ document.addEventListener('click',async e=>{
  else if(nav.id==='detail-concept'){
   const row=records.find(x=>x.id===detailId);
   $('concept-select').value=row?.conceptId||'math.fraction.meaning';navigate('concepts');
+ }
+ else if(nav.id==='detail-edit'){
+  editId=detailId;navigate('add');
  }
 },true);
 
