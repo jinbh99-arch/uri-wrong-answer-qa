@@ -1,0 +1,35 @@
+name: WRONG QA34 provenance and loss counterexamples (Node only)
+on:
+  push:
+    branches: ['qa/wrong-opaque-provenance-cas-20261114']
+    paths:
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa34-opaque-provenance-reject.mjs'
+      - '.github/workflows/wrong-qa34-opaque-provenance.yml'
+permissions:
+  contents: read
+jobs:
+  strict-opaque-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check changed product and new regression
+        run: |
+          node --check scripts/qa-family-gateway.mjs
+          node --check tests/qa34-opaque-provenance-reject.mjs
+      - name: Real Node HTTP and temporary encrypted A/B QA ledger only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+          QA_DURABLE_TEST_ONLY: '1'
+        run: node tests/qa34-opaque-provenance-reject.mjs
+      - name: Report isolated SHA and no production deployment
+        run: |
+          echo "WRONG_QA34_OPAQUE_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# Strictly localhost, test-only encrypted temporary store, no real family data.
