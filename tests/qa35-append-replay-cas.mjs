@@ -36,7 +36,7 @@ const second={id:'synth-002',problemText:'synthetic question two',studentAnswer:
  hasPhoto:false,practiceHistory:[],parentMemo:'parent observation two'};
 try{
  gateway=await createIsolatedQaFamilyGateway({durablePath:file,encryptionKey:randomBytes(32).toString('hex')});
- const a=await family('append-family-a'),b=await family('append-family-b');
+ const a=await family('qa-append-family-a'),b=await family('qa-append-family-b');
  const initial=backup('a',[first]),appended=backup('a',[first,second]),other=backup('b',[{...first,id:'b-private'}]);
  assert.equal((await req('/qa/snapshot','PUT',initial,a,0)).status,200);
  assert.equal((await req('/qa/snapshot','PUT',other,b,0)).status,200);
