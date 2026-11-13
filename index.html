@@ -4731,7 +4731,7 @@ $('wrong-child-next-all').addEventListener('click',()=>{
  trigger.closest('.backup-actions')?.before(notice);
  const overlay=document.createElement('div');
  overlay.id='wrong-backup-confirm';overlay.hidden=true;
- overlay.innerHTML='<section class="wrong-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="wrong-backup-title" aria-describedby="wrong-backup-description"><h2 id="wrong-backup-title" tabindex="-1">암호화되지 않은 전체 백업</h2><p id="wrong-backup-description">이 파일에는 아이의 오답·사진·부모 메모가 포함됩니다. 비밀번호로 보호되지 않으며 공유기기 다운로드 폴더나 클라우드에 자동 동기화될 수 있습니다. 저장 후 파일을 직접 안전하게 관리하세요. 파일 생성은 복원 성공을 보장하지 않습니다.</p><div class="wrong-backup-buttons"><button type="button" id="wrong-backup-cancel">취소</button><button type="button" id="wrong-backup-continue" class="secondary">내용을 이해하고 파일 저장</button></div></section>';
+ overlay.innerHTML='<section class="wrong-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="wrong-backup-title" aria-describedby="wrong-backup-description"><h2 id="wrong-backup-title" tabindex="-1">암호화되지 않은 전체 백업</h2><p id="wrong-backup-description">이 파일에는 아이의 오답·사진·부모 메모가 포함됩니다. 비밀번호로 보호되지 않으며 공유기기 다운로드 폴더나 클라우드에 자동 동기화될 수 있습니다. 저장 후 파일을 직접 안전하게 관리하세요. 파일 생성은 복원 성공을 보장하지 않습니다. 백업 취소는 파일 다운로드만 중단하며 이 기기에 저장된 오답·사진·부모 메모를 삭제하지 않습니다. 공유기기에서는 다른 사람이 같은 브라우저로 다시 열어 기록을 볼 수 있습니다.</p><div class="wrong-backup-buttons"><button type="button" id="wrong-backup-cancel">취소</button><button type="button" id="wrong-backup-continue" class="secondary">내용을 이해하고 파일 저장</button></div></section>';
  document.body.append(overlay);
  const cancel=overlay.querySelector('#wrong-backup-cancel');
  const proceed=overlay.querySelector('#wrong-backup-continue');
