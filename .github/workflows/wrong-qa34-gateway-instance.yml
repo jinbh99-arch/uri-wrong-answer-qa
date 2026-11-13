@@ -1,0 +1,44 @@
+name: WRONG QA34 gateway instance swap
+on:
+  push:
+    branches: ['qa/wrong-gateway-instance-reuse-20261114']
+    paths:
+      - 'scripts/qa-family-gateway.mjs'
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-gateway-instance-identity.mjs'
+      - '.github/workflows/wrong-qa34-gateway-instance.yml'
+permissions:
+  contents: read
+jobs:
+  gateway-instance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check scripts/qa-family-gateway.mjs
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-gateway-instance-identity.mjs
+      - name: Isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start local QA app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/qa-instance.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New server-instance identity boundary only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-gateway-instance-identity.mjs
+      - name: No deployment
+        run: |
+          echo "WRONG_GATEWAY_INSTANCE_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_DEPLOYMENT=false"
