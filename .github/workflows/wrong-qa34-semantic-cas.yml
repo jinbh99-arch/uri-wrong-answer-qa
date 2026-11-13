@@ -1,0 +1,35 @@
+name: WRONG QA34 strict semantic backup CAS (Node only)
+on:
+  push:
+    branches: ['qa/wrong-semantic-cas-serial-order-20261114']
+    paths:
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa34-semantic-cas-validated-snapshots.mjs'
+      - '.github/workflows/wrong-qa34-semantic-cas.yml'
+permissions:
+  contents: read
+jobs:
+  strict-semantic-cas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check only new product and QA script syntax
+        run: |
+          node --check scripts/qa-family-gateway.mjs
+          node --check tests/qa34-semantic-cas-validated-snapshots.mjs
+      - name: Test independently SHA-validated identical content and genuine changes
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+          QA_DURABLE_TEST_ONLY: '1'
+        run: node tests/qa34-semantic-cas-validated-snapshots.mjs
+      - name: Record isolated SHA and no deployment
+        run: |
+          echo "WRONG_QA34_SEMANTIC_CAS_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# Synthetic localhost with ephemeral OS temp AES-GCM store, deleted in test.
