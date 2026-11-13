@@ -1,0 +1,44 @@
+name: WRONG QA34 pending backup restore consent logout
+on:
+  push:
+    branches: ['qa/wrong-backup-consent-logout-race-20261114']
+    paths:
+      - 'index.html'
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-consent-cancel-on-family-logout.mjs'
+      - '.github/workflows/wrong-qa34-consent-logout.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-consent-logout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check isolated actual product module and new test syntax
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-consent-cancel-on-family-logout.mjs
+      - name: Install browser only for new real DOM event and download checks
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start localhost synthetic app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-consent-race.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Only new logout-versus-backup-and-restore consent races
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-consent-cancel-on-family-logout.mjs
+      - name: Record exact QA SHA and explicitly no deployment
+        run: |
+          echo "WRONG_QA34_CONSENT_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# Synthetic loopback only; no upload of raw photos or backup artifacts.
