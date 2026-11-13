@@ -152,6 +152,9 @@ export async function createIsolatedQaFamilyGateway(options={}){
  if(process.env.QA_SYNTHETIC_FAMILY_ONLY!=='1')
   throw Error('QA_ONLY: explicit QA_SYNTHETIC_FAMILY_ONLY=1 required');
  const storage=createTestStorage(options),accounts=storage.accounts,tokens=new Map();
+ // Ephemeral synthetic gateway identity: a restarted server at the same port
+ // is not automatically the same account authority.
+ const gatewayInstanceId=randomBytes(24).toString('hex');
  // QA33: bounded synthetic login-attempt rate limiting and session exhaustion.
  // Still NOT secure hosting/authentication for actual families.
  const clock=typeof options.now==='function'?options.now:Date.now;
@@ -240,7 +243,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(count>=MAX_SESSIONS)throw reject(429,'SESSION_LIMIT_REACHED');
     const token=randomBytes(32).toString('hex');
     tokens.set(token,{familyKey,expiresAt:clock()+600000});
-    return reply(res,200,{token,expiresInSeconds:600,qaOnly:true,cloudReady:false});
+    return reply(res,200,{token,expiresInSeconds:600,gatewayInstanceId,qaOnly:true,cloudReady:false});
    }
    if(req.url==='/qa/logout'&&req.method==='POST'){
     const bearer=req.headers.authorization;
