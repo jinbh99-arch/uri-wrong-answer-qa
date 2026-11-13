@@ -13,7 +13,7 @@ mkdirSync(evidenceDir,{recursive:true});
 const check=(label,ok)=>{assert.ok(ok,label);report.checks.push(label)};
 const openDb=async (page)=>page.evaluate(async dbName=>{
  const r=indexedDB.open(dbName,1);
- r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('mistakes'))db.createObjectStore('mistakes',{keyPath:'id'});if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos')};
+ r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('mistakes'))db.createObjectStore('mistakes');if(!db.objectStoreNames.contains('photos'))db.createObjectStore('photos')};
  return await new Promise((resolve,reject)=>{r.onsuccess=()=>{r.result.close();resolve(true)};r.onerror=()=>reject(r.error)});
 },DB);
 const snapshot=async page=>page.evaluate(async dbName=>{
