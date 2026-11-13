@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {createIsolatedQaFamilyGateway} from '../scripts/qa-family-gateway.mjs';
-const A='qa34-household-alpha',B='qa34-household-bravo',PASS_A='SYNTHETIC-A-SECRET-2026-ONLY',PASS_B='SYNTHETIC-B-SECRET-2026-ONLY';
+const A='qa-family-alpha',B='qa-family-bravo',PASS_A='SYNTHETIC-A-SECRET-2026-ONLY',PASS_B='SYNTHETIC-B-SECRET-2026-ONLY';
 const DB='uriaimath-github-qa-v224-only',BASE='http://127.0.0.1:4173/';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 let gateway,browser,steps=[];
@@ -114,5 +114,5 @@ try{
  process.exitCode=1;
 }finally{
  if(browser)await browser.close();
- if(gateway)await gateway.close();
+ if(gateway)await gateway.shutdown();
 }
