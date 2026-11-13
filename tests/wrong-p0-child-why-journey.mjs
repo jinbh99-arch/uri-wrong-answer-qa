@@ -72,7 +72,30 @@ try{
  const registered=await stored(parent);
  assert.equal(registered.records.length,3);assert.equal(registered.photos.length,2);
  pass('390px parent creates three synthetic subjects, original IDs and 2 photos');
- 
+
+ // Regression: detail > edit used to discard a child's unsaved answer and explanation without warning.
+ // Synthetic text only, with the original IndexedDB records and photo bytes unchanged.
+ await detail(parent,ids.science);
+ const beforeDraft=await stored(parent);
+ await parent.locator('#v230-answer').fill('가상 미저장 재풀이 답');
+ await parent.locator('#v230-explanation').fill('가상 미저장 아이 설명');
+ await parent.locator('#detail-edit').click();
+ await parent.locator('#confirm-dialog[open]').waitFor({timeout:8000});
+ assert.match(await parent.locator('#dlg-text').innerText(),/다시 푼 답·설명 초안/);
+ await parent.locator('#dlg-cancel').click();
+ assert.equal(await parent.locator('#page-detail').isVisible(),true);
+ assert.equal(await parent.locator('#v230-answer').inputValue(),'가상 미저장 재풀이 답');
+ assert.equal(await parent.locator('#v230-explanation').inputValue(),'가상 미저장 아이 설명');
+ assert.deepEqual(await stored(parent),beforeDraft,'cancelling edit must preserve stored record and photo bytes');
+ await parent.locator('#detail-edit').click();
+ await parent.locator('#confirm-dialog[open]').waitFor({timeout:8000});
+ await parent.locator('#dlg-ok').click();
+ await parent.locator('#page-add').waitFor({state:'visible',timeout:8000});
+ assert.equal(await parent.locator('#edit-id').inputValue(),ids.science);
+ assert.deepEqual(await stored(parent),beforeDraft,'confirming navigation does not silently store or corrupt draft');
+ await parent.locator('#nav-records').click();
+ pass('unsaved child answer/explanation: edit prompts, cancel keeps draft, accept opens same ID, storage untouched');
+
  for(const ex of examples){
   const id=ids[ex.subject];
   await detail(parent,id);
