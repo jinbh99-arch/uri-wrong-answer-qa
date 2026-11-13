@@ -1,0 +1,27 @@
+name: WRONG QA stale synthetic request boundary
+on:
+  push:
+    branches: ['qa/wrong-stale-request-session-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-stale-request-session.mjs'
+      - '.github/workflows/wrong-qa34-stale-request.yml'
+permissions:
+  contents: read
+jobs:
+  stale-401:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-stale-request-session.mjs
+          node tests/qa34-stale-request-session.mjs
+          echo "WRONG_STALE_SHA=$(git rev-parse HEAD)"
+# Node-only new boundary; no browser install, no deployment or real families.
