@@ -80,7 +80,7 @@ try{
  await page.locator('#qa34-reenter-family').fill(B);
  await page.locator('#qa34-reenter-password').fill(PASS_B);
  await page.locator('#qa34-family-reenter button[type="submit"]').click();
- await page.getByText('다른 가상 가족의 오답·사진·관찰이 남아',{exact:false}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('#qa34-reenter-status')?.textContent?.includes('다른 가상 가족의 오답·사진·관찰이 남아'),null,{timeout:12000});
  assert.equal(await page.locator('#qa34-family-privacy-cover').isVisible(),true);
  assert.equal(await page.locator('#qa-main').evaluate(el=>el.inert),true);
  assert.deepEqual(await snapshot(page),before);
