@@ -1,0 +1,90 @@
+{
+  "name": "wrong02_virtual_session_ttl_boundary_20261113_v1",
+  "dateKST": "2026-11-13",
+  "repository": "jinbh99-arch/uri-wrong-answer-qa",
+  "branch": "qa/wrong-session-expiry-boundary-20261113",
+  "parentHEAD": "89f786249ece6fa33bf69b3d062725bc8ca97f3b",
+  "source": "tests/wrong_family_ttl_role_boundary_synthetic.mjs",
+  "sourceBlob": "8189b899c541872c90f6107fd257545f4e105346",
+  "sourceSHA256": "05b5f76c6a352b63e99cb7363ceee981f6d7caa994aa7df3f26a08677d753e53",
+  "sourceBytes": 5758,
+  "runtime": "Node.js v22.16.0",
+  "command": "node --test --test-reporter=tap tests/wrong_family_ttl_role_boundary_synthetic.mjs",
+  "failFirst": {
+    "cause": "synthetic fixture had perpetual token with no expiration enforcement",
+    "commandExit": 1,
+    "tests": 6,
+    "passed": 5,
+    "failed": 1,
+    "tapPath": "docs/qa/wrong_family_ttl_before_fail_20261113.tap",
+    "tapBlob": "a508a80ef3a694c167794ce870590f98919be98b",
+    "tapSHA256": "6ed0eac2b5fc290123c241686ec3291815fc8f6fac53ef5b325ab76289a178c6"
+  },
+  "minimalFix": "In test-only SessionBoundaryFixture.#session, fail closed on clock rollback or now>=expiresAt; revoke expired token.",
+  "passAfter": {
+    "syntaxExit": 0,
+    "commandExit": 0,
+    "tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "tapPath": "docs/qa/wrong_family_ttl_after_pass_20261113.tap",
+    "tapBlob": "d10f2dfce98b068f716e6f8195c31650df13a1fb",
+    "tapSHA256": "e5d02ae530430594af32b22c9c8a18636c51961992982c190d1b218981925e79"
+  },
+  "virtualHashInvariant": [
+    {
+      "family": "virtual-family-A",
+      "beforeLedgerSHA256": "1363716f4161be6e3c1a10696dc24fc93a05395674fcce0332b36aeed95b4b1e",
+      "afterLedgerSHA256": "1363716f4161be6e3c1a10696dc24fc93a05395674fcce0332b36aeed95b4b1e",
+      "beforePhotoSHA256": "7133ad08284317968ef1cba3f0914e04eae6eeafc11156c01b55aef10ba07380",
+      "afterPhotoSHA256": "7133ad08284317968ef1cba3f0914e04eae6eeafc11156c01b55aef10ba07380"
+    },
+    {
+      "family": "virtual-family-B",
+      "beforeLedgerSHA256": "6afa9787d0c16990861e92818a42d2c41d2e22f632f429839eef51d3ead8b5a3",
+      "afterLedgerSHA256": "6afa9787d0c16990861e92818a42d2c41d2e22f632f429839eef51d3ead8b5a3",
+      "beforePhotoSHA256": "3996d7fa4185531cc1a6b6a3d2bd4f19cf0be4fbedb480767df5d62a346fadb0",
+      "afterPhotoSHA256": "3996d7fa4185531cc1a6b6a3d2bd4f19cf0be4fbedb480767df5d62a346fadb0"
+    }
+  ],
+  "indexedDBAttempt": {
+    "environment": "local HTTP 127.0.0.1 secure-origin Chromium headless",
+    "status": "BLOCKED_BY_BROWSER_ENVIRONMENT",
+    "nodeRunnerExit": 1,
+    "chromiumExit": null,
+    "timeoutMs": 30000,
+    "secondaryAboutBlankExit": 124,
+    "secondaryTimeoutMs": 7000,
+    "realIndexedDBTransactionsTested": 0,
+    "realIndexedDBRollbackValidated": false,
+    "browserFixtureCommitted": false
+  },
+  "safety": {
+    "safeToRestore": false,
+    "realFamilies": 0,
+    "realPhotos": 0,
+    "actualAuthProvider": false,
+    "realSessionToken": false,
+    "realRestore": false,
+    "productionCodeChanged": false,
+    "productionDBChanged": false,
+    "mainChanged": false,
+    "originalDraftPRChanged": false,
+    "ciExecuted": false
+  },
+  "scope": "Only synthetic Node local fixture. Not a shipping auth fix, not actual same-origin isolation.",
+  "assessment": {
+    "completedBefore": 7,
+    "incompleteBefore": 5,
+    "newFullCompletions": 0,
+    "completedAfter": 7,
+    "incompleteAfter": 5,
+    "pending": [
+      4,
+      5,
+      6,
+      8,
+      9
+    ]
+  }
+}
