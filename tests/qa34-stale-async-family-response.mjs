@@ -114,9 +114,13 @@ try{
 
  // Give B a real, validated synthetic remote backup to make late GET a destructive-import hazard.
  await A.locator('#qa34-synthetic').check();
- const [download]=await Promise.all([
-  A.waitForEvent('download',{timeout:25000}),A.locator('#qa34-upload').click()
- ]);
+ const downloadEvent=A.waitForEvent('download',{timeout:25000});
+ await A.locator('#qa34-upload').click();
+ // The actual product intentionally requires a human decision for plaintext JSON.
+ await A.locator('#wrong-backup-confirm:not([hidden])').waitFor({timeout:10000});
+ assert.match(await A.locator('#wrong-backup-description').innerText(),/비밀번호|암호화/);
+ await A.locator('#wrong-backup-continue').click();
+ const download=await downloadEvent;
  assert.ok(download.suggestedFilename().endsWith('.json'));
  await A.waitForFunction(()=>document.querySelector('#qa34-status')?.textContent?.includes('서버 개정번호 1에 저장'),null,{timeout:25000});
  assert.deepEqual(await state(A),before);
