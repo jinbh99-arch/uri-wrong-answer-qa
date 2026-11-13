@@ -157,21 +157,23 @@ if(root&&location.origin===LOCAL_ORIGIN){
    const button=$('export-json');
    if(!button||button.disabled)return reject(Error('백업 생성 버튼이 아직 준비되지 않았습니다.'));
    let timer;
-   const onBackup=event=>{
+   function cleanup(){
     clearTimeout(timer);
-    resolve(event.detail);
-   };
-   timer=setTimeout(()=>{
     document.removeEventListener('qa34:validated-synthetic-export',onBackup);
-    reject(Error('기존 오답노트 백업 검증 완료 신호를 받지 못했습니다. 앱 점검 화면을 확인하세요.'));
+    document.removeEventListener('qa34:family-locked',onLocked);
+   }
+   function onLocked(){
+    cleanup();reject(Error('다른 탭에서 가족 세션이 종료되어 대기 중인 백업 동의를 취소했습니다.'));
+   }
+   function onBackup(event){
+    cleanup();resolve(event.detail);
+   }
+   timer=setTimeout(()=>{
+    cleanup();reject(Error('기존 오답노트 백업 검증 완료 신호를 받지 못했습니다. 앱 점검 화면을 확인하세요.'));
    },15000);
    document.addEventListener('qa34:validated-synthetic-export',onBackup,{once:true});
-   try{button.click()}
-   catch(err){
-    clearTimeout(timer);
-    document.removeEventListener('qa34:validated-synthetic-export',onBackup);
-    reject(err);
-   }
+   document.addEventListener('qa34:family-locked',onLocked,{once:true});
+   try{button.click()}catch(err){cleanup();reject(err)}
   });
  }
  async function loginFamily(familyKey,password){
