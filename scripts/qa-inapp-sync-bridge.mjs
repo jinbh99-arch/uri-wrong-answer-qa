@@ -6,7 +6,7 @@ const root=document.getElementById('qa34-sync-bridge');
 if(root&&location.origin===LOCAL_ORIGIN){
  root.hidden=false;
  const $=id=>document.getElementById(id);
- let token='',revision=null,server='',busy=false;
+ let token='',revision=null,server='',busy=false,operationGeneration=0;
  // QA-only accidental cross-family exposure guard. A local UI cover is NOT
  // security authentication; every IndexedDB byte is preserved on logout.
  const BOUND_KEY='qa34-synthetic-local-family-v1';
@@ -20,6 +20,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
  const boundServer=()=>localStorage.getItem(SERVER_KEY)||'';
  const boundInstance=()=>localStorage.getItem(INSTANCE_KEY)||'';
  function lockLocalView(){
+  // A suspended request cannot hold the re-login form hostage after logout.
+  operationGeneration++;busy=false;state();
   if(!cover){
    cover=document.createElement('section');
    cover.id='qa34-family-privacy-cover';
@@ -143,15 +145,16 @@ if(root&&location.origin===LOCAL_ORIGIN){
  async function perform(action){
   if(busy)return;
   busy=true;state();
+  const thisOperation=++operationGeneration;
   const startedToken=token,startedFamily=activeFamily,
    startedRevoke=localStorage.getItem(REVOKE_KEY)||'';
   const sameSession=()=>token===startedToken&&activeFamily===startedFamily&&
    (localStorage.getItem(REVOKE_KEY)||'')===startedRevoke;
   try{await action()}
   catch(error){
-   if(sameSession())status('중단: '+String(error?.message||error).slice(0,180)+
+   if(thisOperation===operationGeneration&&sameSession())status('중단: '+String(error?.message||error).slice(0,180)+
     ' · 원본 기록을 자동 삭제하거나 복원하지 않았습니다.',true);
-  }finally{busy=false;state()}
+  }finally{if(thisOperation===operationGeneration){busy=false;state()}}
  }
  // Capture the active synthetic identity when starting a multi-await workflow.
  // A sibling tab can revoke its UI session while this tab awaits an HTTP reply.
