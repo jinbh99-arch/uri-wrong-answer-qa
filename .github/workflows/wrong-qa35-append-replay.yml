@@ -1,0 +1,27 @@
+name: WRONG QA35 appended backup replay (Node only)
+on:
+  push:
+    branches: ['qa/wrong-append-replay-cas-20261114']
+    paths:
+      - 'tests/qa35-append-replay-cas.mjs'
+      - '.github/workflows/wrong-qa35-append-replay.yml'
+permissions:
+  contents: read
+jobs:
+  append-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/qa35-append-replay-cas.mjs
+      - name: Isolated localhost synthetic A/B encrypted CAS append/replay
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+          QA_DURABLE_TEST_ONLY: '1'
+        run: node tests/qa35-append-replay-cas.mjs
+      - run: echo "WRONG_QA35_SHA=$(git rev-parse HEAD)"
