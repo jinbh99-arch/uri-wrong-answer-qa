@@ -1,0 +1,32 @@
+name: WRONG QA delayed GET PUT two tabs
+on:
+  push:
+    branches: ['qa/wrong-two-tab-delayed-http-20261114']
+    paths:
+      - 'tests/qa34-delayed-get-put-two-tabs.mjs'
+      - '.github/workflows/wrong-delayed-http-two-tabs.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/qa34-delayed-get-put-two-tabs.mjs
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-http.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-delayed-get-put-two-tabs.mjs
+      - run: echo "WRONG_DELAYED_HTTP_SHA=$(git rev-parse HEAD) DEPLOYMENT=false"
