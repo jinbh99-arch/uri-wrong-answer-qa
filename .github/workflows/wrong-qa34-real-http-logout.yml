@@ -1,0 +1,42 @@
+name: WRONG isolated real HTTP delayed logout
+on:
+  push:
+    branches: ['qa/wrong-immediate-logout-http-delay-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa34-real-http-delayed-logout.mjs'
+      - '.github/workflows/wrong-qa34-real-http-logout.yml'
+permissions:
+  contents: read
+jobs:
+  real-http-logout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax of changed code only
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check scripts/qa-family-gateway.mjs
+          node --check tests/qa34-real-http-delayed-logout.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start local app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-logout-http.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Actual loopback HTTP held ACK regression only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-real-http-delayed-logout.mjs
+      - name: Exact SHA
+        run: git rev-parse HEAD
