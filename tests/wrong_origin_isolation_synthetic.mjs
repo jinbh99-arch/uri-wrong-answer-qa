@@ -216,7 +216,9 @@ try{
       mentionsPlaintext:warning.textContent.includes('비밀번호로 보호되지'),
       mentionsPhotos:warning.textContent.includes('사진'),
       mentionsGuardian:warning.textContent.includes('부모 메모'),
-      mentionsRestoreLimit:warning.textContent.includes('복원 성공을 보장하지')};
+      mentionsRestoreLimit:warning.textContent.includes('복원 성공을 보장하지'),
+      saveLabel:save.textContent.trim(),
+      saveWordBreak:getComputedStyle(save).wordBreak};
   });
   report['backupFirstContactZoom200_'+width]=firstContact;
   check('Keyboard opening shows linked plaintext photo and parent warning before backup controls at '+width+'px CSS200',
@@ -228,6 +230,8 @@ try{
     &&firstContact.warningBeforeCancel&&firstContact.mentionsPlaintext
     &&firstContact.mentionsPhotos&&firstContact.mentionsGuardian
     &&firstContact.mentionsRestoreLimit&&uxDownloads===1);
+  check('Explicit backup consent action stays short and avoids within-word splits at '+width+'px CSS200',
+    firstContact.saveLabel==='위험 확인 후 저장'&&firstContact.saveWordBreak==='keep-all');
   // Independent accessibility-tree association: an ARIA attribute alone does not
   // establish that the warning is exposed to assistive technology.
   const dialogAccessibility=await ux.locator('#wrong-backup-confirm [role="dialog"]').ariaSnapshot();
