@@ -6,8 +6,8 @@ import vm from 'node:vm';
 const src=fs.readFileSync(new URL('../scripts/qa-inapp-sync-bridge.mjs',import.meta.url),'utf8');
 const extract=(start,end)=>{const i=src.indexOf(start),j=src.indexOf(end,i+start.length);
  assert.ok(i>=0&&j>i,'missing code boundary '+start);return src.slice(i,j)};
-const requestCode=extract('  async function request(', '\n  async function perform(');
-const performCode=extract('  async function perform(', '\n  // Capture the active synthetic identity');
+const requestCode=extract(' async function request(', '\n async function perform(');
+const performCode=extract(' async function perform(', '\n // Capture the active synthetic identity');
 const events=[],deferred=[];
 const elements=new Map();
 const $=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,
