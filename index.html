@@ -2432,16 +2432,24 @@ function v230ValidateGeneralRetries(rows){
   const f=e.target.files?.[0];if(!f)return;
   const qa34ImportEpoch=location.origin==='http://127.0.0.1:4173'
    ?(localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||''):null;
+  const qa34ImportCurrent=()=>qa34ImportEpoch===null||
+   (localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')===qa34ImportEpoch;
   if(f.size>V07_BACKUP_LIMIT){e.target.value='';return notify('백업 파일이 30MB를 초과하여 복원하지 않습니다.')}
   try{
    const data=JSON.parse(await f.text());const check=await v18CheckBackup(data);v215ValidateRestoreReadiness(data);
     const v20DryRun=await v19Drill(data); // must complete isolated restore + byte check before destructive import
-   if(qa34ImportEpoch!==null&&
-      (localStorage.getItem('qa34-synthetic-local-session-revoke-v1')||'')!==qa34ImportEpoch)
+   if(!qa34ImportCurrent())
     throw Error('다른 탭에서 가족 세션이 종료돼 복원 확인을 취소했습니다.');
    $('v18-verify-result').textContent=`복원 전 검사: 오답 ${check.count}건 · 사진 ${check.photoCount}장 · ${check.check}. 독립 시험 저장소 복원 ${v20DryRun.count}건·사진 ${v20DryRun.pics}장 대조 및 복원 호환 검사 통과. 실제 기록 교체 전 확인 창에서 취소할 수 있습니다.`;
    await v18OriginalRestore(e);
-  }catch(err){e.target.value='';$('v18-verify-result').textContent='⛔ 복원 전 검사에서 차단: '+String(err?.message||err).slice(0,170)+' · 기존 기록은 그대로입니다.';notify('손상·불완전 백업은 복원하지 않습니다.')}
+  }catch(err){
+   // A revoked synthetic family's late GET/import validation must not overwrite
+   // the new family's status or clear its freshly selected restore file.
+   if(!qa34ImportCurrent())return;
+   e.target.value='';
+   $('v18-verify-result').textContent='⛔ 복원 전 검사에서 차단: '+String(err?.message||err).slice(0,170)+' · 기존 기록은 그대로입니다.';
+   notify('손상·불완전 백업은 복원하지 않습니다.');
+  }
  };
 
 
