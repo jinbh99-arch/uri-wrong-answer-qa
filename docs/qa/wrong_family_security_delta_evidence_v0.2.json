@@ -1,0 +1,75 @@
+{
+  "name": "wrong02_synthetic_family_security_delta_v0.2",
+  "dateKST": "2026-11-13",
+  "repo": "jinbh99-arch/uri-wrong-answer-qa",
+  "isolatedBranch": "qa/wrong-family-safety-extension-20261113",
+  "baseCommit": "d118d9d8d41fcc87cddcd7bb3a4a5543bac871e8",
+  "sourceCommit": "405104a9c7b2c5f48a20f01b90c8525b4dc62d69",
+  "testedFile": "tests/wrong_family_security_delta_synthetic.mjs",
+  "githubBlob": "d2d08194b1eea3a616959b19ed12a0a6dee108fa",
+  "localGitHashObject": "d2d08194b1eea3a616959b19ed12a0a6dee108fa",
+  "localScriptSHA256": "7d307b6416551ba93e9af90f6a183f3276fc73e7a13b9c8fa879c109bae5e929",
+  "runtime": "Node.js v22.16.0",
+  "command": "node --check wrong_family_security_delta_synthetic.mjs && node --test --test-reporter=tap wrong_family_security_delta_synthetic.mjs",
+  "exitCode": 0,
+  "tests": 9,
+  "passed": 9,
+  "failed": 0,
+  "rawTapSHA256": "abf4e66a963746e33ada159d7253d08b14130d02cabdf764f543acdb8f4fcfa5",
+  "cases": [
+    "fixture identity/IDOR deny across virtual family A/B",
+    "child role cannot export, guardian note/photo masked",
+    "logout and new fixture instance fail closed",
+    "same-origin simulated shared storage remains readable (expected exposure)",
+    "AES-256-GCM encrypted export and mock passphrase re-encryption",
+    "wrong password/family and cryptographic envelope tamper",
+    "restore dry-run no writes, collisions, abort, missing photo and schema guard",
+    "128KiB virtual PNG exact bytes, oversize fixture denial",
+    "offline-file read-only dry-run; plaintext export rejected"
+  ],
+  "supplementalLocalOnly": {
+    "filename": "wrong_family_safety_extensions_synthetic.mjs",
+    "tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "exitCode": 0,
+    "scriptSHA256": "0937781bffb5a111312147474788a33df670f0796be3df743c385154d13c5123",
+    "rawTapSHA256": "e62a10fe0dd1cf6cd22db0afeee9eab337506f7d66bed8c00ca16b08bcb3ff5b",
+    "githubCommitted": false
+  },
+  "safety": {
+    "syntheticFamilies": 2,
+    "realPersons": 0,
+    "realPhotos": 0,
+    "operationalWrites": 0,
+    "changedProductionFiles": 0,
+    "safeToRestore": false,
+    "baseline63Reexecuted": false,
+    "newGithubActionsRuns": 0,
+    "mainChanged": false,
+    "existingPRChanged": false,
+    "existingBranchChanged": false
+  },
+  "scopeLimitations": [
+    "Fixture identity secrets are hard-coded synthetic principals; not real Auth, identity verification or production authorization",
+    "Shared-origin storage exposure is still present; test documents disclosure, does not mitigate it",
+    "Restore dry-run uses in-memory ledgers, not real IndexedDB atomic rollback or cloud DB",
+    "Photo limits and offline scenarios are synthetic; no actual shared device, native photo, quota exhaustion or real browser offline tested",
+    "Existing production plaintext backup is not changed or made safe",
+    "Crypto suite/KDF values are a QA design fixture, not a production security review",
+    "New 9/9 passed exact-byte local Node, not GitHub Actions CI"
+  ],
+  "assessment": {
+    "completed": 7,
+    "pending": 5,
+    "remainingIssue52Items": [
+      4,
+      5,
+      6,
+      8,
+      9
+    ],
+    "note": "New evidence advances pending tasks only; 4/5/6/8/9 remain incomplete for production",
+    "explicitGate": "No real family authentication or secure shared-device/restore release authorization"
+  }
+}
