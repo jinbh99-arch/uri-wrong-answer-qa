@@ -1,0 +1,41 @@
+name: WRONG QA34 same-family relogin export generation
+on:
+  push:
+    branches: ['qa/wrong-relogin-backup-generation-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa34-relogin-export-generation.mjs'
+      - '.github/workflows/wrong-qa34-relogin-generation.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-relogin-backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new QA script
+        run: node --check tests/qa34-relogin-export-generation.mjs
+      - name: Minimal fresh Chromium environment
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated app at 127.0.0.1
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-relogin-export.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New isolated old-digest vs fresh-export race only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-relogin-export-generation.mjs
+      - name: Record candidate SHA and absence of deployment
+        run: |
+          echo "WRONG_QA34_RELOGIN_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# Only synthetic loopback, no real accounts/children, no uploaded backup artifact.
