@@ -1,0 +1,19 @@
+name: WRONG QA stale import validation UI
+on:
+  push:
+    branches: [qa/wrong-stale-import-ui-20261114]
+permissions:
+  contents: read
+jobs:
+  narrow-node:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/qa34-stale-import-error-ui.test.mjs
+      - run: echo "QA_SHA=$(git rev-parse HEAD); no deployment"
