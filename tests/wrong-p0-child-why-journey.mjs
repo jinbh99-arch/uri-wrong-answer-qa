@@ -30,6 +30,20 @@ async function stored(p){
   }finally{db.close()}
  },DB);
 }
+async function storedWithSettings(p){
+ const rows=await stored(p);
+ const settings=await p.evaluate(async name=>{
+  const request=indexedDB.open(name);
+  const db=await new Promise((ok,no)=>{request.onsuccess=()=>ok(request.result);request.onerror=()=>no(request.error)});
+  try{
+   const tx=db.transaction('settings','readonly'),store=tx.objectStore('settings');
+   const get=req=>new Promise((ok,no)=>{req.onsuccess=()=>ok(req.result);req.onerror=()=>no(req.error)});
+   const [keys,values]=await Promise.all([get(store.getAllKeys()),get(store.getAll())]);
+   return keys.map((key,i)=>[key,values[i]]);
+  }finally{db.close()}
+ },DB);
+ return {...rows,settings};
+}
 function get(x,id){const row=x.records.find(r=>r.id===id);assert.ok(row,'missing '+id);return row}
 async function detail(p,id){
  await p.locator('#nav-records').click();
@@ -164,11 +178,42 @@ try{
  await parent.locator('#wrong-p0-child-reason-readonly:visible').waitFor();
  assert.match(await parent.locator('#wrong-p0-child-reason-readonly').innerText(),/설명은 아직 기록되지/);
  pass('blank optional why explanation still saves retry; guardian sees no fabricated rationale');
+ // Persist an explicit synthetic parent profile so corruption probes protect its bytes too.
+ await parent.locator('#nav-settings').click();
+ await parent.locator('#nickname').fill('QA 가상 학부모');
+ await parent.locator('#grade').selectOption('4');
+ await parent.locator('#profile-form button[type="submit"]').click();
+ await parent.locator('#page-home:visible').waitFor({timeout:10000});
  const pre=await stored(parent);
  const bytes=await backup(parent),data=JSON.parse(bytes.toString('utf8'));
+ assert.equal(data.profile.nickname,'QA 가상 학부모');
+ assert.equal(data.profile.grade,4);
  assert.equal(data.records.length,3);assert.equal(Object.keys(data.photos).length,2);
  assert.equal(data.photosOmitted,0);assert.equal(data.integrity.algorithm,'SHA-256');
  assert.ok(data.records.find(r=>r.id===ids.science).generalRetryHistory.length===2);
+ assert.equal(data.integrity.algorithm,'SHA-256','loopback SHA-256 must be available');
+ assert.match(data.integrity.digest,/^[0-9a-f]{64}$/);
+ const unmodified=await storedWithSettings(parent);
+ assert.ok(unmodified.settings.some(([key,value])=>key==='profile'&&value.nickname==='QA 가상 학부모'));
+ assert.equal(unmodified.photos.length,2);
+ const broken=structuredClone(data);
+ const digest=broken.integrity.digest;
+ broken.integrity.digest=(digest[0]==='0'?'1':'0')+digest.slice(1);
+ assert.equal(broken.integrity.digest.length,digest.length);
+ assert.equal(JSON.stringify(broken.records),JSON.stringify(data.records));
+ assert.equal(JSON.stringify(broken.photos),JSON.stringify(data.photos));
+ await parent.evaluate(()=>document.querySelector('#v18-verify-result').textContent='검사 대기');
+ await parent.locator('#import-file').setInputFiles({
+  name:'wrong-synthetic-one-digit-hash-corrupt.json',mimeType:'application/json',
+  buffer:Buffer.from(JSON.stringify(broken),'utf8')
+ });
+ await parent.waitForFunction(()=>document.querySelector('#v18-verify-result')?.textContent?.includes('복원 전 검사에서 차단'),
+   null,{timeout:25000});
+ assert.match(await parent.locator('#v18-verify-result').innerText(),/검사값이 일치하지 않/);
+ assert.equal(await parent.locator('#confirm-dialog[open]').count(),0,'corrupt hash reached destructive restore consent');
+ assert.deepEqual(await storedWithSettings(parent),unmodified,
+   'one-digit hash corruption must not alter original records, raw photos, or persisted parent profile');
+ pass('real Chromium one-character SHA-256 tamper blocks import before dialog; original IDs, photo bytes and raw profile unchanged');
  const freshContext=await browser.newContext({viewport:{width:320,height:740},acceptDownloads:true});
  const fresh=await freshContext.newPage();fresh.on('pageerror',err=>errors.push(String(err)));
  await fresh.goto(BASE,{waitUntil:'domcontentloaded'});
