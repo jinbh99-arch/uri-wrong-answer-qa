@@ -48,6 +48,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
   cover.querySelector('#qa34-reenter-family').value=boundFamily();
   cover.querySelector('#qa34-reenter-password').value='';
   cover.querySelector('#qa34-reenter-family').focus();
+  // Signal the actual app to withdraw any previously granted UI consent.
+  document.dispatchEvent(new Event('qa34:family-locked'));
  }
  function unlockLocalView(){
   if(cover?.isConnected)cover.remove();
