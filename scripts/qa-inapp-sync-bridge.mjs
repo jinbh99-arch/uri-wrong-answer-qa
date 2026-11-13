@@ -10,7 +10,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
  // QA-only accidental cross-family exposure guard. A local UI cover is NOT
  // security authentication; every IndexedDB byte is preserved on logout.
  const BOUND_KEY='qa34-synthetic-local-family-v1';
- let cover=null;
+ const REVOKE_KEY='qa34-synthetic-local-session-revoke-v1';
+ let cover=null,activeFamily='';
  const boundFamily=()=>localStorage.getItem(BOUND_KEY)||'';
  function lockLocalView(){
   if(!cover){
@@ -53,6 +54,20 @@ if(root&&location.origin===LOCAL_ORIGIN){
   const main=document.getElementById('qa-main');if(main)main.inert=false;
   const header=document.querySelector('header');if(header)header.inert=false;
  }
+ // Storage signals are QA-only presentation locks, NEVER real authentication.
+ // A tab opened before the family was bound must not keep showing local photos.
+ // A logout or rejected session revokes the visual access of ALL same-origin tabs.
+ function broadcastLock(){
+  try{localStorage.setItem(REVOKE_KEY,String(Date.now())+':'+Math.random())}catch{}
+ }
+ window.addEventListener('storage',event=>{
+  if(event.storageArea!==localStorage)return;
+  if(event.key===REVOKE_KEY){
+   clearSession();lockLocalView();
+  }else if(event.key===BOUND_KEY&&event.newValue&&event.newValue!==activeFamily){
+   clearSession();lockLocalView();
+  }
+ });
  function status(message,error=false){
   $('qa34-status').textContent=message;
   $('qa34-status').setAttribute('data-error',String(error));
@@ -65,7 +80,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
   $('qa34-pull').disabled=busy||!token;
  }
  function clearSession(){
-  token='';server='';revision=null;
+  token='';server='';revision=null;activeFamily='';
   $('qa34-password').value='';
   if(cover)cover.querySelector('#qa34-reenter-password').value='';
   $('qa34-revision').textContent='로그아웃됨 · 서버 개정번호 미확인';
@@ -95,7 +110,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
    if(!response.ok){
     // A revoked/expired gateway session must not appear active in the app.
     // Clear only ephemeral local credentials; never touch IndexedDB.
-    if(response.status===401&&token){clearSession();lockLocalView()}
+    if(response.status===401&&token){clearSession();lockLocalView();broadcastLock()}
     throw Error('서버 응답 '+response.status+': '+String(result?.error||'요청 실패').slice(0,55));
    }
    return result;
@@ -160,6 +175,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
    const loaded=await request('/qa/snapshot');
    setRevision(loaded.revision,loaded.snapshot);
    // Persist only the SYNTHETIC family label. Do not delete or move photos.
+   activeFamily=familyKey;
    localStorage.setItem(BOUND_KEY,familyKey);
    unlockLocalView();
    status('가상 가족 로그인 완료. 백업 보내기는 합성자료 체크 후 수동으로 실행하며, 가져오기는 기존 복원 확인창을 반드시 거칩니다.');
@@ -169,7 +185,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
   loginFamily($('qa34-family').value.trim(),$('qa34-password').value)));
  $('qa34-logout').addEventListener('click',()=>perform(async()=>{
   try{if(token)await request('/qa/logout','POST')}
-  finally{clearSession();lockLocalView()}
+  finally{clearSession();lockLocalView();broadcastLock()}
   status('가상 가족 세션 종료. 오답·사진·관찰 기록은 삭제하지 않았고 다른 가상 가족 전환은 차단했습니다.');
  }));
  $('qa34-upload').addEventListener('click',()=>perform(async()=>{
