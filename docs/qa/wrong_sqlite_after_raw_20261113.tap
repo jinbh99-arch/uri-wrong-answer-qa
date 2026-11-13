@@ -1,0 +1,65 @@
+TAP version 13
+# QA_HASHES=[{"family":"virtual-family-A","revision":2,"rows":1,"ledgerSha256":"35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342","photosSha256":["13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2"],"photoBytes":16},{"family":"virtual-family-B","revision":2,"rows":1,"ledgerSha256":"2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1","photosSha256":["1b5dadb0cc4f52997425260b3e884f5ef193962dbbe24dac9ba96246b7c78c7e"],"photoBytes":16}]
+# Subtest: A/B baseline photo byte digest and separate revision
+ok 1 - A/B baseline photo byte digest and separate revision
+  ---
+  duration_ms: 11.15811
+  type: 'test'
+  ...
+# Subtest: actual SQLite dry-run stages 2 photo records then ROLLBACK leaves both families byte-identical
+ok 2 - actual SQLite dry-run stages 2 photo records then ROLLBACK leaves both families byte-identical
+  ---
+  duration_ms: 20.538834
+  type: 'test'
+  ...
+# Subtest: injected interrupt AFTER first SQL INSERT restores both virtual family records/photos
+ok 3 - injected interrupt AFTER first SQL INSERT restores both virtual family records/photos
+  ---
+  duration_ms: 12.481981
+  type: 'test'
+  ...
+# Subtest: duplicate key on second SQL INSERT triggers rollback even after first insert succeeded
+ok 4 - duplicate key on second SQL INSERT triggers rollback even after first insert succeeded
+  ---
+  duration_ms: 7.965927
+  type: 'test'
+  ...
+# Subtest: forged cross-family claim and stale revision reject without any family writes
+ok 5 - forged cross-family claim and stale revision reject without any family writes
+  ---
+  duration_ms: 9.021522
+  type: 'test'
+  ...
+# Subtest: photo corruption and missing buffer reject before transaction, with hash invariant
+ok 6 - photo corruption and missing buffer reject before transaction, with hash invariant
+  ---
+  duration_ms: 7.886006
+  type: 'test'
+  ...
+# Subtest: synthetic photo cap, bundle cap and repeated record IDs reject with zero writes
+ok 7 - synthetic photo cap, bundle cap and repeated record IDs reject with zero writes
+  ---
+  duration_ms: 9.089565
+  type: 'test'
+  ...
+# Subtest: explicit test-only SQLite commit + reopen persists A while family B SHA stays unchanged
+ok 8 - explicit test-only SQLite commit + reopen persists A while family B SHA stays unchanged
+  ---
+  duration_ms: 11.263559
+  type: 'test'
+  ...
+# Subtest: same-origin/shared-device plaintext is UNSOLVED by this SQLite transaction fixture
+ok 9 - same-origin/shared-device plaintext is UNSOLVED by this SQLite transaction fixture
+  ---
+  duration_ms: 9.606886
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 158.778666
