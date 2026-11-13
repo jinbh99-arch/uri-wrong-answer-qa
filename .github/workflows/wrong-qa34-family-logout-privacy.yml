@@ -1,0 +1,43 @@
+name: WRONG QA34 one-browser A B synthetic logout privacy
+on:
+  push:
+    branches: ['qa/wrong-family-switch-privacy-guard-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa34-family-logout-privacy.mjs'
+      - '.github/workflows/wrong-qa34-family-logout-privacy.yml'
+permissions:
+  contents: read
+jobs:
+  wrong-family-logout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact QA code syntax
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa34-family-logout-privacy.mjs
+      - name: Install isolated Chromium test dependency
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start synthetic loopback product UI
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa34-privacy-http.log 2>&1 &
+          for i in 1 2 3 4 5; do curl --fail -s http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: One browser A then logout then B blocked then A returns
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-family-logout-privacy.mjs
+      - name: Report exact SHA and no deploy
+        run: |
+          echo "WRONG_QA34_FAMILY_SWITCH_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# Synthetic 127.0.0.1 only; no raw backup artifact, real families, or deployment.
