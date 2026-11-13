@@ -190,6 +190,19 @@ export async function createIsolatedQaFamilyGateway(options={}){
   for(const [key,item] of next)loginAttempts.set(key,item);
  }
  const server=createServer(async(req,res)=>{
+  // Synthetic test seam only: the real HTTP request reaches this loopback
+  // gateway and revokes its token, but the acknowledgement can be held.
+  // Never enabled by the production app or by default.
+  if(req.url==='/qa/logout'&&req.method==='POST'&&typeof options.holdLogoutAck==='function'){
+   const originalEnd=res.end.bind(res);
+   res.end=(...args)=>{
+    Promise.resolve().then(()=>options.holdLogoutAck()).then(
+     ()=>originalEnd(...args),
+     ()=>originalEnd(...args)
+    );
+    return res;
+   };
+  }
   try{
    reap();
    if(!req.socket.remoteAddress||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress))
