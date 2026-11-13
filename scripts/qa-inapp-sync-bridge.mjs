@@ -120,6 +120,13 @@ if(root&&location.origin===LOCAL_ORIGIN){
     mode:'cors',cache:'no-store',signal:controller.signal
    });
    const result=await response.json();
+   // A late 401 *or success* from an older synthetic family session is not
+   // allowed to act on the next session, even if the browser delivered it.
+   // Reject before the 401 lock path or any caller sees a stale snapshot.
+   if(requestToken&&
+      (token!==requestToken||activeFamily!==requestFamily||
+       (localStorage.getItem(REVOKE_KEY)||'')!==requestRevoke))
+    throw Error('이전 가족 세션의 늦은 응답을 폐기했습니다. 현재 연결은 유지됩니다.');
    if(!response.ok){
     // A revoked/expired gateway session must not appear active in the app.
     // Clear only ephemeral local credentials; never touch IndexedDB.
