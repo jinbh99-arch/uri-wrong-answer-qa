@@ -10,9 +10,13 @@ if(root&&location.origin===LOCAL_ORIGIN){
  // QA-only accidental cross-family exposure guard. A local UI cover is NOT
  // security authentication; every IndexedDB byte is preserved on logout.
  const BOUND_KEY='qa34-synthetic-local-family-v1';
+ // A family label alone is NOT unique: separate loopback QA gateways can
+ // independently register the same synthetic family name.
+ const SERVER_KEY='qa34-synthetic-local-gateway-v1';
  const REVOKE_KEY='qa34-synthetic-local-session-revoke-v1';
  let cover=null,activeFamily='';
  const boundFamily=()=>localStorage.getItem(BOUND_KEY)||'';
+ const boundServer=()=>localStorage.getItem(SERVER_KEY)||'';
  function lockLocalView(){
   if(!cover){
    cover=document.createElement('section');
@@ -67,6 +71,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(event.key===REVOKE_KEY){
    clearSession();lockLocalView();
   }else if(event.key===BOUND_KEY&&event.newValue&&event.newValue!==activeFamily){
+   clearSession();lockLocalView();
+  }else if(event.key===SERVER_KEY&&event.newValue&&activeFamily&&event.newValue!==server){
    clearSession();lockLocalView();
   }
  });
@@ -180,17 +186,21 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(!/^qa-[a-z0-9-]{4,32}$/.test(familyKey))throw Error('가상 가족 ID는 qa-로 시작해야 합니다.');
   if(password.length<16||password.length>160)throw Error('실제 비밀번호가 아닌 16~160자 가상 비밀번호가 필요합니다.');
   if(token)throw Error('이미 로그인했습니다. 먼저 로그아웃하세요.');
-  const bound=boundFamily(),startedRevoke=localStorage.getItem(REVOKE_KEY)||'';
+  const bound=boundFamily(),originalServer=boundServer(),requestedServer=address(),
+   startedRevoke=localStorage.getItem(REVOKE_KEY)||'';
   const assertFresh=()=>{
-   if((localStorage.getItem(REVOKE_KEY)||'')!==startedRevoke||boundFamily()!==bound)
+   if((localStorage.getItem(REVOKE_KEY)||'')!==startedRevoke||
+      boundFamily()!==bound||boundServer()!==originalServer)
     throw Error('다른 탭에서 가족 세션이 종료·변경되어 이전 로그인 응답을 폐기했습니다. 새로운 연결은 직접 다시 확인하세요.');
   };
   if(bound&&bound!==familyKey)
    throw Error('이 브라우저에는 다른 가상 가족의 오답·사진·관찰이 남아 있어 가족 전환을 차단했습니다. 별도 브라우저 프로필을 사용하세요.');
+  if(bound&&originalServer!==requestedServer)
+   throw Error('동일한 가상 가족 이름이라도 다른 시험 서버의 기록과 섞을 수 없습니다. 기존 브라우저 프로필은 원래 서버에서만 다시 연결하세요.');
   const response=await request('/qa/login','POST',{familyKey,password});
   // A delayed reply is not permission to reopen a tab after sibling logout.
   assertFresh();
-  server=address();token=response.token;
+  server=requestedServer;token=response.token;
   $('qa34-password').value='';
   try{
    const loaded=await request('/qa/snapshot');
@@ -198,6 +208,8 @@ if(root&&location.origin===LOCAL_ORIGIN){
    setRevision(loaded.revision,loaded.snapshot);
    // Persist only the SYNTHETIC family label. Do not delete or move photos.
    activeFamily=familyKey;
+   // Keep synthetic family and gateway binding across logout/reload.
+   localStorage.setItem(SERVER_KEY,requestedServer);
    localStorage.setItem(BOUND_KEY,familyKey);
    unlockLocalView();
    status('가상 가족 로그인 완료. 백업 보내기는 합성자료 체크 후 수동으로 실행하며, 가져오기는 기존 복원 확인창을 반드시 거칩니다.');
