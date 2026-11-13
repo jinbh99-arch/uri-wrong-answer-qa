@@ -1,0 +1,34 @@
+name: WRONG QA34 real HTTP PUT ACK loss CAS (Node only)
+on:
+  push:
+    branches: ['qa/wrong-lost-put-ack-cas-idempotency-20261114']
+    paths:
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa34-put-ack-loss-cas-ledger.mjs'
+      - '.github/workflows/wrong-qa34-put-ack-cas.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-http-cas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new backend and test JavaScript syntax
+        run: |
+          node --check scripts/qa-family-gateway.mjs
+          node --check tests/qa34-put-ack-loss-cas-ledger.mjs
+      - name: Execute only new localhost PUT ACK-loss and revision ledger boundary
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa34-put-ack-loss-cas-ledger.mjs
+      - name: Print exact isolated SHA, no deploy
+        run: |
+          echo "WRONG_QA34_ACK_LOSS_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA34_DEPLOYMENT=false"
+# No Chromium install, no real family data, no persistent DB, no public deployment.
