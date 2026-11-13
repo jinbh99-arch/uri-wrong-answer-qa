@@ -57,8 +57,23 @@ async function add(p,ex){
 }
 async function backup(p){
  await p.locator('#nav-settings').click();
- const [download]=await Promise.all([p.waitForEvent('download',{timeout:25000}),
-   p.locator('#export-json').click()]);
+ // The current QA product adds an informed plaintext-backup risk choice.
+ // Verify cancel leaves original family-like synthetic rows and photos untouched.
+ const before=await stored(p);
+ await p.locator('#export-json').click();
+ await p.locator('#wrong-backup-confirm:not([hidden])').waitFor({timeout:8000});
+ assert.match(await p.locator('#wrong-backup-description').innerText(),/암호화|비밀번호/);
+ await p.locator('#wrong-backup-cancel').click();
+ assert.equal(await p.locator('#wrong-backup-confirm').isVisible(),false);
+ assert.deepEqual(await stored(p),before,'cancelled plaintext backup must not change local records/photos');
+ const [download]=await Promise.all([
+  p.waitForEvent('download',{timeout:25000}),
+  (async()=>{
+   await p.locator('#export-json').click();
+   await p.locator('#wrong-backup-confirm:not([hidden])').waitFor({timeout:8000});
+   await p.locator('#wrong-backup-continue').click();
+  })()
+ ]);
  return readFile(await download.path());
 }
 try{
