@@ -203,6 +203,17 @@ export async function createIsolatedQaFamilyGateway(options={}){
     return res;
    };
   }
+  // Synthetic-only HTTP failure seam: persist the PUT before withholding its ACK.
+  // This never changes stored records or enables an operational endpoint.
+  if(req.url==='/qa/snapshot'&&req.method==='PUT'&&typeof options.holdSnapshotPutAck==='function'){
+   const originalEnd=res.end.bind(res);
+   res.end=(...args)=>{
+    Promise.resolve().then(()=>options.holdSnapshotPutAck()).then(
+     ()=>originalEnd(...args),()=>originalEnd(...args)
+    );
+    return res;
+   };
+  }
   try{
    reap();
    if(!req.socket.remoteAddress||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress))
@@ -439,6 +450,12 @@ export async function createIsolatedQaFamilyGateway(options={}){
     if(!fresh||fresh.revision!==oldRev
        ||tokens.get(bearer.slice(7))!==session||session.expiresAt<=clock())
      throw reject(409,'STALE_OR_REVOKED_SESSION');
+    // A lost HTTP acknowledgement must not create a second identical history
+    // entry when a parent deliberately rechecks the latest CAS and resends the
+    // exact same validated synthetic backup. A stale If-Match still gets 409.
+    if(fresh.snapshot&&JSON.stringify(fresh.snapshot)===JSON.stringify(doc))
+     return reply(res,200,{stored:true,revision:fresh.revision,unchanged:true,
+      qaOnly:true},{etag:'"'+fresh.revision+'"'});
     const previous=fresh.snapshot?{revision:fresh.revision,snapshot:fresh.snapshot}:null;
     const saved={...fresh,snapshot:structuredClone(doc),revision:oldRev+1,
       history:[...(fresh.history||[]),...(previous?[previous]:[])].slice(-12)};
