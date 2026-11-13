@@ -1,0 +1,109 @@
+{
+  "name": "WRONG02_sqlite_transaction_rollback_v0.5",
+  "dateKST": "2026-11-13",
+  "repository": "jinbh99-arch/uri-wrong-answer-qa",
+  "branch": "qa/wrong-sqlite-transaction-rollback-20261113",
+  "baseSHA": "3d132fa32c814eba9cc8cacfe21b7bfccc6b60ca",
+  "test": {
+    "path": "tests/wrong_family_sqlite_atomicity_synthetic.mjs",
+    "gitBlob": "71d253c81c3ddd7b197c61405b28a69fda30f91b",
+    "sha256": "349225753a334e6f14094c556e9fdb089c20f984ee11b2e3d1ce63ccb08fc535",
+    "bytes": 9103,
+    "run": "WRONG_QA_HASHES=1 node --no-warnings --test --test-reporter=tap tests/wrong_family_sqlite_atomicity_synthetic.mjs",
+    "runtime": {
+      "node": "v22.16.0",
+      "sqlite": "3.49.1"
+    },
+    "sourceLocalGitBlobEqualRemote": true,
+    "resultAfter": {
+      "exitCode": 0,
+      "pass": 9,
+      "fail": 0,
+      "fullRawTap": "docs/qa/wrong_sqlite_after_raw_20261113.tap",
+      "tapGitBlob": "468255ea75062821b3f6d6b6f60b39484b1e9676",
+      "tapSHA256": "fe8e19a824f0974cee89c084f4bd722327cd1ae0c380a43ccbd906aa971cf49d",
+      "tapBytes": 2691
+    },
+    "reproductionBefore": {
+      "technique": "In TEST-ONLY fixture catch block, temporarily omit ROLLBACK; restore prior to commit",
+      "exitCode": 1,
+      "pass": 7,
+      "fail": 2,
+      "failingTests": [
+        3,
+        4
+      ],
+      "fullRawTap": "docs/qa/wrong_sqlite_before_fail_20261113.tap",
+      "tapGitBlob": "24fe3770925a7b34eadc3915e9feb50ccf486ef4",
+      "tapSHA256": "99ed4580d4c1594bda8928434e5bb46043a54220cbc81cb6ded7fcb4f0e83e5d",
+      "tapBytes": 9461
+    },
+    "minFix": "if(active)db.exec('ROLLBACK') in catch on a real temporary SQLite transaction"
+  },
+  "syntheticBaselines": {
+    "virtual-family-A": {
+      "revision": 2,
+      "records": 1,
+      "ledgerSha256": "35bf2beef364957c921b4eff9b10ada2990012ace3f3c9a85969ee96b4f2f342",
+      "photoSha256": "13388de0e2be34326e8d98705dbb9322d53b510e30b03dac96246ef98ed060a2",
+      "photoBytes": 16
+    },
+    "virtual-family-B": {
+      "revision": 2,
+      "records": 1,
+      "ledgerSha256": "2d929a025616891cd203e92904d621025f574eca53f445edcd1b23f52964ebf1",
+      "photoSha256": "1b5dadb0cc4f52997425260b3e884f5ef193962dbbe24dac9ba96246b7c78c7e",
+      "photoBytes": 16
+    }
+  },
+  "newBoundaries": [
+    "SQLITE BEGIN IMMEDIATE/ROLLBACK on virtual temporary SQLite DB",
+    "dry-run 2 records and 0 committed writes",
+    "injected abort after first SQL INSERT",
+    "unique key failure after first successful INSERT",
+    "forged family claim and stale revision",
+    "corrupt/missing photo rejection",
+    "256KiB photo/300KiB bundle size synthetic limits; not browser quota",
+    "test-only commit and database reopen for A while B stays byte-identical",
+    "same-origin plaintext exposure declared unresolved"
+  ],
+  "browser": {
+    "attempted": true,
+    "localhostHttp": "ERR_BLOCKED_BY_ADMINISTRATOR",
+    "localFile": "ERR_BLOCKED_BY_ADMINISTRATOR",
+    "aboutBlank": "indexedDB.open SecurityError, opaque origin",
+    "indexedDBRealTransactions": 0,
+    "indexedDBAtomicityValidated": false,
+    "bypassedRestrictions": false
+  },
+  "limits": {
+    "isolatedSyntheticDataOnly": true,
+    "realChildren": 0,
+    "realFamilies": 0,
+    "realPhotos": 0,
+    "operatingDatabaseTouched": false,
+    "productionAuthTouched": false,
+    "productionRestoreTouched": false,
+    "productBrowserTestPassed": false,
+    "safeToRestore": false,
+    "sharedOriginExposureRemains": true,
+    "realIndexedDBValidated": false,
+    "newPaidActionsRuns": 0,
+    "protectedAorMainChanged": false,
+    "originalPRChanged": false
+  },
+  "status": {
+    "completedBefore": 7,
+    "incompleteBefore": 5,
+    "newFullCompletions": 0,
+    "completedAfter": 7,
+    "incompleteAfter": 5,
+    "pending": [
+      4,
+      5,
+      6,
+      8,
+      9
+    ]
+  }
+}
