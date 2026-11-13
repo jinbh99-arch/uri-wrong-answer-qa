@@ -165,14 +165,21 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(!/^qa-[a-z0-9-]{4,32}$/.test(familyKey))throw Error('가상 가족 ID는 qa-로 시작해야 합니다.');
   if(password.length<16||password.length>160)throw Error('실제 비밀번호가 아닌 16~160자 가상 비밀번호가 필요합니다.');
   if(token)throw Error('이미 로그인했습니다. 먼저 로그아웃하세요.');
-  const bound=boundFamily();
+  const bound=boundFamily(),startedRevoke=localStorage.getItem(REVOKE_KEY)||'';
+  const assertFresh=()=>{
+   if((localStorage.getItem(REVOKE_KEY)||'')!==startedRevoke||boundFamily()!==bound)
+    throw Error('다른 탭에서 가족 세션이 종료·변경되어 이전 로그인 응답을 폐기했습니다. 새로운 연결은 직접 다시 확인하세요.');
+  };
   if(bound&&bound!==familyKey)
    throw Error('이 브라우저에는 다른 가상 가족의 오답·사진·관찰이 남아 있어 가족 전환을 차단했습니다. 별도 브라우저 프로필을 사용하세요.');
   const response=await request('/qa/login','POST',{familyKey,password});
+  // A delayed reply is not permission to reopen a tab after sibling logout.
+  assertFresh();
   server=address();token=response.token;
   $('qa34-password').value='';
   try{
    const loaded=await request('/qa/snapshot');
+   assertFresh(); // also guard a late family snapshot response
    setRevision(loaded.revision,loaded.snapshot);
    // Persist only the SYNTHETIC family label. Do not delete or move photos.
    activeFamily=familyKey;
