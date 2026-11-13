@@ -2,7 +2,7 @@ name: WRONG P0 child-why to parent observation synthetic smoke
 
 on:
   push:
-    branches: ['qa/wrong-p0-child-why-retry-20261110', 'qa/wrong-child-draft-edit-guard-20261113']
+    branches: ['qa/wrong-p0-child-why-retry-20261110', 'qa/wrong-child-draft-edit-guard-20261113', 'qa/wrong-digest-tamper-boundary-20261113']
     paths: ['index.html', 'tests/wrong-p0-child-why-journey.mjs', '.github/workflows/wrong-p0-child-why-ci.yml']
   workflow_dispatch:
 
