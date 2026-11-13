@@ -242,11 +242,22 @@ if(root&&location.origin===LOCAL_ORIGIN){
  }
  $('qa34-login').addEventListener('click',()=>perform(()=>
   loginFamily($('qa34-family').value.trim(),$('qa34-password').value)));
- $('qa34-logout').addEventListener('click',()=>perform(async()=>{
-  try{if(token)await request('/qa/logout','POST')}
-  finally{clearSession();lockLocalView();broadcastLock()}
-  status('가상 가족 세션 종료. 오답·사진·관찰 기록은 삭제하지 않았고 다른 가상 가족 전환은 차단했습니다.');
- }));
+ $('qa34-logout').addEventListener('click',()=>{
+  // QA-only: a stalled HTTP logout acknowledgement must NEVER leave another
+  // tab's photo/parent observation exposed while the network is pending.
+  // Start the remote revocation while the old token exists, then revoke the
+  // local presentation synchronously. No retry or automatic record deletion.
+  if(busy||!token)return;
+  const pending=request('/qa/logout','POST');
+  clearSession();lockLocalView();broadcastLock();
+  status('가상 가족 화면을 즉시 잠갔습니다. 원격 세션 종료 확인은 별도로 진행 중이며, 오답·사진·관찰은 삭제하지 않았습니다.');
+  pending.then(()=>{
+   // A late old logout ACK cannot overwrite a newly authenticated session.
+   if(!token&&cover?.isConnected)status('가상 가족 화면 잠금 완료. 원격 로그아웃 요청도 완료되었습니다. 로컬 기록은 그대로입니다.');
+  }).catch(()=>{
+   if(!token&&cover?.isConnected)status('가상 가족 화면은 잠겼지만 원격 세션 종료는 확인되지 않았습니다. 연결 복구 뒤 다시 확인하세요.',true);
+  });
+ });
  $('qa34-upload').addEventListener('click',()=>perform(async()=>{
   if(!token||revision===null)throw Error('가상 가족 로그인과 서버 개정번호 확인이 필요합니다.');
   if(!$('qa34-synthetic').checked)throw Error('실제 아동 기록이 없는 합성자료 확인을 먼저 선택하세요.');
