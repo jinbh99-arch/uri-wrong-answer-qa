@@ -42,6 +42,7 @@ async function login(p,port){
 }
 async function reenter(p,port){
  await p.locator('#qa34-reenter-port').fill(port);
+ await p.evaluate(()=>{document.querySelector('#qa34-reenter-status').textContent='';});
  await p.locator('#qa34-reenter-family').fill(FAMILY);
  await p.locator('#qa34-reenter-password').fill(PASSWORD);
  await p.locator('#qa34-family-reenter button').click();
