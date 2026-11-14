@@ -4241,7 +4241,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const valid=Boolean(item)&&(kind==='photo'?
       item.hasPhoto&&!String(item.problemText||'').trim():
       kind==='ocr'?item.ocrStatus==='browser_ocr_unconfirmed':
-      kind==='due'?/^20\\d\\d-\\d\\d-\\d\\d$/.test(dueDate)&&dueDate<=localToday():false);
+      kind==='due'?/^20\d\d-\d\d-\d\d$/.test(dueDate)&&dueDate<=localToday():false);
     if(!valid){qa9RenderOneAction();return}
     if(kind==='photo'||kind==='ocr'){
       editId=id;navigate('add');
