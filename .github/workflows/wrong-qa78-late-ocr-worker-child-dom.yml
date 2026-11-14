@@ -1,0 +1,29 @@
+name: WRONG QA78 late synthetic OCR race and child DOM
+on:
+  push:
+    branches: ['qa/wrong-ocr-late-worker-child-dom-20261115-0132']
+    paths:
+      - 'tests/qa78-late-ocr-worker-child-dom-chromium.mjs'
+      - '.github/workflows/wrong-qa78-late-ocr-worker-child-dom.yml'
+permissions:
+  contents: read
+jobs:
+  late-ocr-qa-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check only new late-result test
+        run: node --check tests/qa78-late-ocr-worker-child-dom-chromium.mjs
+      - name: Install local Chromium for mock delayed recognizer
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New 320px photo editing and delayed OCR privacy race
+        env:
+          WRONG_QA78_DEV_SHA: 'fdb07d803dc9e3a9c811be455cd6e79af90db8e7'
+        run: node tests/qa78-late-ocr-worker-child-dom-chromium.mjs
+# No product patch; no deployment, operational data, external OCR, or write to dev.
