@@ -277,6 +277,9 @@ body.v218-child .v218-parent-only{display:none!important}
 .wrong-parent-time-history-row:focus{outline:3px solid #2459bb;outline-offset:3px}
 /* QA43: one-line saved question preview, read-only and parent-only. */
 .wrong-parent-question-preview{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* P15/16 dev: small parent-only stages; no learning assessment or save. */
+.wrong-dev-record-stage{display:block;margin-top:5px;padding:5px 8px;border-radius:8px;background:#edf5ff;color:#254b79;white-space:normal;overflow-wrap:anywhere;line-height:1.45;text-align:left}
+@media(max-width:390px){.wrong-dev-record-stage{font-size:12px;line-height:1.4}}
 /* QA45: parent-only return from source to the exact help queue card. */
 .wrong-parent-question-back{display:block;min-height:44px;margin:10px 0;max-width:100%;white-space:normal;text-align:left}
 .wrong-parent-memo-source-jump{display:block;min-height:44px;max-width:100%;white-space:normal;text-align:left}
@@ -872,7 +875,27 @@ document.addEventListener('qa34:family-locked',()=>{
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
-function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);box.append(b)}}
+function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);
+ if(container==='records-list'){
+  // P15/16 dev adaptation: describe only the latest SAVED retry/review state.
+  // A manual next-check date is a memo, NOT an alarm, completion or diagnosis.
+  const h=Array.isArray(r.generalRetryHistory)?r.generalRetryHistory.at(-1):null;
+  const explanation=typeof h?.explanation==='string'&&Boolean(h.explanation.trim());
+  const observed=['explained','needs_help'].includes(h?.review);
+  const step=!h?'① 아이 재풀이 기록 전':
+   !explanation?'② 재풀이 기록 · 아이 설명 없음':
+   h.review==='not_checked'?'② 아이 설명 기록 · 부모 관찰 전':
+   observed?'③ 부모 관찰 기록 있음':
+   '② 저장된 부모 확인 상태 검토 필요';
+  const dates=(Array.isArray(r.checkHistory)?r.checkHistory:[])
+   .map(x=>wrong008ManualDate(x)).filter(Boolean);
+  const next=dates.at(-1);
+  const manual=next?' · ④ 다음 확인 '+next+' 수동 메모(알림·예약·완료 아님)':' · 다음 확인 날짜 메모 없음';
+  const status=make('span','small v218-parent-only wrong-dev-record-stage',step+manual);
+  status.dataset.recordStage=r.id;
+  b.append(status);
+ }
+ box.append(b)}}
 function renderHome(){renderObservationSummary();renderWeeklyStats();const sorted=[...records].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));$('home-count').textContent=records.length;$('home-concepts').textContent=new Set(records.map(x=>x.conceptId).filter(Boolean)).size;$('home-last').textContent=sorted[0]?date(sorted[0].createdAt):'—';$('home-profile').textContent=`👧 ${profile.nickname} · 기본 ${profile.grade}학년 · 기록별 학년·과목 입력 (이 기기 내 기록)`;list('home-recent',sorted.slice(0,4),'아직 등록된 오답이 없습니다. 첫 오답을 기록해 보세요.');const repeated=Object.entries(groupCount()).filter(([k,n])=>k!=='미분류'&&n>=2).sort((a,b)=>b[1]-a[1]);const box=$('home-repeat');box.replaceChildren();if(!repeated.length){box.append(make('p','small','아직 2회 이상 등록된 관련 개념이 없습니다.'))}for(const [k,n] of repeated.slice(0,3))box.append(make('div','tagline',`${cname(k)} — 오답 등록 ${n}건 (이해 부족 확정 아님)`))}
 // Parent observations may be written in EITHER the detail-check form OR
 // in the child's generic retry review. Take the most recent actual observation
