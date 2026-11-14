@@ -1,0 +1,30 @@
+name: WRONG QA42 parent timestamp original-history jump DOM
+on:
+  push:
+    branches: ['qa/wrong-time-issue-jump-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa42-parent-time-original-history-jump-dom.mjs'
+      - '.github/workflows/wrong-qa42-parent-history-jump.yml'
+permissions:
+  contents: read
+jobs:
+  parent-original-history-jump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New actual source Node DOM original-history jump only
+        run: |
+          node --check tests/qa42-parent-time-original-history-jump-dom.mjs
+          node tests/qa42-parent-time-original-history-jump-dom.mjs
+      - name: Print exact isolated QA SHA / no deploy
+        run: |
+          echo "WRONG_QA42_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA42_DEPLOYMENT=false"
+# No existing suite/Chromium rerun, real child data, production auth or deployment.
