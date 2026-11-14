@@ -1,0 +1,30 @@
+name: WRONG QA58 parent due actual date guard Node
+on:
+  push:
+    branches: ['qa/wrong-dev-parent-due-date-guard-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa58-parent-due-date-boundary-node.mjs'
+      - '.github/workflows/wrong-qa58-parent-due-date.yml'
+permissions:
+  contents: read
+jobs:
+  actual-parent-date:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new invalid calendar day and due parent click regression
+        run: |
+          node --check tests/qa58-parent-due-date-boundary-node.mjs
+          node tests/qa58-parent-due-date-boundary-node.mjs
+      - name: Exact SHA, no release
+        run: |
+          echo "WRONG_QA58_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA58_DEPLOYMENT=false"
+# No old suite replay, browser download, actual family, photo, release.
