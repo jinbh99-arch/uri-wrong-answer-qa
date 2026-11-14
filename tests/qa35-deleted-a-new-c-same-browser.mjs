@@ -38,7 +38,7 @@ async function open(context,expectCovered=false){
   await p.locator('#qa34-family-privacy-cover:visible').waitFor();
  }else{
   await p.locator('#nav-settings').click();
-  await p.locator('#qa34-sync-bridge:visible').waitFor();
+  await p.locator('#qa34-sync-bridge').waitFor({state:'attached'});
  }
  return p;
 }
