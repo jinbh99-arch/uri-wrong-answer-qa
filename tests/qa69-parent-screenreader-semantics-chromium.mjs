@@ -14,9 +14,7 @@ const controls=[
  ['#v230-answer','textbox','아이의 재풀이 답'],
  ['#v230-explanation','textbox','아이가 설명한 이유'],
  ['#check-status','combobox','부모 관찰 상태'],
- ['#check-memo','textbox','부모 관찰 메모'],
- ['#wrong008-next-question','textbox','다음 확인 질문'],
- ['#wrong008-save-note','button','다음 확인 저장']
+ ['#check-memo','textbox','부모 관찰 메모']
 ];
 async function axName(locator,role){
  const snap=(await locator.ariaSnapshot()).split('\n')[0];
@@ -53,11 +51,24 @@ try{
   assert.equal(a.role,role,'expected role '+role+' for '+selector+': '+a.sample);
   assert.ok(a.name.length>=2,'missing accessible name for '+purpose+' '+selector);
  }
- pass('six actual parent controls expose correct Chromium accessible roles and names');
+ pass('four initial parent controls expose correct Chromium accessible roles and names');
  await page.locator('#v230-answer').fill('가상 아이 답: 오른쪽');
  await page.locator('#v230-explanation').fill('가상 아이 설명: 광원 반대편에 그림자');
  await page.locator('#v230-save').click();
  await page.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:15000});
+ // The manual next-check editor is mounted after the first saved retry.
+ for(const [selector,role,purpose] of [
+  ['#wrong008-next-question','textbox','다음 확인 질문'],
+  ['#wrong008-save-note','button','다음 확인 저장']
+ ]){
+  const l=page.locator(selector);
+  assert.equal(await l.count(),1,'missing after saved retry '+selector);
+  const a=await axName(l,role);
+  inspected.push({selector,purpose,role:a.role,hasName:!!a.name});
+  assert.equal(a.role,role,'expected role '+role+' for '+selector+': '+a.sample);
+  assert.ok(a.name.length>=2,'missing accessible name for '+purpose+' '+selector);
+ }
+ pass('two deferred manual next-check controls mounted with accessible names after saved retry');
  await page.locator('#check-status').selectOption('needs_help');
  await page.locator('#check-memo').fill('가상 부모 관찰: 그림으로 다시 설명함');
  await page.locator('#check-save').click();
