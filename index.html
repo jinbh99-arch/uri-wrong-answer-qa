@@ -4488,12 +4488,17 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    if(mode==='child'&&route==='detail'&&String($('check-memo')?.value||'').trim()){
     notify('저장하지 않은 부모 관찰 메모가 있습니다. 저장하거나 입력을 지운 뒤 아이 화면으로 전환하세요.');return 'blocked';
    }
+   if(mode==='child'&&route==='detail'&&String($('wrong008-next-question')?.value||'').trim()){
+    notify('저장하지 않은 부모 재확인 질문이 있습니다. 저장하거나 입력을 지운 뒤 아이 화면으로 전환하세요.');return 'blocked';
+   }
    v218Mode=mode;
    document.body.classList.toggle('v218-child',mode==='child');
    if(mode==='child'){
     $('wrong-parent-needs-help-queue')?.replaceChildren();
     $('check-history')?.replaceChildren();
     $('wrong008-last-manual-note')?.replaceChildren();
+    $('wrong008-next-review')?.remove();
+    $('wrong008-jump-note')?.remove();
     $('detail-memo')?.replaceChildren();
     $('detail-memo')?.classList.add('hide');
     $('detail-memo')?.previousElementSibling?.classList.add('hide');
@@ -5099,6 +5104,7 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     const area=$('v25-learning-flow');
     if(!area||r.subject==='math'||route!=='detail')return;
     const hasAttempt=Array.isArray(r.generalRetryHistory)&&r.generalRetryHistory.length>0;
+    if(document.body.classList.contains('v218-child'))return;
     const panel=make('section','card v218-parent-only');
     panel.id='wrong008-next-review';
     panel.append(make('h3',null,'④ 다음에 다시 확인할 날짜를 메모하기'));

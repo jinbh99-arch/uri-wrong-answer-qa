@@ -1,0 +1,60 @@
+name: WRONG QA76 fake photo and parent next review child DOM
+on:
+  push:
+    branches: ['qa/wrong-parent-next-question-child-dom-20261114-2352']
+    paths:
+      - 'tests/qa76-next-review-child-dom-photo-chromium.mjs'
+      - '.github/workflows/wrong-qa76-next-review-child-photo.yml'
+permissions:
+  contents: write
+jobs:
+  fake-photo-parent-panel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply only narrow parent follow-up DOM patch in isolated QA
+        run: |
+          cat > /tmp/wrong-qa76.patch <<'PATCH'
+          diff --git a/index.html b/index.html
+          --- a/index.html
+          +++ b/index.html
+          @@ -4490,0 +4491,3 @@
+          +   if(mode==='child'&&route==='detail'&&String($('wrong008-next-question')?.value||'').trim()){
+          +    notify('저장하지 않은 부모 재확인 질문이 있습니다. 저장하거나 입력을 지운 뒤 아이 화면으로 전환하세요.');return 'blocked';
+          +   }
+          @@ -4496,0 +4500,2 @@
+          +    $('wrong008-next-review')?.remove();
+          +    $('wrong008-jump-note')?.remove();
+          @@ -5100,0 +5107,1 @@
+          +    if(document.body.classList.contains('v218-child'))return;
+          PATCH
+          git apply --unidiff-zero --check /tmp/wrong-qa76.patch
+          git apply --unidiff-zero /tmp/wrong-qa76.patch
+          git diff --check
+          test "$(git diff --name-only)" = "index.html"
+          test "$(git diff --numstat -- index.html)" = "$(printf '6\t0\tindex.html')"
+      - name: Validate new QA76 test syntax
+        run: node --check tests/qa76-next-review-child-dom-photo-chromium.mjs
+      - name: Install isolated Chromium for fake-photo privacy verification
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Real browser 320px parent next question private and photo preserved
+        env:
+          WRONG_QA76_SOURCE_DEV_SHA: 'f12df24a9529ec2e554fea0e9509cc9e06cda08f'
+        run: node tests/qa76-next-review-child-dom-photo-chromium.mjs
+      - name: Commit only tested product change on same QA branch
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-parent-next-question-child-dom-20261114-2352'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- index.html
+          git commit -m 'fix(wrong): clear parent next review panel on child presentation and protect drafts'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+# No real photo, production data, auth settings, public deploy, main/dev mutation.
