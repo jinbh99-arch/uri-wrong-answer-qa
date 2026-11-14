@@ -1,0 +1,45 @@
+name: WRONG QA64 P17 parent filter stage timestamp
+on:
+  push:
+    branches: ['qa/wrong-dev-p17-stage-time-alignment-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa64-p17-stage-timestamp-node.mjs'
+      - 'tests/qa64-p17-stage-timestamp-chromium.mjs'
+      - '.github/workflows/wrong-qa64-p17-stage-time.yml'
+permissions:
+  contents: read
+jobs:
+  pending-stage-alignment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new actual-source P17 + stage Node
+        run: |
+          node --check tests/qa64-p17-stage-timestamp-node.mjs
+          node --check tests/qa64-p17-stage-timestamp-chromium.mjs
+          node tests/qa64-p17-stage-timestamp-node.mjs
+      - name: Chromium only if Node passes
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Isolated local source
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa64.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New synthetic 320 and 390 Chromium integration only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa64-p17-stage-timestamp-chromium.mjs
+      - name: Exact source SHA and no release
+        run: |
+          echo "WRONG_QA64_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA64_DEPLOYMENT=false"
+# No old test suites, production DB/auth, real child data, or deployment.
