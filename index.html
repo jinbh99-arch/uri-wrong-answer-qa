@@ -275,6 +275,8 @@ body.v218-child .v218-parent-only{display:none!important}
 .wrong-parent-time-jump{display:block;width:100%;min-height:44px;margin:8px 0;text-align:left;white-space:normal;overflow-wrap:anywhere}
 .wrong-parent-time-history-row{scroll-margin-top:80px}
 .wrong-parent-time-history-row:focus{outline:3px solid #2459bb;outline-offset:3px}
+/* QA43: one-line saved question preview, read-only and parent-only. */
+.wrong-parent-question-preview{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 
 /* QA11: no hidden hover-only navigation; touch and keyboard friendly concept exploration */
@@ -892,6 +894,39 @@ function wrongParentLatestObservation(r){
 }
 // Parent-only signal: distinguish "known no retry" from invalid/unverified
 // timestamps. A child's attempt time never substitutes for parent review.
+// WRONG-QA43: the last question EXPLICITLY recorded by a parent, not generated
+// AI prompts, ordinary notes or a future manual recheck plan.
+// The child's retry timestamp never substitutes for the parent's reviewedAt.
+function wrongParentLastSavedQuestion(r,nowMs=Date.now()){
+ const found=[];
+ const questionFromNote=value=>{
+  if(typeof value!=='string')return null;
+  const text=value.replace(/\s+/g,' ').trim();
+  if(!text)return null;
+  const labelled=/(?:^|[;；·]\s*)(?:(?:다음에 확인할|다음|학부모|부모|확인)\s*)?질문\s*[:：]\s*(.+)/.exec(text);
+  if(labelled)return labelled[1].trim().slice(0,160)||null;
+  const marked=[...text.matchAll(/(?:^|[.!。]\s*)([^.!?？]{1,160}[?？])/g)];
+  return marked.length?marked[marked.length-1][1].trim().slice(0,160):null;
+ };
+ const add=(note,stamp)=>{
+  if(typeof stamp!=='string')return;
+  const time=Date.parse(stamp);
+  if(!Number.isFinite(time)||time<=0||time>nowMs)return;
+  const question=questionFromNote(note);
+  if(question)found.push({time,question});
+ };
+ for(const c of Array.isArray(r?.checkHistory)?r.checkHistory:[]){
+  if(!c||wrong008ManualDate(c)||
+     !['explained','needs_help','mistake','not_checked'].includes(c.status))continue;
+  add(c.memo,c.at);
+ }
+ for(const h of Array.isArray(r?.generalRetryHistory)?r.generalRetryHistory:[]){
+  if(!h||!['explained','needs_help'].includes(h.review))continue;
+  add(h.parentNote,h.reviewedAt);
+ }
+ found.sort((a,b)=>b.time-a.time);
+ return found[0]?.question||null;
+}
 function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
  const checked=[...(Array.isArray(r.checkHistory)?r.checkHistory:[])
   .filter(c=>c&&!wrong008ManualDate(c)&&['explained','needs_help','mistake','not_checked'].includes(c.status))
@@ -978,6 +1013,9 @@ function renderObservationSummary(){
   const note=latest?.memo?latest.memo.replace(/\s+/g,' '):'';
   button.append(make('span','small wrong-parent-note-preview',
    note?'최근 부모 확인 메모: '+note:'최근 관찰 메모 없음 · 원문에서 확인'));
+  const savedQuestion=wrongParentLastSavedQuestion(r,now);
+  button.append(make('span','small v218-parent-only wrong-parent-question-preview',
+   savedQuestion?'마지막 저장된 부모 확인 질문: '+savedQuestion:'저장된 부모 확인 질문 없음'));
   queue.append(button);
  }
  if(pending.length>30)queue.append(make('p','small','나머지 '+(pending.length-30)+'건은 오답 목록에서 확인하세요.'));
