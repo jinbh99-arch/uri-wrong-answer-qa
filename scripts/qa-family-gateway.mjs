@@ -195,6 +195,12 @@ export async function createIsolatedQaFamilyGateway(options={}){
  // Ephemeral synthetic gateway identity: a restarted server at the same port
  // is not automatically the same account authority.
  const gatewayInstanceId=randomBytes(24).toString('hex');
+ // Once a synthetic family is deleted, do not let a DIFFERENT newly
+ // registered account inherit its old browser-bound identity while this
+ // gateway instance remains alive. A new instance has a new browser pin.
+ // Bounded test-only tombstones are NOT forensic deletion or real auth.
+ const deletedFamilyNames=new Set();
+ const MAX_DELETED_FAMILY_NAMES=256;
  // QA33: bounded synthetic login-attempt rate limiting and session exhaustion.
  // Still NOT secure hosting/authentication for actual families.
  const clock=typeof options.now==='function'?options.now:Date.now;
@@ -278,6 +284,10 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const {familyKey,password}=await jsonBody(req);
     if(!isQaFamilyKey(familyKey)||!safePassword(password))throw reject(422,'SYNTHETIC_CREDENTIALS_ONLY');
     if(accounts.has(familyKey))throw reject(409,'ALREADY_REGISTERED');
+    if(deletedFamilyNames.has(familyKey))
+     throw reject(409,'DELETED_FAMILY_KEY_RESERVED_IN_GATEWAY');
+    if(deletedFamilyNames.size>=MAX_DELETED_FAMILY_NAMES)
+     throw reject(429,'SYNTHETIC_REGISTRATION_LIMIT');
     // Bound both ephemeral and encrypted QA account stores consistently.
     if(accounts.size>=100)throw reject(429,'SYNTHETIC_FAMILY_CAPACITY');
     const salt=randomBytes(16);
@@ -390,6 +400,7 @@ export async function createIsolatedQaFamilyGateway(options={}){
     const nextAttempts=new Map(loginAttempts);nextAttempts.delete(session.familyKey);
     storage.persist(candidate,nextAttempts); // Failure preserves family and limiter.
     accounts.delete(session.familyKey);
+    deletedFamilyNames.add(session.familyKey);
     loginAttempts.delete(session.familyKey);
     for(const [sessionToken,entry] of tokens){
      if(entry.familyKey===session.familyKey)tokens.delete(sessionToken);
