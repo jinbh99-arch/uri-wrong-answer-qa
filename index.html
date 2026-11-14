@@ -3492,6 +3492,12 @@ function v230TotalTextBudget(next){
 }
 // Show the first and most recent child-authored retry sentences AS WRITTEN.
 // Never invent a reason, label an answer right/wrong or mutate the retry log.
+function v230ParentObservationLabel(entry){
+ const state=entry?.review;
+ if(state==='explained')return '학부모 관찰: 스스로 설명했다고 기록';
+ if(state==='needs_help')return '학부모 관찰: 도움이 필요했다고 기록';
+ return '학부모 관찰: 확인 기록 없음';
+}
 function v230ExplanationCompare(parent,entries){
  if(entries.length<2)return;
  const panel=make('section','v230-parent-compare v218-parent-only');
@@ -3508,6 +3514,7 @@ function v230ExplanationCompare(parent,entries){
   side.append(heading);
   side.append(make('p','v230-written','다시 푼 답: '+String(entry?.answer||'(미입력)')));
   side.append(make('p','v230-written','아이 설명: '+String(entry?.explanation?.trim()||'(설명 기록 없음)')));
+  side.append(make('p','small v218-parent-only',v230ParentObservationLabel(entry)));
   grid.append(side);
  }
  panel.append(grid);parent.append(panel);
