@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {createIsolatedQaFamilyGateway} from '../scripts/qa-family-gateway.mjs';
 
-const URL='http://127.0.0.1:4173/',FAMILY='qa-hidden-family-a',B='qa-hidden-family-b';
+const APP='http://127.0.0.1:4173/',FAMILY='qa-hidden-family-a',B='qa-hidden-family-b';
 const PASSWORD='QA35-TAB-VISIBILITY-NOT-REAL-PASSWORD-2026',DB='uriaimath-github-qa-v224-only';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 let browser,gate,checks=0;
@@ -38,7 +38,7 @@ async function local(page){
 }
 async function open(context){
  const page=await context.newPage();
- await page.goto(URL,{waitUntil:'domcontentloaded'});
+ await page.goto(APP,{waitUntil:'domcontentloaded'});
  await page.locator('#nav-settings').click();
  await page.locator('#qa34-sync-bridge:visible').waitFor();
  return page;
