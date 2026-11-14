@@ -1,0 +1,29 @@
+name: WRONG QA35 A/B token isolation ledger (Node only)
+on:
+  push:
+    branches: ['qa/wrong-foreground-revocation-lock-20261114']
+    paths:
+      - 'tests/qa35-cross-family-token-ledger.mjs'
+      - '.github/workflows/wrong-qa35-cross-family-token-ledger.yml'
+permissions:
+  contents: read
+jobs:
+  a-b-token-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New A/B bearer-token test only
+        run: |
+          node --check tests/qa35-cross-family-token-ledger.mjs
+          QA_SYNTHETIC_FAMILY_ONLY=1 QA_DURABLE_TEST_ONLY=1 node tests/qa35-cross-family-token-ledger.mjs
+      - name: Record SHA and no deploy
+        run: |
+          echo "WRONG_QA35_TOKEN_LEDGER_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_DEPLOYMENT=false"
+# Local synthetic AES-GCM ledger only; no remote auth or real family materials.
