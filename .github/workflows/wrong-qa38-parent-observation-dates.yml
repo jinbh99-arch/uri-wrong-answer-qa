@@ -1,0 +1,30 @@
+name: WRONG QA38 parent observation dates Node DOM
+on:
+  push:
+    branches: ['qa/wrong-parent-two-observation-dates-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa38-parent-observation-dates-dom.mjs'
+      - '.github/workflows/wrong-qa38-parent-observation-dates.yml'
+permissions:
+  contents: read
+jobs:
+  parent-observation-dates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run only new two-parent-observation date and queue DOM checks
+        run: |
+          node --check tests/qa38-parent-observation-dates-dom.mjs
+          node tests/qa38-parent-observation-dates-dom.mjs
+      - name: Record candidate SHA and no deployment
+        run: |
+          echo "WRONG_QA38_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA38_DEPLOYMENT=false"
+# Synthetic Node DOM only; old suites and Chromium are not rerun.
