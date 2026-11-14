@@ -1,0 +1,39 @@
+name: WRONG QA66 private loopback preview verification
+on:
+  push:
+    branches: ['qa/wrong-dev-local-private-preview-20261114']
+    paths:
+      - 'scripts/qa66-wrong-loopback-preview.mjs'
+      - 'tests/qa66-preview-gate-minimal-journey-chromium.mjs'
+      - '.github/workflows/wrong-qa66-local-gated-preview.yml'
+permissions:
+  contents: read
+jobs:
+  local-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New QA66 source syntax only
+        run: |
+          node --check scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/qa66-preview-gate-minimal-journey-chromium.mjs
+      - name: Install headless Chromium after source syntax passes
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exact source dev SHA local-only gate and fictional parent flow
+        env:
+          WRONG_QA66_DEV_SHA: '2dfaa4a66dc359cd1d4cc66734b97d5da5b27c0b'
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa66-preview-gate-minimal-journey-chromium.mjs
+      - name: Report exact QA SHA, no remote deployment or credentials
+        run: |
+          echo "WRONG_QA66_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA66_REMOTE_DEPLOYMENT=false"
+# No public URL, real family records, operational Auth/DB, secrets, or release.
