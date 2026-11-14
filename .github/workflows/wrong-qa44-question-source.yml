@@ -1,0 +1,29 @@
+name: WRONG QA44 exact saved parent question source
+on:
+  push:
+    branches: ['qa/wrong-parent-question-source-jump-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa44-parent-question-source-node.mjs'
+      - '.github/workflows/wrong-qa44-question-source.yml'
+permissions:
+  contents: read
+jobs:
+  exact-parent-question-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new QA44 source navigation test
+        run: |
+          node --check tests/qa44-parent-question-source-node.mjs
+          node tests/qa44-parent-question-source-node.mjs
+      - name: SHA and no deploy
+        run: |
+          echo "WRONG_QA44_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA44_DEPLOYMENT=false"
