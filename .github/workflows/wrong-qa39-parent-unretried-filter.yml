@@ -1,0 +1,30 @@
+name: WRONG QA39 verified parent unretried filter Node DOM
+on:
+  push:
+    branches: ['qa/wrong-unretried-parent-filter-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa39-parent-unretried-filter-dom.mjs'
+      - '.github/workflows/wrong-qa39-parent-unretried-filter.yml'
+permissions:
+  contents: read
+jobs:
+  source-dom:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New synthetic parent filter DOM only
+        run: |
+          node --check tests/qa39-parent-unretried-filter-dom.mjs
+          node tests/qa39-parent-unretried-filter-dom.mjs
+      - name: Exact QA SHA / no deployment
+        run: |
+          echo "WRONG_QA39_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA39_DEPLOYMENT=false"
+# Never runs old suites, Chromium, production auth, or user data.
