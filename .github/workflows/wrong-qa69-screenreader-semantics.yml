@@ -1,0 +1,31 @@
+name: WRONG QA69 parent screen-reader semantics 360px
+on:
+  push:
+    branches: ['qa/wrong-parent-sr-semantics-20261114-2143']
+    paths:
+      - 'tests/qa69-parent-screenreader-semantics-chromium.mjs'
+      - '.github/workflows/wrong-qa69-screenreader-semantics.yml'
+permissions:
+  contents: read
+jobs:
+  screen-reader-semantics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation of only the new QA69 script
+        run: node --check tests/qa69-parent-screenreader-semantics-chromium.mjs
+      - name: Install isolated Chromium for accessibility semantics
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New screen-reader semantics only, no earlier QA repeats
+        env:
+          WRONG_QA69_SOURCE_DEV_SHA: 'f91c9b81e93c01842b8dac980eac923fbf3aa82b'
+        run: node tests/qa69-parent-screenreader-semantics-chromium.mjs
+# No deployment, real family data, external authentication, production storage or secrets.
