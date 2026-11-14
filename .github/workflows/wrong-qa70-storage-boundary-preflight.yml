@@ -1,0 +1,28 @@
+name: WRONG QA70 read-only operational storage boundary preflight
+on:
+  push:
+    branches: ['qa/wrong-external-storage-boundary-readonly-20261114-2153']
+    paths:
+      - 'scripts/qa70-wrong-photo-boundary-audit.mjs'
+      - 'tests/qa70-wrong-photo-boundary-audit.test.mjs'
+      - '.github/workflows/wrong-qa70-storage-boundary-preflight.yml'
+permissions:
+  contents: read
+jobs:
+  pure-metadata-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax of only new QA70 files
+        run: |
+          node --check scripts/qa70-wrong-photo-boundary-audit.mjs
+          node --check tests/qa70-wrong-photo-boundary-audit.test.mjs
+      - name: Metadata-only fail-closed simulations, no network/API
+        run: node --test tests/qa70-wrong-photo-boundary-audit.test.mjs
+# This workflow does not deploy, contact an API, or store secrets.
