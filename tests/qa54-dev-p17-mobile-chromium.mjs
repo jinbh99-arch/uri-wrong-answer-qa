@@ -126,6 +126,8 @@ async function run(width){
   const g=await snapshot(guest);
   assert.equal(g.rows.length,0);
   assert.equal(g.photoIds.length,0);
+  // App starts on home, where record-list controls are correctly hidden.
+  await guest.locator('#nav-records').click();
   assert.equal(await guest.locator('#wrong-dev-p17-filter').isVisible(),true);
   assert.deepEqual(errors,[]);
   pass(width+'px unrelated isolated browser empty, no JavaScript exception');
