@@ -95,7 +95,6 @@ try{
  const reached=new Promise(r=>seen=r),held=new Promise(r=>release=r);
  await page.route('**/qa/snapshot',async route=>{
   if(route.request().method()!=='GET')return route.continue();
-  await page.unroute('**/qa/snapshot');
   seen();await held;try{await route.continue()}catch{}
  });
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
