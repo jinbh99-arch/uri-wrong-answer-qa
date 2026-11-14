@@ -1,0 +1,78 @@
+name: WRONG QA74 remove hidden parent note from child DOM
+on:
+  push:
+    branches: ['qa/wrong-child-dom-scrub-20261114-2230']
+    paths:
+      - 'tests/qa74-child-parent-dom-scrub-chromium.mjs'
+      - '.github/workflows/wrong-qa74-child-dom-scrub.yml'
+permissions:
+  contents: write
+jobs:
+  qa-only-dom-scrub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and apply ONLY narrow parent-DOM source patch on QA
+        run: |
+          cat > /tmp/wrong-qa74-only.patch <<'PATCH'
+          diff --git a/index.html b/index.html
+          --- a/index.html
+          +++ b/index.html
+          @@ -1023,3 +1023,7 @@
+           function renderObservationSummary(){
+            const box=$('home-observation');if(!box)return;box.replaceChildren();
+          + if(document.body.classList.contains('v218-child')){
+          +  $('wrong-parent-needs-help-queue')?.replaceChildren();
+          +  return;
+          + }
+            const n={explained:0,needs_help:0,mistake:0,not_checked:0};
+          @@ -1359,1 +1363,1 @@
+          -function renderHistory(){const el=$('check-history');el.replaceChildren();const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));entries.forEach((c,j)=>{const box=make('div','tagline');box.id='wrong-parent-time-check-'+(entries.length-1-j);box.tabIndex=-1;box.classList.add('wrong-parent-time-history-row');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)})}renderHistory();
+          +function renderHistory(){const el=$('check-history');el.replaceChildren();if(document.body.classList.contains('v218-child'))return;const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));entries.forEach((c,j)=>{const box=make('div','tagline');box.id='wrong-parent-time-check-'+(entries.length-1-j);box.tabIndex=-1;box.classList.add('wrong-parent-time-history-row');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)})}renderHistory();
+          @@ -4478,9 +4482,15 @@
+             v218Mode=mode;
+             document.body.classList.toggle('v218-child',mode==='child');
+          +  if(mode==='child'){
+          +   $('wrong-parent-needs-help-queue')?.replaceChildren();
+          +   $('check-history')?.replaceChildren();
+          +   $('wrong008-last-manual-note')?.replaceChildren();
+          +  }
+             $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
+             $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));
+             if(mode==='child'&&['add','settings'].includes(route))navigate('home');
+             else if(route==='home')renderHome();
+          +  else if(mode==='parent'&&route==='detail')renderDetail();
+             return mode;
+            }
+            const v218NavigateBase=navigate;
+          PATCH
+          git apply --check /tmp/wrong-qa74-only.patch
+          git apply /tmp/wrong-qa74-only.patch
+          git diff --check
+          test "$(git diff --name-only)" = 'index.html'
+          git diff --numstat -- index.html
+      - name: New QA74 syntax only
+        run: node --check tests/qa74-child-parent-dom-scrub-chromium.mjs
+      - name: Install Chromium for new child-hidden-DOM evidence
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: 320px fake parent→child→parent DOM scrub and recovery
+        env:
+          WRONG_QA74_SOURCE_DEV_SHA: 'a656ba623bc5252ca8b7b8f9f8049e98c2982be3'
+        run: node tests/qa74-child-parent-dom-scrub-chromium.mjs
+      - name: Commit only verified narrow source patch to SAME QA branch
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-child-dom-scrub-20261114-2230'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- index.html
+          git commit -m 'fix(wrong): clear hidden parent observation text on child presentation'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+# Never touches main/dev, operational data, host config, or deployment.
