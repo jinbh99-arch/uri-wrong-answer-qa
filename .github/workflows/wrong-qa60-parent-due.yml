@@ -1,0 +1,30 @@
+name: WRONG QA60 true parent due-date calendar guard
+on:
+  push:
+    branches: ['qa/wrong-dev-valid-due-cta-20261114-1931']
+    paths:
+      - 'index.html'
+      - 'tests/qa60-current-dev-due-mixed-node.mjs'
+      - '.github/workflows/wrong-qa60-parent-due.yml'
+permissions:
+  contents: read
+jobs:
+  current-dev-real-calendar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new mixed-record and stale click Node scope
+        run: |
+          node --check tests/qa60-current-dev-due-mixed-node.mjs
+          node tests/qa60-current-dev-due-mixed-node.mjs
+      - name: Exact QA commit and no deployment
+        run: |
+          echo "WRONG_QA60_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA60_DEPLOYMENT=false"
+# No old QA58 suite, browser download, real family data, production or release.
