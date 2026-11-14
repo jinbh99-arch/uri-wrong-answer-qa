@@ -32,7 +32,7 @@ const rows=[
  record('unknown-retry',at(-day*3),['invalid-attempt']),
  record('future-retry',at(-day*2),[at(day*2)]),
  record('already-retried',at(-day*5),[at(-day)]),
- record('other-state',at(-day),'','explained'),
+ record('other-state',at(-day),[],'explained'),
  {id:'unknown-reviewed',problemText:'합성 부모가 시각 미확인으로 검토한 문제',
   checkHistory:[],generalRetryHistory:[{at:at(-day*3),answer:'합성 답',review:'needs_help'}]},
  record('known-prior-retry',at(-day),[at(-day*4)]),
@@ -75,15 +75,15 @@ const details=page.expand();
 assert.ok(details&&details.tag==='details'&&details.className.includes('wrong-parent-unknown-retries'));
 assert.equal(details.id,'wrong-parent-unknown-retries');
 assert.equal(details.children[0].tag,'summary');
-assert.ok(details.children[0].textContent.includes('5건'));
+assert.ok(details.children[0].textContent.includes('4건'));
 assert.ok(details.children[1].textContent.includes('재풀이가 없었다는 뜻이 아닙니다'));
-assert.equal(details.children.filter(x=>x.tag==='button').length,5);
+assert.equal(details.children.filter(x=>x.tag==='button').length,4);
 assert.equal(JSON.stringify(rows),baseline);
-pass('필터 밖 확인 불가 5건을 접힌 details/summary로 별도 제공, 미재풀이 단정 금지');
+pass('필터 밖 확인 불가 4건을 접힌 details/summary로 별도 제공, 미재풀이 단정 금지');
 
 const ids=details.children.filter(x=>x.tag==='button').map(x=>x.dataset.record);
 assert.deepEqual(new Set(ids),new Set(['unknown-parent','unknown-retry','future-retry','unknown-reviewed']));
-assert.equal(ids.length,5);
+assert.equal(ids.length,4);
 assert.ok(ids.includes('unknown-parent'));
 assert.ok(!ids.includes('already-retried')&&!ids.includes('known-no-retry'));
 assert.ok(details.children.filter(x=>x.tag==='button').every(x=>x.type==='button'));
