@@ -1,0 +1,43 @@
+name: WRONG QA37 latest guardian memo preview (synthetic)
+on:
+  push:
+    branches: ['qa/wrong-parent-latest-note-preview-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa37-parent-latest-note-node.mjs'
+      - 'tests/qa37-parent-latest-note-chromium.mjs'
+      - '.github/workflows/wrong-qa37-parent-note-preview.yml'
+permissions:
+  contents: read
+jobs:
+  latest-guardian-note:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check only new preview Node contracts first
+        run: |
+          node --check tests/qa37-parent-latest-note-node.mjs
+          node --check tests/qa37-parent-latest-note-chromium.mjs
+          node tests/qa37-parent-latest-note-node.mjs
+      - name: Install one Chromium for new UI boundary only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve synthetic app only on local loopback
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa37-note.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: One new parent memo 320/390px real-browser contract
+        run: node tests/qa37-parent-latest-note-chromium.mjs
+      - name: Record exact isolated candidate SHA and no deploy
+        run: |
+          echo "WRONG_QA37_NOTE_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA37_DEPLOYMENT=false"
+# No old full regression, real child records, production auth, or deployment.
