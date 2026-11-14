@@ -1,0 +1,45 @@
+name: WRONG QA57 parent saved photo OCR due action
+on:
+  push:
+    branches: ['qa/wrong-dev-parent-fallback-actions-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa57-parent-fallback-navigation-node.mjs'
+      - 'tests/qa57-parent-fallback-navigation-chromium.mjs'
+      - '.github/workflows/wrong-qa57-parent-fallback.yml'
+permissions:
+  contents: read
+jobs:
+  parent-fallback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New QA57 actual-source Node first
+        run: |
+          node --check tests/qa57-parent-fallback-navigation-node.mjs
+          node --check tests/qa57-parent-fallback-navigation-chromium.mjs
+          node tests/qa57-parent-fallback-navigation-node.mjs
+      - name: Install browser only after new Node scope passes
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated source localhost
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa57.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Only photo OCR due parent fallback Chromium 320 and 390
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa57-parent-fallback-navigation-chromium.mjs
+      - name: Confirm exact isolated SHA and no release
+        run: |
+          echo "WRONG_QA57_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA57_DEPLOYMENT=false"
+# No old suite replay or operational auth/DB/child material.
