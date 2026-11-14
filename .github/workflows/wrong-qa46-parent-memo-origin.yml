@@ -1,0 +1,30 @@
+name: WRONG QA46 parent saved memo original source
+on:
+  push:
+    branches: ['qa/wrong-parent-memo-source-jump-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa46-parent-memo-original-source-node-dom.mjs'
+      - '.github/workflows/wrong-qa46-parent-memo-origin.yml'
+permissions:
+  contents: read
+jobs:
+  parent-memo-origin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Newly selected real-source memo origin Node DOM only
+        run: |
+          node --check tests/qa46-parent-memo-original-source-node-dom.mjs
+          node tests/qa46-parent-memo-original-source-node-dom.mjs
+      - name: Print exact isolated SHA and never deploy
+        run: |
+          echo "WRONG_QA46_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA46_DEPLOYMENT=false"
+# No old suites, Chromium, auth, real child records, or deployment.
