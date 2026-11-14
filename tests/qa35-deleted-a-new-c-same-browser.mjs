@@ -33,7 +33,8 @@ async function token(key,password){
 }
 async function open(context){
  const p=await context.newPage();await p.goto(APP,{waitUntil:'domcontentloaded'});
- await p.locator('#nav-settings').click();
+ if(!(await p.locator('#qa34-family-privacy-cover').count()))
+  await p.locator('#nav-settings').click();
  await p.locator('#qa34-sync-bridge:visible').waitFor();
  return p;
 }
