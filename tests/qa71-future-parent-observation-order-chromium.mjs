@@ -64,7 +64,17 @@ try{
  await page.goto(preview.url,{waitUntil:'domcontentloaded'});
  const validTitle='QA71 가상 정상 관찰',futureTitle='QA71 가상 미래 관찰';
  await registerWithParent(page,validTitle);
- await page.waitForTimeout(35);
+ // Simulate the fictional device clock temporarily being one day ahead.
+ // The product's normal parent save flow writes the future date; no IDB edit.
+ await page.evaluate(()=>{
+  const RealDate=Date;
+  window.__wrongQa71RealDate=RealDate;
+  const advance=86400000;
+  window.Date=class FutureClock extends RealDate{
+   constructor(...args){super(...(args.length?args:[RealDate.now()+advance]))}
+   static now(){return RealDate.now()+advance}
+  };
+ });
  await registerWithParent(page,futureTitle);
  const before=await snapshot(page);
  assert.equal(before.records.length,2);
@@ -74,39 +84,24 @@ try{
  assert.ok(valid?.id&&future?.id);
  await page.locator('#nav-home').click();
  await page.locator('#wrong-parent-needs-help-queue button[data-record]').first().waitFor();
- assert.equal((await order(page))[0].id,future.id,'newer valid observation should be first before future mutation');
- pass('360px two fictional parent observations initially sorted by valid recency');
+ assert.equal((await order(page))[0].id,future.id,'future observation should be first under advanced clock');
+ pass('360px two fictional observations sorted under simulated future device clock');
 
- // Change exactly ONE fictional parent observation timestamp, never real data.
- // The test simulates malformed future source evidence without app UI writes.
- const stored=await page.evaluate(async({dbName,recordId})=>new Promise((resolve,reject)=>{
-  const req=indexedDB.open(dbName);
-  req.onerror=()=>reject(req.error);
-  req.onsuccess=()=>{
-   const db=req.result,tx=db.transaction('mistakes','readwrite'),store=tx.objectStore('mistakes');
-   const get=store.get(recordId);
-   get.onerror=()=>reject(get.error);
-   get.onsuccess=()=>{
-    const r=get.result;
-    if(!r){reject(Error('synthetic record not found'));return}
-    const reviews=(r.checkHistory||[]).filter(x=>x?.status==='needs_help');
-    if(reviews.length!==1){reject(Error('unexpected count of fictional parent reviews'));return}
-    reviews[0].at=new Date(Date.now()+86400000).toISOString();
-    store.put(r);
-   };
-   tx.onerror=()=>{db.close();reject(tx.error)};
-   tx.oncomplete=()=>{db.close();resolve(true)};
-  };
- }),{dbName:DB,recordId:future.id});
- assert.equal(stored,true);
+ // Restore the fictional browser clock to actual time. The new parent
+ // observation remains future-dated without any direct IndexedDB writes.
+ await page.evaluate(()=>{
+  if(typeof window.__wrongQa71RealDate!=='function')throw Error('missing original Date');
+  window.Date=window.__wrongQa71RealDate;
+ });
  const injected=await snapshot(page);
- assert.equal(injected.records.length,2);
- assert.deepEqual(injected.photos,[]);
- const sameValid=injected.records.find(r=>r.id===valid.id);
- assert.deepEqual(sameValid,valid,'other genuine observation must not be modified');
- pass('single fictional future timestamp injection leaves other record and photos unchanged');
-
- await page.reload({waitUntil:'domcontentloaded'});
+ assert.deepEqual(injected,before,'clock correction must not rewrite local family records');
+ const futureReview=injected.records.find(r=>r.id===future.id)?.checkHistory
+  ?.filter(c=>c?.status==='needs_help').at(-1);
+ assert.ok(Date.parse(futureReview?.at||'')>Date.now()+80000000,
+  'fictional future parent timestamp must be later than real clock');
+ pass('same fictional records persisted while device clock returned to present');
+ await page.locator('#nav-records').click();
+ await page.locator('#nav-home').click();
  await page.locator('#wrong-parent-needs-help-queue button[data-record]').first().waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('#wrong-parent-needs-help-queue button[data-record]').length===2);
  const rows=await order(page);
@@ -117,7 +112,7 @@ try{
  pass('REAL Chromium queue puts genuine reviewed parent first, future-stamped last with unknown-date label');
 
  const after=await snapshot(page);
- assert.deepEqual(after,injected,'render/reload/sort must not rewrite saved family records');
+ assert.deepEqual(after,injected,'rendering after clock correction must not rewrite saved records');
  assert.deepEqual(after.photos,[]);
  assert.deepEqual(external,[]);
  assert.deepEqual(errors,[]);
