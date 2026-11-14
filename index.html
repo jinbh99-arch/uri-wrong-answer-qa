@@ -889,13 +889,21 @@ function wrongParentLatestObservation(r){
 // Parent-only signal: compare stored parent observation with actual child retry timestamps.
 // No inference from parent review or record creation time.
 function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
- if(!latest||!Number.isFinite(latest.time)||latest.time<=0||latest.time>nowMs)
-  return '관찰 이후 재풀이: 확인 불가';
+ // Use explicit parent-issued stamps only: retry at is not a parent observation.
+ const observed=[...(Array.isArray(r.checkHistory)?r.checkHistory:[])
+  .filter(c=>c&&!wrong008ManualDate(c)&&['explained','needs_help','mistake','not_checked'].includes(c.status))
+  .map(c=>Date.parse(c.at||'')),
+  ...(Array.isArray(r.generalRetryHistory)?r.generalRetryHistory:[])
+  .filter(h=>h&&['explained','needs_help'].includes(h.review))
+  .map(h=>Date.parse(h.reviewedAt||''))]
+  .filter(t=>Number.isFinite(t)&&t>0&&t<=nowMs);
+ if(!observed.length)return '관찰 이후 재풀이: 확인 불가';
+ const observationTime=Math.max(...observed);
  const times=(Array.isArray(r.generalRetryHistory)?r.generalRetryHistory:[])
   .map(h=>h&&typeof h.at==='string'?Date.parse(h.at):NaN)
   .filter(t=>Number.isFinite(t)&&t>0&&t<=nowMs);
  if(!times.length)return '관찰 이후 재풀이: 기록 없음';
- return times.some(t=>t>latest.time)?'관찰 이후 재풀이: 기록 있음':'관찰 이후 재풀이: 기록 없음';
+ return times.some(t=>t>observationTime)?'관찰 이후 재풀이: 기록 있음':'관찰 이후 재풀이: 기록 없음';
 }
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
