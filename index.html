@@ -1346,6 +1346,11 @@ async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===d
  const priorLearning=$('v25-learning-flow');
  if(priorLearning)priorLearning.replaceChildren(make('p','small','오답을 여는 중입니다. 기록을 불러온 뒤 다시 풀기를 시작하세요.'));
  e.replaceChildren();if(!r){e.append(make('div','card','해당 기록이 없습니다.'));return}const card=make('div','card');card.innerHTML=`<div class="row spread"><span class="chip">${safe(cname(r.conceptId))}</span><span class="small">${safe(date(r.createdAt))}</span></div><h2>문제 내용</h2><p id="detail-text" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><div id="detail-image" class="record-photo hide"></div><h3>아이가 적은 답 또는 풀이 (학부모 직접 입력)</h3><p id="detail-student-answer" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>학부모 메모</h3><p id="detail-memo" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><h3>틀린 이유 후보 (추정·미확정, 복습 관찰 아님)</h3><p id="detail-reason" class="small"></p><div class="row"><button id="detail-concept" class="primary">📚 현재 교과 개념 설명</button><button id="detail-edit" class="secondary v218-parent-only">수정</button><button id="detail-delete" class="danger v218-parent-only">삭제</button></div><section class="v218-parent-only"><hr class="line"><h2>🔎 복습 후 확인 기록</h2><div class="callout small" id="detail-learning-aid" aria-live="polite"></div><p class="small">질문을 해 본 후 학부모가 관찰한 결과만 기록합니다. 자동 숙련도 판정은 하지 않습니다.</p><label class="field" for="check-status">이번에 관찰한 내용</label><select id="check-status" class="control"><option value="explained">아이 스스로 설명했음</option><option value="needs_help">도움이 필요했음</option><option value="mistake">계산·표기 실수로 보임</option><option value="not_checked">아직 확인하지 못함</option></select><label class="field" for="check-memo">확인 내용 또는 다음 질문 (선택)</label><textarea id="check-memo" class="control notes" maxlength="1000" placeholder="예: 1/2과 2/4가 같은 크기임을 그림으로 설명함"></textarea><div class="row"><button id="check-save" class="secondary">이번 확인 기록 저장</button></div><h3>확인 이력</h3><div id="check-history" class="list"></div></section>`;e.append(card);$('detail-text').textContent=r.problemText||'(사진으로만 등록한 문제)';$('detail-student-answer').textContent=r.studentAnswer||'(미입력)';$('detail-memo').textContent=r.memo||'(없음)';renderLearningAid(r);
+ if(document.body.classList.contains('v218-child')){
+  $('detail-memo')?.replaceChildren();
+  $('detail-memo')?.classList.add('hide');
+  $('detail-memo')?.previousElementSibling?.classList.add('hide');
+ }
  const context=make('p','callout small','과목: '+wrong007SubjectName(r.subject)+' · 초등 '+r.gradeAtEntry+'학년 (학부모 수동 기록, 공식 학년군 아님)');
  context.id='wrong007-record-context';$('detail-text').before(context);
  $('detail-concept').classList.toggle('hide',r.subject!=='math');
@@ -4480,12 +4485,19 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     const draft=Boolean(editId||image||['problem','memo','student-answer'].some(id=>String($(id)?.value||'').trim()));
     if(draft){notify('입력 중인 오답을 저장하거나 취소한 뒤 아이 화면으로 전환하세요. 작성 중 내용 보호를 위해 전환을 중단했습니다.');return 'blocked'}
    }
+   if(mode==='child'&&route==='detail'&&String($('check-memo')?.value||'').trim()){
+    notify('저장하지 않은 부모 관찰 메모가 있습니다. 저장하거나 입력을 지운 뒤 아이 화면으로 전환하세요.');return 'blocked';
+   }
    v218Mode=mode;
    document.body.classList.toggle('v218-child',mode==='child');
    if(mode==='child'){
     $('wrong-parent-needs-help-queue')?.replaceChildren();
     $('check-history')?.replaceChildren();
     $('wrong008-last-manual-note')?.replaceChildren();
+    $('detail-memo')?.replaceChildren();
+    $('detail-memo')?.classList.add('hide');
+    $('detail-memo')?.previousElementSibling?.classList.add('hide');
+    if(route!=='add'&&$('memo'))$('memo').value='';
    }
    $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
    $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));

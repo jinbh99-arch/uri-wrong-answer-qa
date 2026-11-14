@@ -1,0 +1,66 @@
+name: WRONG QA75 parent record memo child DOM boundary
+on:
+  push:
+    branches: ['qa/wrong-memo-child-dom-20261114-2340']
+    paths:
+      - 'tests/qa75-parent-record-memo-child-dom-chromium.mjs'
+      - '.github/workflows/wrong-qa75-parent-record-memo-child-dom.yml'
+permissions:
+  contents: write
+jobs:
+  synthetic-parent-memo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply minimal QA-only line insertions without reading/rewriting full index.html
+        run: |
+          cat > /tmp/wrong-qa75.patch <<'PATCH'
+          diff --git a/index.html b/index.html
+          --- a/index.html
+          +++ b/index.html
+          @@ -1348,0 +1349,5 @@
+          + if(document.body.classList.contains('v218-child')){
+          +  $('detail-memo')?.replaceChildren();
+          +  $('detail-memo')?.classList.add('hide');
+          +  $('detail-memo')?.previousElementSibling?.classList.add('hide');
+          + }
+          @@ -4482,0 +4488,3 @@
+          +   if(mode==='child'&&route==='detail'&&String($('check-memo')?.value||'').trim()){
+          +    notify('저장하지 않은 부모 관찰 메모가 있습니다. 저장하거나 입력을 지운 뒤 아이 화면으로 전환하세요.');return 'blocked';
+          +   }
+          @@ -4488,0 +4497,4 @@
+          +    $('detail-memo')?.replaceChildren();
+          +    $('detail-memo')?.classList.add('hide');
+          +    $('detail-memo')?.previousElementSibling?.classList.add('hide');
+          +    if(route!=='add'&&$('memo'))$('memo').value='';
+          PATCH
+          git apply --unidiff-zero --check /tmp/wrong-qa75.patch
+          git apply --unidiff-zero /tmp/wrong-qa75.patch
+          git diff --check
+          test "$(git diff --name-only)" = "index.html"
+          test "$(git diff --numstat -- index.html)" = "$(printf '12\t0\tindex.html')"
+      - name: Check only newly authored test syntax
+        run: node --check tests/qa75-parent-record-memo-child-dom-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify actual 320px browser privacy + parent draft preservation
+        env:
+          WRONG_QA75_SOURCE_DEV_SHA: '56da80d7b6ee875dfe1b7fc4daf4e7ee29af9d36'
+        run: node tests/qa75-parent-record-memo-child-dom-chromium.mjs
+      - name: Commit verified local product patch only to QA branch
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-memo-child-dom-20261114-2340'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- index.html
+          git commit -m 'fix(wrong): scrub stored parent record memo from child DOM without losing drafts'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+# No main/dev mutation, public deployment, production DB or real child records.
