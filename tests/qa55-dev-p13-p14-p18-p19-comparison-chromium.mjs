@@ -67,9 +67,12 @@ async function exercise(width){
   await qa9.click();
   await page.locator('#detail-text').waitFor();
   assert.ok((await page.locator('#detail-text').textContent()).includes(b));
+  await page.waitForFunction(()=>document.activeElement?.id==='v230-review',null,{timeout:7000});
+  const reasonFocus=await area(page,'#wrong-p0-child-reason-readonly');
+  assert.equal(reasonFocus.visible,true,'P13 parent observation explanation must appear in viewport');
   console.log('WRONG_QA55_P13_PARENT_FOCUS='+JSON.stringify({width,
-   reason:await area(page,'#v230-review'),currentFocus:await page.evaluate(()=>document.activeElement?.id)}));
-  pass(width+'px P13 parent first click goes to saved original B detail');
+   reason:reasonFocus,currentFocus:await page.evaluate(()=>document.activeElement?.id)}));
+  pass(width+'px P13 parent first click opens original B and focuses visible saved review');
 
   await page.locator('#nav-home').click();
   await page.locator('#v218-child-mode').click();
@@ -87,10 +90,15 @@ async function exercise(width){
   await page.evaluate(()=>{document.documentElement.style.zoom='2'});
   await page.locator('#nav-records').click();
   await page.locator('#wrong-dev-p17-filter').waitFor();
-  await page.waitForTimeout(100);
+  await page.waitForFunction(()=>{
+   const el=document.getElementById('wrong-dev-p17-filter');
+   if(!el)return false;const b=el.getBoundingClientRect();
+   return b.top>=0&&b.bottom<=innerHeight&&document.activeElement===el;
+  },null,{timeout:3000});
   const filterBefore=await area(page,'#wrong-dev-p17-filter');
+  assert.equal(filterBefore.visible,true);
   console.log('WRONG_QA55_P19_RECORD_ENTRY='+JSON.stringify({width,filterBefore}));
-  // No immediate failure: report evidence before selecting P19 behavior as missing.
+  pass(width+'px P19 zoomed records navigation reveals and focuses actual parent filter');
   assert.ok((await page.locator('#records-list button[data-record]').count())===3);
   await page.locator('#wrong-dev-p17-filter').selectOption('pending');
   assert.equal(await page.locator('#records-list button[data-record]:visible').count(),2);
@@ -102,9 +110,15 @@ async function exercise(width){
   await page.locator('#page-detail [data-route=records]').click();
   assert.equal(await page.locator('#wrong-dev-p17-filter').inputValue(),'pending');
   assert.equal(await page.locator('#records-list button[data-record]:visible').count(),2);
+  await page.waitForFunction(()=>{
+   const el=document.getElementById('wrong-dev-p17-filter');
+   if(!el)return false;const b=el.getBoundingClientRect();
+   return b.top>=0&&b.bottom<=innerHeight&&document.activeElement===el;
+  },null,{timeout:3000});
   const filterAfter=await area(page,'#wrong-dev-p17-filter');
+  assert.equal(filterAfter.visible,true);
   console.log('WRONG_QA55_P19_RECORD_RETURN='+JSON.stringify({width,filterAfter}));
-  pass(width+'px P18/P19 200% source -> records returns correct two pending and retains selection');
+  pass(width+'px P18/P19 zoom200 original back returns visible focused selector with saved filter');
   await page.evaluate(()=>{document.documentElement.style.zoom='1'});
   assert.deepEqual(await stored(page),prior);
   assert.deepEqual(errors,[]);
