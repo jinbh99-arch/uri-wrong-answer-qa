@@ -81,7 +81,7 @@ pass('사용자가 쓴 HTML 유사 문자열은 DOM textContent로만 보관');
 const none=execute([{id:'only',checkHistory:[],generalRetryHistory:[]}]);
 assert.equal(none.buttons.length,0);
 pass('관찰 없는 기록은 생성한 메모나 진단 없이 제외');
-assert.match(html,/\.wrong-parent-note-preview\{[^}]*white-space:nowrap;[^}]*text-overflow:ellipsis/);
+assert.match(html,/\.wrong-parent-note-preview\{[^}]*text-overflow:ellipsis;white-space:nowrap/);
 assert.match(html,/body\.v218-child #page-home > #home-observation-card/);
 pass('모바일 한 줄 말줄임·기존 아이 모드 부모 카드 숨김 경계 유지');
 console.log('WRONG_QA37_NOTE_NODE_RESULT='+JSON.stringify({
