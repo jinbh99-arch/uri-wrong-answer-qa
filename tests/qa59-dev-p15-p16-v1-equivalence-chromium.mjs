@@ -74,7 +74,7 @@ async function exercise(width){
   await stage.waitFor();
   assert.equal(await stage.count(),1);
   assert.match(await stage.textContent(),/① 아이 재풀이 기록 전/);
-  assert.match(await stage.textContent(),/알림·예약·완료 아님/);
+  assert.match(await stage.textContent(),/다음 확인 날짜 메모 없음/);
   const list=page.locator('#records-list button[data-record]');
   assert.equal(await list.count(),1);
   pass(width+'px P15 original saved pre-retry stage, distinct from any reminder');
