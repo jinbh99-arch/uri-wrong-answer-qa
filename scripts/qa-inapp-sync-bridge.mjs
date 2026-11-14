@@ -7,6 +7,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
  root.hidden=false;
  const $=id=>document.getElementById(id);
  let token='',revision=null,server='',busy=false,operationGeneration=0;
+ let checkingForeground=false;
  // QA-only accidental cross-family exposure guard. A local UI cover is NOT
  // security authentication; every IndexedDB byte is preserved on logout.
  const BOUND_KEY='qa34-synthetic-local-family-v1';
@@ -32,12 +33,14 @@ if(root&&location.origin===LOCAL_ORIGIN){
    cover.innerHTML='<h2>가상 가족 기록 화면 가림</h2>'+
     '<p>로그아웃 후 이 브라우저에 오답·사진·부모 관찰이 그대로 남아 있습니다. 같은 가상 가족으로만 다시 연결할 수 있습니다. 다른 가족은 별도 브라우저 프로필을 사용하세요.</p>'+
     '<p>이 화면 가림은 서버 인증·암호화가 아니며 실제 가족 정보 보호 수단이 아닙니다.</p>'+
+    '<button id="qa34-foreground-retry" type="button" hidden>시험 서버 상태 다시 확인</button>'+
     '<form id="qa34-family-reenter" style="display:grid;gap:10px">'+
     '<label>시험 서버 포트<input id="qa34-reenter-port" type="number" min="1024" max="65535" required/></label>'+
     '<label>가상 가족 ID<input id="qa34-reenter-family" type="text" autocomplete="off" required/></label>'+
     '<label>가상 비밀번호<input id="qa34-reenter-password" type="password" autocomplete="off" required/></label>'+
     '<button type="submit">같은 가상 가족으로 화면 다시 열기</button></form>'+
     '<p id="qa34-reenter-status" role="alert"></p>';
+   cover.querySelector('#qa34-foreground-retry').addEventListener('click',()=>checkForegroundSession(true));
    cover.querySelector('form').addEventListener('submit',event=>{
     event.preventDefault();
     if(busy)return;
@@ -53,6 +56,9 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(main)main.inert=true;
   const header=document.querySelector('header');
   if(header)header.inert=true;
+  const retry=cover.querySelector('#qa34-foreground-retry');
+  retry.hidden=!token;
+  retry.disabled=checkingForeground;
   cover.querySelector('#qa34-reenter-family').value=boundFamily();
   cover.querySelector('#qa34-reenter-password').value='';
   cover.querySelector('#qa34-reenter-family').focus();
@@ -96,6 +102,7 @@ if(root&&location.origin===LOCAL_ORIGIN){
   $('qa34-password').value='';
   if(cover)cover.querySelector('#qa34-reenter-password').value='';
   $('qa34-revision').textContent='로그아웃됨 · 서버 개정번호 미확인';
+  if(cover?.isConnected)cover.querySelector('#qa34-foreground-retry').hidden=true;
   state();
  }
  function address(){
@@ -174,6 +181,45 @@ if(root&&location.origin===LOCAL_ORIGIN){
     throw Error('다른 탭의 가족 로그아웃 이후 도착한 응답을 폐기했습니다. 다시 로그인해 직접 확인하세요.');
   };
  }
+ // A remote synthetic account can be deleted while this tab is still open.
+ // On focus/foreground, conceal retained photos and observations BEFORE the
+ // live session check, including while a server response is delayed.
+ // Never treat an offline failure as proof of revocation or reopen on timeout.
+ function checkForegroundSession(allowCovered=false){
+  if(!token||checkingForeground||document.hidden||(!allowCovered&&cover?.isConnected))return;
+  const expectedToken=token,expectedFamily=activeFamily,
+   expectedServer=server,expectedRevoke=localStorage.getItem(REVOKE_KEY)||'';
+  checkingForeground=true;
+  lockLocalView();
+  status('가상 서버 세션을 다시 확인하는 중입니다. 확인 전까지 사진·오답·관찰을 가립니다.');
+  request('/qa/snapshot').then(loaded=>{
+   if(token!==expectedToken||activeFamily!==expectedFamily||server!==expectedServer||
+      (localStorage.getItem(REVOKE_KEY)||'')!==expectedRevoke||!cover?.isConnected)return;
+   if(boundFamily()!==expectedFamily||boundServer()!==expectedServer){
+    clearSession();lockLocalView();
+    status('브라우저의 가상 가족 귀속 표시가 달라 화면을 계속 잠급니다.',true);
+    return;
+   }
+   setRevision(loaded.revision,loaded.snapshot);
+   unlockLocalView();
+   status('가상 서버에서 기존 세션을 다시 확인했습니다. 자동 복원·업로드는 하지 않았습니다.');
+  }).catch(error=>{
+   // request() already clears/revokes on HTTP 401. For network failure,
+   // preserve the current token and data but offer an explicit retry.
+   if(cover?.isConnected&&(token===expectedToken||!token))
+    status('서버 재확인 실패: '+String(error?.message||error).slice(0,110)+
+      ' · 가림 유지. 연결 복구 후 화면의 서버 확인 버튼이나 재로그인을 사용하세요.',true);
+  }).finally(()=>{
+   checkingForeground=false;
+   if(cover?.isConnected){
+    const retry=cover.querySelector('#qa34-foreground-retry');
+    retry.hidden=!token;retry.disabled=false;
+   }
+   state();
+  });
+ }
+ window.addEventListener('focus',()=>checkForegroundSession());
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForegroundSession()});
  function setRevision(value,snapshot){
   revision=value;
   $('qa34-revision').textContent='서버 개정번호 '+value+' · 저장된 합성 오답 '+
