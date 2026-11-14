@@ -1,0 +1,30 @@
+name: WRONG dev QA52 parent compact record stages
+on:
+  push:
+    branches: ['qa/wrong-dev-parent-stage-compact-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa52-dev-parent-stage-compact-node.mjs'
+      - '.github/workflows/wrong-dev-qa52-parent-stage-compact.yml'
+permissions:
+  contents: read
+jobs:
+  compact-parent-stages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new real-source compact stages plus narrow fallbacks
+        run: |
+          node --check tests/qa52-dev-parent-stage-compact-node.mjs
+          node tests/qa52-dev-parent-stage-compact-node.mjs
+      - name: Exact QA SHA and no deployment
+        run: |
+          echo "WRONG_DEV_QA52_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_DEV_QA52_DEPLOYMENT=false"
+# Do not rerun old suites; no deployment or real children.
