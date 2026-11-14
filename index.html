@@ -277,6 +277,8 @@ body.v218-child .v218-parent-only{display:none!important}
 .wrong-parent-time-history-row:focus{outline:3px solid #2459bb;outline-offset:3px}
 /* QA43: one-line saved question preview, read-only and parent-only. */
 .wrong-parent-question-preview{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* QA45: parent-only return from source to the exact help queue card. */
+.wrong-parent-question-back{display:block;min-height:44px;margin:10px 0;max-width:100%;white-space:normal;text-align:left}
 
 
 /* QA11: no hidden hover-only navigation; touch and keyboard friendly concept exploration */
@@ -5075,6 +5077,24 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     area.prepend(panel);
   };
 
+  // QA45: return only from the parent's source detail to the saved record's
+  // currently visible needs-help queue item. If it no longer qualifies, focus
+  // the queue container, never a different child's record.
+  function wrongParentQuestionReturnToQueue(recordId){
+   if(typeof recordId!=='string'||v218Mode!=='parent'||route!=='detail'||detailId!==recordId)return false;
+   navigate('home');
+   if(route!=='home'||v218Mode!=='parent')return false;
+   const queue=$('wrong-parent-needs-help-queue');
+   if(!queue)return false;
+   const source=Array.from(queue.querySelectorAll('button[data-record]'))
+    .find(el=>el.dataset.record===recordId);
+   const focus=source||queue;
+   if(!source)queue.tabIndex=-1;
+   focus.scrollIntoView({block:'center',behavior:'auto'});
+   focus.focus({preventScroll:true});
+   return Boolean(source);
+  }
+
   // QA44: exact saved question source, parent-only, ephemeral focus.
   const wrongParentQuestionPreviousDetail=renderDetail;
   renderDetail=async function(){
@@ -5098,6 +5118,12 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    const details=target.closest('details');if(details)details.open=true;
    target.scrollIntoView({block:'center',behavior:'auto'});
    target.tabIndex=-1;target.focus({preventScroll:true});
+   // The source is already expanded and focused. Place return action next in Tab order.
+   const back=make('button','secondary v218-parent-only wrong-parent-question-back',
+    '↩ 도움 필요 목록으로 돌아가기');
+   back.type='button';back.id='wrong-parent-question-back';
+   back.onclick=()=>wrongParentQuestionReturnToQueue(requestedId);
+   target.after(back);
   };
 
   // WRONG-A-ONLY-INAPP-BACK: QA-only, original A detail's existing list button.
