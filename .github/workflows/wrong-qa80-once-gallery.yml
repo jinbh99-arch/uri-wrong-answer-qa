@@ -35,7 +35,7 @@ jobs:
             '03-parent-record-saved.png':'2f5574de8346881fbf4cdd40a6f91148d0818bd1555d3f860f7c4aa3ce3c06c2',
             '04-child-explains.png':'cb9f9683c4e494870c34c9faaa22023eea1570e25ba1f8b41fa4da17b3eea660',
             '05-child-retry-saved.png':'d0894d37ddc265cb4fad855bdc05feb1509cea771c35f352228c7f39b6ba957b',
-            '06-parent-observation.png':'bb1390494d64559d93e9f68bd2b3e2093da180e12ff4c70f4d1cb1025',
+            '06-parent-observation.png':'bb1390494d64559d93e9f68bd2b3e2093da1382ada180e12ff4c70f4d1cb1025',
             '07-parent-followup-history.png':'9790bca662ce9a17434f00858dcc7cb9012e099172b06fc6567244931475662f',
             '08-child-after-parent.png':'22edd5c2d68a95ba809d12f4552903bd1f37c9bbe42b0217cb56cbbd4c1c0764',
             '09-child-reentry.png':'6e9601650ba7e5a03a04a0027ce2d390eeb7e67b2c042e31cac0bab2be9e24d6',
