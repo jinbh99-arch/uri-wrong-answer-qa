@@ -1,0 +1,43 @@
+name: WRONG QA35 hidden tab synthetic photo privacy
+on:
+  push:
+    branches: ['qa/wrong-hidden-tab-local-privacy-lock-20261114']
+    paths:
+      - 'scripts/qa-inapp-sync-bridge.mjs'
+      - 'tests/qa35-hidden-tab-logout-photo-review.mjs'
+      - '.github/workflows/wrong-qa35-hidden-tab-privacy.yml'
+permissions:
+  contents: read
+jobs:
+  chromium-privacy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax only changed QA product and new regression
+        run: |
+          node --check scripts/qa-inapp-sync-bridge.mjs
+          node --check tests/qa35-hidden-tab-logout-photo-review.mjs
+      - name: Install required Chromium only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve local-only actual browser app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa35-hidden.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: One synthetic hidden tab privacy/remote delete boundary
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa35-hidden-tab-logout-photo-review.mjs
+      - name: Record exact QA HEAD, no deploy
+        run: |
+          echo "WRONG_QA35_HIDDEN_TAB_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_DEPLOYMENT=false"
+# No production OAuth, family photos, remote cloud, telemetry or deployment.
