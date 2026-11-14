@@ -1,0 +1,40 @@
+name: WRONG QA59 remaining historical UI equivalence
+on:
+  push:
+    branches: ['qa/wrong-dev-p15-p16-v1-back-audit-20261114']
+    paths:
+      - 'tests/qa59-dev-p15-p16-v1-equivalence-chromium.mjs'
+      - '.github/workflows/wrong-qa59-dev-p15-v1-equivalence.yml'
+permissions:
+  contents: read
+jobs:
+  saved-stage-first-use-inapp-back:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Narrow new QA59 source and syntax
+        run: node --check tests/qa59-dev-p15-p16-v1-equivalence-chromium.mjs
+      - name: Browser only for remaining UI equivalence
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Isolated local source
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa59.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Only new dev first-use, stages and in-app back browser cases
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa59-dev-p15-p16-v1-equivalence-chromium.mjs
+      - name: Exact QA SHA and no deployment
+        run: |
+          echo "WRONG_QA59_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA59_DEPLOYMENT=false"
+# Scoped browser History experiment remains excluded; no old suite replay.
