@@ -23,7 +23,7 @@ assert.match(html,/wrongParentQuestionJumpPending=\{id:r\.id,type:savedSource\.t
 assert.match(html,/if\(v218Mode!=='parent'\)return;/);
 assert.match(html,/source\.type!==pending\.type\|\|source\.index!==pending\.index\|\|source\.question!==pending\.question/);
 assert.match(html,/rows\.length===count/);
-assert.match(html,/wrongParentQuestionJumpPending\?\.index===index/);
+assert.match(html,/wrongParentQuestionJumpPending\.index===index/);
 assert.match(html,/target\.scrollIntoView\(\{block:'center',behavior:'auto'\}\)/);
 assert.match(html,/target\.focus\(\{preventScroll:true\}\)/);
 checks++;console.log('PASS QA44 guarded parent-only actual history focus');
