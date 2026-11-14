@@ -45,7 +45,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Real browser 320px: parent next question private and photo preserved
+      - name: Real browser 320px parent next question private and photo preserved
         env:
           WRONG_QA76_SOURCE_DEV_SHA: 'f12df24a9529ec2e554fea0e9509cc9e06cda08f'
         run: node tests/qa76-next-review-child-dom-photo-chromium.mjs
