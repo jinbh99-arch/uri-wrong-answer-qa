@@ -35,10 +35,11 @@ async function snapshot(page){
  }),DB);
 }
 try{
- preview=await startWrongQa66Preview({devSha:SHA,username:'qa76-local-fake',password:randomBytes(25).toString('hex')});
+ const username='qa76-local-fake',password=randomBytes(25).toString('hex');
+ preview=await startWrongQa66Preview({devSha:SHA,username,password});
  browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport:{width:320,height:760},
-  httpCredentials:{username:preview.username,password:preview.password},acceptDownloads:false});
+  httpCredentials:{username,password},acceptDownloads:false});
  const page=await context.newPage(),outside=[],errors=[];
  page.on('pageerror',err=>errors.push(String(err)));
  await page.route('**/*',route=>{
@@ -73,6 +74,7 @@ try{
  await page.locator('#wrong008-save-note').click();
  await page.waitForFunction(q=>document.querySelector('#check-history')?.textContent?.includes(q),question,{timeout:15000});
  assert.ok((await page.locator('#check-history').innerText()).includes(question));
+ const baseline=await snapshot(page);
  pass('saved parent follow-up question is a real observation-history entry');
 
  await page.locator('#wrong008-next-question').fill(draft);
@@ -109,7 +111,7 @@ try{
  await page.waitForFunction(q=>document.querySelector('#check-history')?.textContent?.includes(q),question,{timeout:15000});
  assert.ok((await page.locator('#check-history').innerText()).includes(question));
  const after=await snapshot(page);
- assert.deepEqual(after,await snapshot(page),'repeat stable read');
+ assert.deepEqual(after,baseline,'view switches must not rewrite stored parent history or photo bytes');
  assert.equal(after.rows.length,stored.rows.length);
  assert.equal(after.photos.length,stored.photos.length);
  assert.deepEqual(after.photos,stored.photos);
