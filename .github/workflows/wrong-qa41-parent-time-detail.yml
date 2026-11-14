@@ -1,0 +1,30 @@
+name: WRONG QA41 distinguish unverified parent vs child dates
+on:
+  push:
+    branches: ['qa/wrong-detail-time-issues-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa41-parent-time-issues-detail-dom.mjs'
+      - '.github/workflows/wrong-qa41-parent-time-detail.yml'
+permissions:
+  contents: read
+jobs:
+  parent-detail-dates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run only new actual-source synthetic Node DOM test
+        run: |
+          node --check tests/qa41-parent-time-issues-detail-dom.mjs
+          node tests/qa41-parent-time-issues-detail-dom.mjs
+      - name: Print exact isolated SHA, no deploy
+        run: |
+          echo "WRONG_QA41_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA41_DEPLOYMENT=false"
+# No previous suite, real family data, browser runs, production or deployment.
