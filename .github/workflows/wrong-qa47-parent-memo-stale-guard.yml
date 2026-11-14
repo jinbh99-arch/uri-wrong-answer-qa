@@ -1,0 +1,30 @@
+name: WRONG QA47 saved parent memo stale navigation guard
+on:
+  push:
+    branches: ['qa/wrong-memo-source-stale-guard-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa47-parent-memo-time-stale-guard-node.mjs'
+      - '.github/workflows/wrong-qa47-parent-memo-stale-guard.yml'
+permissions:
+  contents: read
+jobs:
+  memo-source-stale-guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new parent memo stale guard Node DOM
+        run: |
+          node --check tests/qa47-parent-memo-time-stale-guard-node.mjs
+          node tests/qa47-parent-memo-time-stale-guard-node.mjs
+      - name: Exact isolated QA commit no deploy
+        run: |
+          echo "WRONG_QA47_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA47_DEPLOYMENT=false"
+# Only new checks. No previous suites, Chromium, real records or deployment.
