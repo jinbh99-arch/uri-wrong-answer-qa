@@ -1,0 +1,86 @@
+name: WRONG QA79 same fictional record full 320px journey screenshots
+on:
+  push:
+    branches: ['qa/wrong-one-record-complete-journey-20261115-0147']
+    paths:
+      - 'tests/qa79-one-record-entire-journey-chromium.mjs'
+      - '.github/workflows/wrong-qa79-one-record-journey.yml'
+permissions:
+  contents: write
+jobs:
+  one-record-complete-journey:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check only integrated QA79 test syntax
+        run: node --check tests/qa79-one-record-entire-journey-chromium.mjs
+      - name: Install isolated Chromium for 320px real screenshots
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Reproduce new parent status hidden DOM from full combined journey on original dev
+        env:
+          WRONG_QA79_DEV_SHA: 'd8c44b165a2cb3c9b0525c00f0d0843437eff639'
+          WRONG_QA79_PHASE: baseline
+        run: node tests/qa79-one-record-entire-journey-chromium.mjs
+      - name: Apply narrowly targeted parent observation DOM scrub in QA only
+        run: |
+          cat > /tmp/wrong-qa79.patch <<'PATCH'
+          diff --git a/index.html b/index.html
+          --- a/index.html
+          +++ b/index.html
+          @@ -3803,0 +3804,11 @@
+          +// QA79: child history retains the child's retry, not the parent's verdict.
+          +const wrongQa79HistoryBase=v230HistoryPanel;
+          +v230HistoryPanel=function(parent,row){
+          + wrongQa79HistoryBase(parent,row);
+          + if(!document.body.classList.contains('v218-child'))return;
+          + for(const item of parent.querySelectorAll('.v230-attempt')){
+          +  const label=item.querySelector('p.small');
+          +  if(label)label.textContent=label.textContent.split(' · 학부모 확인:')[0];
+          + }
+          + for(const node of parent.querySelectorAll('.v218-parent-only'))node.remove();
+          +};
+          @@ -4513,0 +4525,7 @@
+          +    if(route==='detail'){
+          +     for(const node of document.querySelectorAll('#v25-learning-flow .v218-parent-only'))node.remove();
+          +     for(const item of document.querySelectorAll('#v25-learning-flow .v230-attempt')){
+          +      const label=item.querySelector('p.small');
+          +      if(label)label.textContent=label.textContent.split(' · 학부모 확인:')[0];
+          +     }
+          +    }
+          PATCH
+          git apply --unidiff-zero --check /tmp/wrong-qa79.patch
+          git apply --unidiff-zero /tmp/wrong-qa79.patch
+          git diff --check
+          test "$(git diff --name-only)" = "index.html"
+          test "$(git diff --numstat -- index.html)" = "$(printf '18\t0\tindex.html')"
+      - name: Prove entire fixed one-record round trip with real Chromium and actual screenshots
+        env:
+          WRONG_QA79_DEV_SHA: 'd8c44b165a2cb3c9b0525c00f0d0843437eff639'
+          WRONG_QA79_PHASE: fixed
+        run: node tests/qa79-one-record-entire-journey-chromium.mjs
+      - name: Commit only passing product patch onto original isolated QA branch
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-one-record-complete-journey-20261115-0147'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- index.html
+          git commit -m 'fix(wrong): keep parent observation verdict outside child history DOM'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Retain actual screenshot evidence of every synthetic user-journey stage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa79-one-record-320px-real-screenshots
+          path: qa-proof/qa79/**/*.png
+          retention-days: 3
+          if-no-files-found: warn
+# Screenshot artifact contains fictional 1px photo and text only.
+# Does not deploy, access real families, or touch main/operating/auth.

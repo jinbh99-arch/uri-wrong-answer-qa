@@ -3801,6 +3801,17 @@ function v230HistoryPanel(parent,r){
  if(entries.length>8)details.append(make('p','small','최근 8회와 날짜 확인이 필요한 과거 재풀이만 보여 줍니다. 다른 과거 기록은 JSON 백업을 확인하세요.'));
  parent.append(details);
 }
+// QA79: child history retains the child's retry, not the parent's verdict.
+const wrongQa79HistoryBase=v230HistoryPanel;
+v230HistoryPanel=function(parent,row){
+ wrongQa79HistoryBase(parent,row);
+ if(!document.body.classList.contains('v218-child'))return;
+ for(const item of parent.querySelectorAll('.v230-attempt')){
+  const label=item.querySelector('p.small');
+  if(label)label.textContent=label.textContent.split(' · 학부모 확인:')[0];
+ }
+ for(const node of parent.querySelectorAll('.v218-parent-only'))node.remove();
+};
 
 // QA11: read-only concept mini-map driven exclusively by stored, unapproved AI draft data.
 // Never infer a concept from a child's answer, classify mastery, or store fake curriculum links.
@@ -4511,6 +4522,13 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     $('detail-memo')?.classList.add('hide');
     $('detail-memo')?.previousElementSibling?.classList.add('hide');
     if(route!=='add'&&$('memo'))$('memo').value='';
+    if(route==='detail'){
+     for(const node of document.querySelectorAll('#v25-learning-flow .v218-parent-only'))node.remove();
+     for(const item of document.querySelectorAll('#v25-learning-flow .v230-attempt')){
+      const label=item.querySelector('p.small');
+      if(label)label.textContent=label.textContent.split(' · 학부모 확인:')[0];
+     }
+    }
    }
    $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
    $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));
