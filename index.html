@@ -5381,8 +5381,14 @@ $('wrong-child-next-all').addEventListener('click',()=>{
   // No P13-P18 selection/filter, History API, persistence, photo or review write.
   const wrongAOnlyNavigateBase=navigate;
   navigate=function(next){
+    // A normal detail opens at its header. An explicit parent saved-source
+    // jump owns focus/scroll, even if its async pending token gets consumed
+    // before the next animation frame. Capture the source intent NOW.
+    const savedSourceJump=next==='detail'&&(
+      wrongParentQuestionJumpPending?.id===detailId||
+      wrongParentMemoJumpPending?.id===detailId);
     const result=wrongAOnlyNavigateBase(next);
-    if(next==='detail'&&v218Mode==='parent'){
+    if(next==='detail'&&v218Mode==='parent'&&!savedSourceJump){
       requestAnimationFrame(()=>{
         if(route!=='detail'||v218Mode!=='parent')return;
         const row=$('page-detail')?.querySelector('.row');
