@@ -1,0 +1,45 @@
+name: WRONG QA65 parent first action actual calendar and zoom
+on:
+  push:
+    branches: ['qa/wrong-dev-p14-parent-cta-time-guard-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa65-parent-action-strict-time-node.mjs'
+      - 'tests/qa65-parent-action-strict-time-chromium.mjs'
+      - '.github/workflows/wrong-qa65-parent-cta-time.yml'
+permissions:
+  contents: read
+jobs:
+  parent-cta-time-guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New exact current code Node guard cases
+        run: |
+          node --check tests/qa65-parent-action-strict-time-node.mjs
+          node --check tests/qa65-parent-action-strict-time-chromium.mjs
+          node tests/qa65-parent-action-strict-time-node.mjs
+      - name: Chromium only after Node passes
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Isolated local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa65.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New P14 P18 P19 actual Chromium invalid-time integration only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa65-parent-action-strict-time-chromium.mjs
+      - name: Exact QA source SHA and no deploy
+        run: |
+          echo "WRONG_QA65_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA65_DEPLOYMENT=false"
+# No old suites, production auth/DB, real child records or deployment.
