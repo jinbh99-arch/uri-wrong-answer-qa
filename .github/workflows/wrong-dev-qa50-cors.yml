@@ -1,0 +1,29 @@
+name: WRONG dev QA50 narrow CORS preflight
+on:
+  push:
+    branches: ['qa/wrong-dev-qa50-cors-preflight-20261114']
+    paths:
+      - 'supabase/functions/qa47-auth-status/handler.js'
+      - 'tests/qa50-dev-cors-x-client-info-narrow.mjs'
+      - '.github/workflows/wrong-dev-qa50-cors.yml'
+permissions:
+  contents: read
+jobs:
+  narrow-cors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: QA50 new Node only
+        run: |
+          node --check tests/qa50-dev-cors-x-client-info-narrow.mjs
+          node tests/qa50-dev-cors-x-client-info-narrow.mjs
+      - name: Print exact SHA without deploy
+        run: |
+          echo "WRONG_DEV_QA50_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_DEV_QA50_DEPLOYED=false"
