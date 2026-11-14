@@ -1,0 +1,66 @@
+name: WRONG QA77 fake OCR and photo canvas child DOM
+on:
+  push:
+    branches: ['qa/wrong-ocr-photo-draft-dom-20261115-0122']
+    paths:
+      - 'tests/qa77-ocr-photo-canvas-child-dom-chromium.mjs'
+      - '.github/workflows/wrong-qa77-ocr-photo-dom.yml'
+permissions:
+  contents: write
+jobs:
+  synthetic-ocr-photo-draft:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate new QA77 test syntax
+        run: node --check tests/qa77-ocr-photo-canvas-child-dom-chromium.mjs
+      - name: Install isolated Chromium for new source-proven photo privacy path
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Confirm baseline leak in current dev before changing any product code
+        env:
+          WRONG_QA77_DEV_SHA: 'd21f89506aee66cfc9b3a3b3e54f13287afd8a93'
+          WRONG_QA77_PHASE: baseline
+        run: node tests/qa77-ocr-photo-canvas-child-dom-chromium.mjs
+      - name: Apply exact eight-line source patch only on this QA branch
+        run: |
+          cat >/tmp/wrong-qa77.patch <<'PATCH'
+          diff --git a/index.html b/index.html
+          --- a/index.html
+          +++ b/index.html
+          @@ -1281,0 +1282,8 @@
+          +// QA77: after acknowledged discard, erase ephemeral OCR text and photo pixels.
+          +const wrongQa77BaseResetImage=resetImage;
+          +resetImage=function(){
+          + wrongQa77BaseResetImage();
+          + const canvas=$('crop-canvas');if(canvas){canvas.width=0;canvas.height=0;}
+          + if(route!=='add')for(const id of ['problem','student-answer','memo'])if($(id))$(id).value='';
+          +};
+          +
+          PATCH
+          git apply --unidiff-zero --check /tmp/wrong-qa77.patch
+          git apply --unidiff-zero /tmp/wrong-qa77.patch
+          git diff --check
+          test "$(git diff --name-only)" = 'index.html'
+          test "$(git diff --numstat -- index.html)" = "$(printf '8\t0\tindex.html')"
+      - name: Check fake OCR and photo preservation in fixed 320px browser
+        env:
+          WRONG_QA77_DEV_SHA: 'd21f89506aee66cfc9b3a3b3e54f13287afd8a93'
+          WRONG_QA77_PHASE: fixed
+        run: node tests/qa77-ocr-photo-canvas-child-dom-chromium.mjs
+      - name: Commit only passing local patch to same QA branch
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-ocr-photo-draft-dom-20261115-0122'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- index.html
+          git commit -m 'fix(wrong): scrub discarded OCR form and photo crop pixels on view exit'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+# The single job modifies only isolated QA after baseline, never main/dev/production.
