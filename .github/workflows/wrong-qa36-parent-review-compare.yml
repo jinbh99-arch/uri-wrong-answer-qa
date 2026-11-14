@@ -1,0 +1,43 @@
+name: WRONG QA36 parent review queue and retry comparison
+on:
+  push:
+    branches: ['qa/wrong-parent-retry-explanation-compare-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa36-parent-review-compare-node.mjs'
+      - 'tests/qa36-parent-queue-compare-chromium.mjs'
+      - '.github/workflows/wrong-qa36-parent-review-compare.yml'
+permissions:
+  contents: read
+jobs:
+  parent-review-and-comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New Node syntax and synthetic parent-logic checks before browser
+        run: |
+          node --check tests/qa36-parent-review-compare-node.mjs
+          node --check tests/qa36-parent-queue-compare-chromium.mjs
+          node tests/qa36-parent-review-compare-node.mjs
+      - name: Prepare Chromium (only if Node checks pass)
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve isolated 127.0.0.1 app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa36-parent.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Actual 320/390px parent-only queue, photo and explanation UI
+        run: node tests/qa36-parent-queue-compare-chromium.mjs
+      - name: Record exact isolated SHA and no deploy
+        run: |
+          echo "WRONG_QA36_PARENT_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA36_DEPLOYMENT=false"
+# No existing test suite rerun, no real child data, live auth, server or deploy.
