@@ -1,0 +1,45 @@
+name: WRONG QA62 saved parent original source anchors
+on:
+  push:
+    branches: ['qa/wrong-dev-check-history-stable-anchors-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa62-parent-check-history-stable-anchor-node.mjs'
+      - 'tests/qa62-parent-check-history-stable-anchor-chromium.mjs'
+      - '.github/workflows/wrong-qa62-stable-parent-anchors.yml'
+permissions:
+  contents: read
+jobs:
+  anchored-real-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: First new direct saved-anchor source Node
+        run: |
+          node --check tests/qa62-parent-check-history-stable-anchor-node.mjs
+          node --check tests/qa62-parent-check-history-stable-anchor-chromium.mjs
+          node tests/qa62-parent-check-history-stable-anchor-node.mjs
+      - name: Install browser only after Node passes
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run local synthetic source only
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa62.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New only intentionally extra display-row source jumps
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa62-parent-check-history-stable-anchor-chromium.mjs
+      - name: Exact SHA and no deployment
+        run: |
+          echo "WRONG_QA62_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA62_DEPLOYMENT=false"
+# No old suite reruns, production auth/data, real children, or deployment.
