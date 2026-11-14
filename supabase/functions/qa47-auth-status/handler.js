@@ -11,7 +11,7 @@ function respond(status,body,origin) {
    ...JSON_HEADERS,
    'access-control-allow-origin':origin,
    'vary':'Origin',
-   'access-control-allow-headers':'authorization, apikey, content-type',
+   'access-control-allow-headers':'authorization, x-client-info, apikey, content-type',
    'access-control-allow-methods':'GET, OPTIONS'
  }});
 }
@@ -25,7 +25,7 @@ export async function handleQa47AuthenticatedGuardianStatus(req,services) {
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{
    'access-control-allow-origin':origin,
    'vary':'Origin',
-   'access-control-allow-headers':'authorization, apikey, content-type',
+   'access-control-allow-headers':'authorization, x-client-info, apikey, content-type',
    'access-control-allow-methods':'GET, OPTIONS',
    'cache-control':'no-store'
  }});
