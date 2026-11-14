@@ -80,6 +80,15 @@ if(root&&location.origin===LOCAL_ORIGIN){
    clearSession();lockLocalView();
   }
  });
+ // Privacy: an old synthetic family can be revoked or deleted while this tab
+ // is in the background. On leaving the visible tab, fail closed immediately;
+ // returning MUST require fresh explicit login, even if a stale token would
+ // still receive 200 from the loopback gateway. Keep every IndexedDB byte.
+ document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden||!token)return;
+  clearSession();lockLocalView();broadcastLock();
+  status('다른 화면으로 이동해 가상 가족 기록을 잠갔습니다. 돌아오면 같은 가족으로 다시 로그인하세요. 사진·설명·부모 관찰 원본은 보존됩니다.',true);
+ });
  function status(message,error=false){
   $('qa34-status').textContent=message;
   $('qa34-status').setAttribute('data-error',String(error));
