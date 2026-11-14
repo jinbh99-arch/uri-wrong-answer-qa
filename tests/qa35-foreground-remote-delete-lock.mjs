@@ -101,6 +101,14 @@ try{
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
  await page.locator('#qa34-family-privacy-cover:visible').waitFor({timeout:9000});
  await reached;
+ console.log('WRONG_QA35_FOREGROUND_DIAGNOSTIC='+JSON.stringify(await page.evaluate(()=>({
+  cover:!!document.querySelector('#qa34-family-privacy-cover'),
+  inert:document.querySelector('#qa-main')?.inert,
+  attribute:document.querySelector('#qa-main')?.getAttribute('inert'),
+  retryHidden:document.querySelector('#qa34-foreground-retry')?.hidden,
+  loginDisabled:document.querySelector('#qa34-login')?.disabled,
+  status:document.querySelector('#qa34-status')?.textContent
+ }))));
  assert.equal(await page.locator('#qa-main').evaluate(el=>el.inert),true);
  assert.equal(await page.locator('#qa34-foreground-retry').isVisible(),true);
  assert.deepEqual(await local(page),original);
