@@ -24,6 +24,8 @@ header{background:linear-gradient(110deg,#214bc3,#3c78dc);color:white;padding:18
 .tree-branch button{margin:4px 0}
 .tree-indent{margin-left:14px;padding-left:8px;border-left:1px dashed #c6d5ee}
 #home-observation-card{margin-top:20px}
+/* The parent can scan one note before opening the complete original record. */
+.wrong-parent-note-preview{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;line-height:1.5}
 @media(max-width:450px){.overview{grid-template-columns:repeat(2,minmax(0,1fr))}.tree-indent{margin-left:7px;padding-left:5px}}
 
 .ocr-preview{white-space:pre-wrap;overflow-wrap:anywhere;min-height:54px;max-height:220px;overflow:auto;background:#f7fafc;border:1px solid #d8e5ee;border-radius:12px;padding:12px;font:inherit;font-size:.91rem;line-height:1.55;color:#243847}
@@ -872,12 +874,14 @@ function wrongParentLatestObservation(r){
   if(!c||wrong008ManualDate(c)||
      !['explained','needs_help','mistake','not_checked'].includes(c.status))continue;
   const ts=Date.parse(c.at||'');
-  observations.push({status:c.status,time:Number.isFinite(ts)?ts:0});
+  observations.push({status:c.status,time:Number.isFinite(ts)?ts:0,
+   memo:typeof c.memo==='string'?c.memo.trim():''});
  }
  for(const h of r.generalRetryHistory||[]){
   if(!h||!['explained','needs_help'].includes(h.review))continue;
   const ts=Date.parse(h.reviewedAt||h.at||'');
-  observations.push({status:h.review,time:Number.isFinite(ts)?ts:0});
+  observations.push({status:h.review,time:Number.isFinite(ts)?ts:0,
+   memo:typeof h.parentNote==='string'?h.parentNote.trim():''});
  }
  observations.sort((a,b)=>a.time-b.time);
  return observations[observations.length-1]||null;
@@ -909,6 +913,12 @@ function renderObservationSummary(){
   button.type='button';button.dataset.record=r.id;
   button.append(make('strong',null,(r.problemText||'사진으로 저장한 오답').slice(0,90)));
   button.append(make('span','small','원문·사진·학부모 관찰 보기'));
+  // Do not borrow an older note if the newest reviewed event has no memo.
+  // Parent text is never parsed as HTML and stays in a one-line preview.
+  const latest=wrongParentLatestObservation(r);
+  const note=latest?.memo?latest.memo.replace(/\s+/g,' '):'';
+  button.append(make('span','small wrong-parent-note-preview',
+   note?'최근 부모 확인 메모: '+note:'최근 관찰 메모 없음 · 원문에서 확인'));
   queue.append(button);
  }
  if(pending.length>30)queue.append(make('p','small','나머지 '+(pending.length-30)+'건은 오답 목록에서 확인하세요.'));
