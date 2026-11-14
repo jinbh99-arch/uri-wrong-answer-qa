@@ -886,6 +886,17 @@ function wrongParentLatestObservation(r){
  observations.sort((a,b)=>a.time-b.time);
  return observations[observations.length-1]||null;
 }
+// Parent-only signal: compare stored parent observation with actual child retry timestamps.
+// No inference from parent review or record creation time.
+function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
+ if(!latest||!Number.isFinite(latest.time)||latest.time<=0||latest.time>nowMs)
+  return '관찰 이후 재풀이: 확인 불가';
+ const times=(Array.isArray(r.generalRetryHistory)?r.generalRetryHistory:[])
+  .map(h=>h&&typeof h.at==='string'?Date.parse(h.at):NaN)
+  .filter(t=>Number.isFinite(t)&&t>0&&t<=nowMs);
+ if(!times.length)return '관찰 이후 재풀이: 기록 없음';
+ return times.some(t=>t>latest.time)?'관찰 이후 재풀이: 기록 있음':'관찰 이후 재풀이: 기록 없음';
+}
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
  const n={explained:0,needs_help:0,mistake:0,not_checked:0};
@@ -922,6 +933,7 @@ function renderObservationSummary(){
   const elapsed=validTime?Math.floor((now-latest.time)/86400000):null;
   button.append(make('span','small wrong-parent-observation-age',
    elapsed===null?'관찰일 확인 불가':elapsed===0?'오늘 관찰':elapsed+'일 경과'));
+  button.append(make('span','small wrong-parent-retry-after',wrongParentRetryAfterObservation(r,latest,now)));
   button.append(make('strong',null,(r.problemText||'사진으로 저장한 오답').slice(0,90)));
   button.append(make('span','small','원문·사진·학부모 관찰 보기'));
   // Do not borrow an older note if the newest reviewed event has no memo.
