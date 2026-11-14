@@ -153,9 +153,11 @@ try{
 
  // Network failure for a STILL-VALID family B must leave B's local view
  // locked, retain its token/records, and offer a successful manual retry.
+ let abortOnce=true;
  await b.route('**/qa/snapshot',async route=>{
-  if(route.request().method()!=='GET')return route.continue();
-  await b.unroute('**/qa/snapshot');await route.abort('failed');
+  if(route.request().method()!=='GET'||!abortOnce)return route.continue();
+  abortOnce=false;
+  await route.abort('failed');
  });
  const beforeB=await local(b);
  await b.evaluate(()=>window.dispatchEvent(new Event('focus')));
