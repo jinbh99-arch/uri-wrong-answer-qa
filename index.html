@@ -1062,7 +1062,8 @@ function renderObservationSummary(){
     go.type='button';go.dataset.memoSource=r.id;
     go.onclick=()=>{
      if(v218Mode!=='parent'||route!=='home')return;
-     wrongParentMemoJumpPending={id:r.id,type:memoSource.type,index:memoSource.index,memo:memoSource.memo};
+     wrongParentMemoJumpPending={id:r.id,type:memoSource.type,index:memoSource.index,
+     memo:memoSource.memo,time:memoSource.time};
      detailId=r.id;navigate('detail');
     };
     queue.append(go);
@@ -5172,13 +5173,19 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    const requestedId=detailId;
    await wrongParentMemoPreviousDetail();
    const pending=wrongParentMemoJumpPending;
-   if(!pending||pending.id!==requestedId)return;
+   if(!pending)return;
+   // Clear requests after leaving this parent detail, but do not let an old
+   // async render from another record cancel the currently requested record.
+   if(route!=='detail'||v218Mode!=='parent'||detailId!==pending.id){
+    wrongParentMemoJumpPending=null;return;
+   }
+   if(pending.id!==requestedId)return;
    wrongParentMemoJumpPending=null;
-   if(route!=='detail'||detailId!==requestedId||v218Mode!=='parent')return;
    const current=records.find(r=>r.id===requestedId);
    const source=current&&wrongParentLastSavedMemoSource(current);
    if(!source||wrongParentLastSavedQuestionSource(current)||
-      source.type!==pending.type||source.index!==pending.index||source.memo!==pending.memo){
+      source.type!==pending.type||source.index!==pending.index||
+      source.memo!==pending.memo||source.time!==pending.time){
     notify('부모 관찰 메모가 달라졌습니다. 목록에서 다시 확인하세요.');return;
    }
    if(source.type==='check'){
