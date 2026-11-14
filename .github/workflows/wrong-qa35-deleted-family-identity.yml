@@ -1,0 +1,35 @@
+name: WRONG QA35 deleted family ID reuse guard
+on:
+  push:
+    branches: ['qa/wrong-deleted-family-identity-reuse-20261114']
+    paths:
+      - 'scripts/qa-family-gateway.mjs'
+      - 'tests/qa35-deleted-family-name-reuse.mjs'
+      - '.github/workflows/wrong-qa35-deleted-family-identity.yml'
+permissions:
+  contents: read
+jobs:
+  deleted-identity-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact modified server and new Node test syntax
+        run: |
+          node --check scripts/qa-family-gateway.mjs
+          node --check tests/qa35-deleted-family-name-reuse.mjs
+      - name: One new deleted-identity and encrypted-ledger counterexample
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+          QA_DURABLE_TEST_ONLY: '1'
+        run: node tests/qa35-deleted-family-name-reuse.mjs
+      - name: Record isolated SHA and no deployment
+        run: |
+          echo "WRONG_QA35_DELETED_NAME_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_DEPLOYMENT=false"
+# Test-only 127.0.0.1, temporary AES-GCM ledger deleted in test.
