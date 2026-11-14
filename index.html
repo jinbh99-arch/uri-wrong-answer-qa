@@ -4234,6 +4234,12 @@ $('v212-mixed-drill-run').onclick=async()=>{
   // WRONG QA57: the parent first-action's existing PHOTO/OCR/DUE states
   // should open their actual next editable/review control, not a long detail
   // header. This is navigation only; photos/observations remain unchanged.
+  // QA58: accept only an actual Gregorian date that has arrived in this
+  // device's local calendar. Reuse the existing child calendar validator:
+  // no heuristic date parsing, automatic reminder or study completion.
+  function wrongDevDueDateReached(value,today=localToday()){
+    return wrongChildValidParentDay(value)&&value<=today;
+  }
   async function wrongDevOpenSavedParentFallback(id,kind){
     if(route!=='home'||v218Mode!=='parent')return;
     const item=records.find(r=>r.id===id);
@@ -4241,7 +4247,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const valid=Boolean(item)&&(kind==='photo'?
       item.hasPhoto&&!String(item.problemText||'').trim():
       kind==='ocr'?item.ocrStatus==='browser_ocr_unconfirmed':
-      kind==='due'?/^20\d\d-\d\d-\d\d$/.test(dueDate)&&dueDate<=localToday():false);
+      kind==='due'?wrongDevDueDateReached(dueDate):false);
     if(!valid){qa9RenderOneAction();return}
     if(kind==='photo'||kind==='ocr'){
       editId=id;navigate('add');
@@ -4291,7 +4297,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     }).sort((a,b)=>Date.parse(b.attempt.at)-Date.parse(a.attempt.at))[0]?.r;
     const photo=ordered.find(r=>r.hasPhoto&&!String(r.problemText||'').trim());
     const ocr=ordered.find(r=>r.ocrStatus==='browser_ocr_unconfirmed');
-    const due=ordered.find(r=>r.studyPlan?.dueDate&&/^20\d\d-\d\d-\d\d$/.test(r.studyPlan.dueDate)&&r.studyPlan.dueDate<=today);
+    const due=ordered.find(r=>wrongDevDueDateReached(r.studyPlan?.dueDate,today));
     const target=parentPending||photo||ocr||due||ordered[0];
     const reason=parentPending?'아이가 직접 남긴 설명을 부모가 아직 확인하지 않은 오답입니다. 상세에서 설명을 읽고 직접 관찰해 주세요.':
       photo?'사진만 저장한 문제의 내용을 확인해 주세요.':
