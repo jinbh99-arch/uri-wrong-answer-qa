@@ -1,0 +1,24 @@
+name: WRONG QA61 future parent observation order
+on:
+  push:
+    branches: ['qa/wrong-dev-future-parent-sort-20261114-1937']
+    paths:
+      - 'index.html'
+      - 'tests/qa61-future-parent-observation-order-node.mjs'
+      - '.github/workflows/wrong-qa61-future-observation.yml'
+permissions:
+  contents: read
+jobs:
+  parent-observation-order:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check tests/qa61-future-parent-observation-order-node.mjs
+          node tests/qa61-future-parent-observation-order-node.mjs
