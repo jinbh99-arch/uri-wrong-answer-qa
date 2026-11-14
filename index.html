@@ -279,6 +279,7 @@ body.v218-child .v218-parent-only{display:none!important}
 .wrong-parent-question-preview{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* QA45: parent-only return from source to the exact help queue card. */
 .wrong-parent-question-back{display:block;min-height:44px;margin:10px 0;max-width:100%;white-space:normal;text-align:left}
+.wrong-parent-memo-source-jump{display:block;min-height:44px;max-width:100%;white-space:normal;text-align:left}
 
 
 /* QA11: no hidden hover-only navigation; touch and keyboard friendly concept exploration */
@@ -932,6 +933,26 @@ function wrongParentLastSavedQuestionSource(r,nowMs=Date.now()){
 function wrongParentLastSavedQuestion(r,nowMs=Date.now()){
  return wrongParentLastSavedQuestionSource(r,nowMs)?.question||null;
 }
+// QA46: latest genuinely saved parent memo with EXACT original row index.
+// Do not use child retry times, invalid dates, or manual future-check notes.
+function wrongParentLastSavedMemoSource(r,nowMs=Date.now()){
+ const found=[];
+ const add=(memo,stamp,type,index)=>{
+  if(typeof memo!=='string'||!memo.trim()||wrongParentTimeIssue(stamp,nowMs))return;
+  found.push({type,index,memo:memo.trim(),time:Date.parse(stamp)});
+ };
+ for(const [index,c] of (Array.isArray(r?.checkHistory)?r.checkHistory:[]).entries()){
+  if(!c||wrong008ManualDate(c)||
+     !['explained','needs_help','mistake','not_checked'].includes(c.status))continue;
+  add(c.memo,c.at,'check',index);
+ }
+ for(const [index,h] of (Array.isArray(r?.generalRetryHistory)?r.generalRetryHistory:[]).entries()){
+  if(!h||!['explained','needs_help'].includes(h.review))continue;
+  add(h.parentNote,h.reviewedAt,'retry',index);
+ }
+ found.sort((a,b)=>b.time-a.time||b.index-a.index);
+ return found[0]||null;
+}
 function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
  const checked=[...(Array.isArray(r.checkHistory)?r.checkHistory:[])
   .filter(c=>c&&!wrong008ManualDate(c)&&['explained','needs_help','mistake','not_checked'].includes(c.status))
@@ -959,6 +980,7 @@ function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
 // Presentation-only parent filter; never written to records or backup.
 let wrongParentUnretriedOnly=false;
 let wrongParentQuestionJumpPending=null;
+let wrongParentMemoJumpPending=null;
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
  const n={explained:0,needs_help:0,mistake:0,not_checked:0};
@@ -1032,6 +1054,19 @@ function renderObservationSummary(){
     detailId=r.id;navigate('detail');
    };
    queue.append(jump);
+  }else{
+   const memoSource=wrongParentLastSavedMemoSource(r,now);
+   if(memoSource){
+    const go=make('button','secondary v218-parent-only wrong-parent-memo-source-jump',
+     '↳ 마지막 실제 부모 관찰 메모 원본 보기');
+    go.type='button';go.dataset.memoSource=r.id;
+    go.onclick=()=>{
+     if(v218Mode!=='parent'||route!=='home')return;
+     wrongParentMemoJumpPending={id:r.id,type:memoSource.type,index:memoSource.index,memo:memoSource.memo};
+     detailId=r.id;navigate('detail');
+    };
+    queue.append(go);
+   }
   }
  }
  if(pending.length>30)queue.append(make('p','small','나머지 '+(pending.length-30)+'건은 오답 목록에서 확인하세요.'));
@@ -3682,7 +3717,9 @@ function v230HistoryPanel(parent,r){
   wrongParentTimeIssue(entry.at)||
   (['explained','needs_help'].includes(entry.review)&&wrongParentTimeIssue(entry.reviewedAt))||
   (wrongParentQuestionJumpPending?.id===r.id&&wrongParentQuestionJumpPending.type==='retry'&&
-   wrongParentQuestionJumpPending.index===index)).reverse();
+   wrongParentQuestionJumpPending.index===index)||
+  (wrongParentMemoJumpPending?.id===r.id&&wrongParentMemoJumpPending.type==='retry'&&
+   wrongParentMemoJumpPending.index===index)).reverse();
  for(const {entry,index} of [...recent,...older]){
   if(index<entries.length-8&&details.children.length===recent.length+1)
    details.append(make('p','small v218-parent-only','날짜를 확인해야 하는 과거 재풀이 기록'));
@@ -3693,6 +3730,9 @@ function v230HistoryPanel(parent,r){
    ({not_checked:'확인 전',explained:'스스로 설명했다고 관찰',needs_help:'도움이 필요했다고 관찰'})[entry.review]));
   const answer=make('p','v230-written');answer.textContent='다시 푼 답: '+entry.answer;wrap.append(answer);
   if(entry.explanation){const why=make('p','v230-written');why.textContent='풀이 설명: '+entry.explanation;wrap.append(why)}
+  if(wrongParentMemoJumpPending?.id===r.id&&wrongParentMemoJumpPending.type==='retry'&&
+     wrongParentMemoJumpPending.index===index&&typeof entry.parentNote==='string')
+   wrap.append(make('p','small v218-parent-only','저장된 부모 관찰 메모: '+entry.parentNote));
   details.append(wrap);
  }
  if(entries.length>8)details.append(make('p','small','최근 8회와 날짜 확인이 필요한 과거 재풀이만 보여 줍니다. 다른 과거 기록은 JSON 백업을 확인하세요.'));
@@ -5122,6 +5162,41 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    const back=make('button','secondary v218-parent-only wrong-parent-question-back',
     '↩ 도움 필요 목록으로 돌아가기');
    back.type='button';back.id='wrong-parent-question-back';
+   back.onclick=()=>wrongParentQuestionReturnToQueue(requestedId);
+   target.after(back);
+  };
+
+  // QA46: parent-only guarded navigation to the exact saved observation memo.
+  const wrongParentMemoPreviousDetail=renderDetail;
+  renderDetail=async function(){
+   const requestedId=detailId;
+   await wrongParentMemoPreviousDetail();
+   const pending=wrongParentMemoJumpPending;
+   if(!pending||pending.id!==requestedId)return;
+   wrongParentMemoJumpPending=null;
+   if(route!=='detail'||detailId!==requestedId||v218Mode!=='parent')return;
+   const current=records.find(r=>r.id===requestedId);
+   const source=current&&wrongParentLastSavedMemoSource(current);
+   if(!source||wrongParentLastSavedQuestionSource(current)||
+      source.type!==pending.type||source.index!==pending.index||source.memo!==pending.memo){
+    notify('부모 관찰 메모가 달라졌습니다. 목록에서 다시 확인하세요.');return;
+   }
+   if(source.type==='check'){
+    const rows=Array.from($('check-history')?.children||[])
+     .filter(row=>row.classList?.contains('tagline'));
+    const count=Array.isArray(current.checkHistory)?current.checkHistory.length:0;
+    if(rows.length===count)rows.forEach((row,j)=>{
+     row.id='wrong-parent-time-check-'+(count-1-j);row.tabIndex=-1;
+    });
+   }
+   const target=$('wrong-parent-time-'+source.type+'-'+source.index);
+   if(!target){notify('해당 부모 관찰 원본 행을 표시하지 못했습니다. 이력을 직접 확인하세요.');return}
+   const details=target.closest('details');if(details)details.open=true;
+   target.scrollIntoView({block:'center',behavior:'auto'});
+   target.tabIndex=-1;target.focus({preventScroll:true});
+   const back=make('button','secondary v218-parent-only wrong-parent-question-back',
+    '↩ 도움 필요 목록으로 돌아가기');
+   back.type='button';back.id='wrong-parent-memo-back';
    back.onclick=()=>wrongParentQuestionReturnToQueue(requestedId);
    target.after(back);
   };
