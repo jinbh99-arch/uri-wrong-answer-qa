@@ -8,7 +8,7 @@ import {chromium} from 'playwright';
 import {createIsolatedQaFamilyGateway} from '../scripts/qa-family-gateway.mjs';
 const APP='http://127.0.0.1:4173/';
 const DB='uriaimath-github-qa-v224-only';
-const A='qa35-browser-old-a',C='qa35-browser-new-c',B='qa35-browser-unrelated-b';
+const A='qa-35-browser-old-a',C='qa-35-browser-new-c',B='qa-35-browser-unrelated-b';
 const PASSWORD_A='QA35-OLD-SYNTHETIC-FAMILY-PASSWORD-2026';
 const PASSWORD_C='QA35-NEW-SYNTHETIC-FAMILY-PASSWORD-2026';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
