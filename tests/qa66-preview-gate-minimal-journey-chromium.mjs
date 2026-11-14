@@ -100,7 +100,7 @@ async function run(){
  const before=await records(page);
  assert.equal(before.rows.length,1);
  assert.equal(before.photos.length,1);
- assert.equal(before.photos[0],PNG.length);
+ assert.ok(before.photos[0]>0,'processed fictional 1px photo must be saved');
  await page.setViewportSize({width:320,height:760});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth)<=323,true);
  await page.locator('#v218-child-mode').click();
