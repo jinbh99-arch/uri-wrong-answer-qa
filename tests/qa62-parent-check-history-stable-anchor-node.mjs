@@ -79,6 +79,32 @@ pass('no original observation/photo mutation or storage/network writes');
 assert.match(html,/const target=\$\('wrong-parent-time-'\+source\.type\+'-'\+source\.index\)/);
 assert.match(html,/const target=\$\('wrong-parent-time-'\+issue\.type\+'-'\+issue\.index\)/);
 pass('memo/question/timestamp jumps share saved original index-based ID lookup');
+
+const headerStart=html.indexOf('const wrongAOnlyNavigateBase=navigate;');
+const headerEnd=html.indexOf('// QA56 P18/P19:',headerStart);
+assert.ok(headerStart>0&&headerEnd>headerStart,'original detail-header navigation wrapper missing');
+const header=html.slice(headerStart,headerEnd);
+function sourceHeaderFrames({question=null,memo=null,mode='parent',detailId='one'}={}){
+ const frames=[],history=[];
+ const get=new Function('p',[
+  'let navigate=next=>{p.history.push(next);return next};',
+  'const wrongParentQuestionJumpPending=p.question,wrongParentMemoJumpPending=p.memo;',
+  'let detailId=p.detailId,v218Mode=p.mode,route="detail";',
+  'const requestAnimationFrame=cb=>p.frames.push(cb);',
+  'const $=()=>null;',
+  header,
+  'return navigate;'
+ ].join('\n'))({frames,history,question,memo,mode,detailId});
+ get('detail');
+ return {frames,history};
+}
+assert.equal(sourceHeaderFrames({question:{id:'one'}}).frames.length,0);
+assert.equal(sourceHeaderFrames({memo:{id:'one'}}).frames.length,0);
+pass('saved question or memo source navigation never schedules competing detail-header focus');
+assert.equal(sourceHeaderFrames().frames.length,1);
+assert.equal(sourceHeaderFrames({memo:{id:'another'}}).frames.length,1);
+pass('ordinary detail and unrelated pending source retain original header accessibility behavior');
+
 console.log('WRONG_QA62_NODE_RESULT='+JSON.stringify({
  status:'PASS',checks,kind:'Node22 source-extracted DOM, extra display-row mismatch and source IDs',
  realChildren:0,writes:0,safeToRestore:false,deployed:false}));
