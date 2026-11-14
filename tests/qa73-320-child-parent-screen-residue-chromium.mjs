@@ -69,8 +69,9 @@ try{
  const queue=page.locator('#wrong-parent-needs-help-queue');
  await queue.locator('button[data-record]').waitFor();
  assert.ok((await queue.innerText()).includes(parentNote));
- assert.ok((await queue.innerText()).includes(parentQuestion));
- pass('320px parent home shows follow-up action and both parent-only note/question');
+ assert.ok(!(await queue.innerText()).includes(parentQuestion),
+  'scheduled manual recheck must not masquerade as answered parent check question');
+ pass('320px parent queue shows saved observation and separates future manual check from answered questions');
 
  await page.locator('#v218-child-mode').click();
  assert.equal(await page.locator('#home-observation-card').isVisible(),false,
