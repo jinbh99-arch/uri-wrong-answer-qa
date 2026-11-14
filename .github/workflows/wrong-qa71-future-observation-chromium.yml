@@ -1,0 +1,31 @@
+name: WRONG QA71 future-stamped parent observation actual Chromium
+on:
+  push:
+    branches: ['qa/wrong-future-observation-browser-20261114-2203']
+    paths:
+      - 'tests/qa71-future-parent-observation-order-chromium.mjs'
+      - '.github/workflows/wrong-qa71-future-observation-chromium.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-order:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: QA71 new test syntax only
+        run: node --check tests/qa71-future-parent-observation-order-chromium.mjs
+      - name: Chromium dependency for distinct browser-only regression
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: QA71 future parent observation order in actual 360px browser
+        env:
+          WRONG_QA71_SOURCE_DEV_SHA: 'cd1bef9f3e3d518d4390b34ee66769d9a9668326'
+        run: node tests/qa71-future-parent-observation-order-chromium.mjs
+# No production code changes, no external deployment, no real family records.
