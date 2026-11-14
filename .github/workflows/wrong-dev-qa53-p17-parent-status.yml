@@ -1,0 +1,30 @@
+name: WRONG dev QA53 parent status filter
+on:
+  push:
+    branches: ['qa/wrong-dev-p17-parent-status-filter-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa53-dev-p17-parent-status-node.mjs'
+      - '.github/workflows/wrong-dev-qa53-p17-parent-status.yml'
+permissions:
+  contents: read
+jobs:
+  parent-status-filter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Narrow new P17 actual-source Node synthetic DOM only
+        run: |
+          node --check tests/qa53-dev-p17-parent-status-node.mjs
+          node tests/qa53-dev-p17-parent-status-node.mjs
+      - name: Exact isolated QA commit, no deployment
+        run: |
+          echo "WRONG_DEV_QA53_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_DEV_QA53_DEPLOYMENT=false"
+# No old suites, real family records, browser replays, auth changes, or deployment.
