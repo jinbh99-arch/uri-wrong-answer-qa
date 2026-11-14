@@ -1,0 +1,31 @@
+name: WRONG QA68 360 keyboard-only parent preview
+on:
+  push:
+    branches: ['qa/wrong-360-keyboard-accessibility-20261114-2135']
+    paths:
+      - 'tests/qa68-360-parent-keyboard-a11y-chromium.mjs'
+      - '.github/workflows/wrong-qa68-360-keyboard.yml'
+permissions:
+  contents: read
+jobs:
+  keyboard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/qa68-360-parent-keyboard-a11y-chromium.mjs
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New 360 keyboard boundary only, no QA66/67 replay
+        env:
+          WRONG_QA68_SOURCE_DEV_SHA: '49b6427cbca4180af7bb29ff508acb9f02e42480'
+        run: node tests/qa68-360-parent-keyboard-a11y-chromium.mjs
+      - run: |
+          echo "QA68_HEAD=$(git rev-parse HEAD)"
+          echo "QA68_EXTERNAL_DEPLOYMENT=false"
