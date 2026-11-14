@@ -35,21 +35,21 @@ jobs:
           @@ -1359,0 +1364,1 @@
           +if(document.body.classList.contains('v218-child'))$('check-history')?.replaceChildren();
           @@ -4478,9 +4483,15 @@
-             v218Mode=mode;
-             document.body.classList.toggle('v218-child',mode==='child');
-          +  if(mode==='child'){
-          +   $('wrong-parent-needs-help-queue')?.replaceChildren();
-          +   $('check-history')?.replaceChildren();
-          +   $('wrong008-last-manual-note')?.replaceChildren();
-          +  }
-             $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
-             $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));
-             if(mode==='child'&&['add','settings'].includes(route))navigate('home');
-             else if(route==='home')renderHome();
-          +  else if(mode==='parent'&&route==='detail')renderDetail();
-             return mode;
-            }
-            const v218NavigateBase=navigate;
+              v218Mode=mode;
+              document.body.classList.toggle('v218-child',mode==='child');
+          +   if(mode==='child'){
+          +    $('wrong-parent-needs-help-queue')?.replaceChildren();
+          +    $('check-history')?.replaceChildren();
+          +    $('wrong008-last-manual-note')?.replaceChildren();
+          +   }
+              $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
+              $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));
+              if(mode==='child'&&['add','settings'].includes(route))navigate('home');
+              else if(route==='home')renderHome();
+          +   else if(mode==='parent'&&route==='detail')renderDetail();
+              return mode;
+             }
+             const v218NavigateBase=navigate;
           PATCH
           git apply --unidiff-zero --check /tmp/wrong-qa74-only.patch
           git apply --unidiff-zero /tmp/wrong-qa74-only.patch
