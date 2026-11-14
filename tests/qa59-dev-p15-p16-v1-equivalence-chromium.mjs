@@ -99,7 +99,10 @@ async function exercise(width){
   await list.first().click();
   await page.locator('#v230-review').selectOption('needs_help');
   await page.locator('#v230-review-save').click();
-  await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help',null,{timeout:18000});
+  // Selecting the value is NOT a save acknowledgement. Wait until the
+  // persisted parent review is reloaded and the nonmath panel shows its state.
+  await page.waitForFunction(()=>document.querySelector('#wrong008-next-review')?.textContent?.includes('부모 도움이 필요했다고 기록')&&
+    document.querySelector('#v230-review-save')?.disabled===false,null,{timeout:18000});
   await page.locator('#wrong008-next-date').fill(next);
   await page.locator('#wrong008-next-question').fill('가상 다음 확인 질문');
   await page.locator('#wrong008-save-note').click();
