@@ -1,0 +1,30 @@
+name: WRONG QA43 latest saved parent question preview
+on:
+  push:
+    branches: ['qa/wrong-parent-question-preview-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa43-parent-saved-question-preview-node.mjs'
+      - '.github/workflows/wrong-qa43-parent-question-preview.yml'
+permissions:
+  contents: read
+jobs:
+  parent-question-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new actual source saved question Node DOM
+        run: |
+          node --check tests/qa43-parent-saved-question-preview-node.mjs
+          node tests/qa43-parent-saved-question-preview-node.mjs
+      - name: Exact isolated QA SHA; no deploy
+        run: |
+          echo "WRONG_QA43_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA43_DEPLOYMENT=false"
+# Narrow CI only: never rerun older suites or Chromium.
