@@ -1,0 +1,30 @@
+name: WRONG dev QA51 existing parent first action
+on:
+  push:
+    branches: ['qa/wrong-dev-parent-first-action-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa51-dev-parent-first-action-node.mjs'
+      - '.github/workflows/wrong-dev-qa51-parent-first-action.yml'
+permissions:
+  contents: read
+jobs:
+  parent-one-action:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new source-extracted parent action and existing-priority regressions
+        run: |
+          node --check tests/qa51-dev-parent-first-action-node.mjs
+          node tests/qa51-dev-parent-first-action-node.mjs
+      - name: Record exact SHA, no deployment
+        run: |
+          echo "WRONG_DEV_QA51_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_DEV_QA51_DEPLOYMENT=false"
+# QA-only Node, no prior checks rerun and no production or real children.
