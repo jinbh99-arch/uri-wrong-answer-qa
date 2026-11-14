@@ -1022,6 +1022,10 @@ let wrongParentQuestionJumpPending=null;
 let wrongParentMemoJumpPending=null;
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
+ if(document.body.classList.contains('v218-child')){
+  $('wrong-parent-needs-help-queue')?.replaceChildren();
+  return;
+ }
  const n={explained:0,needs_help:0,mistake:0,not_checked:0};
  for(const r of records)for(const c of r.checkHistory||[])if(!wrong008ManualDate(c)&&Object.prototype.hasOwnProperty.call(n,c.status))n[c.status]++;
  for(const [key,title] of Object.entries({explained:'스스로 설명함',needs_help:'도움이 필요했음',mistake:'실수로 보임',not_checked:'확인 전'})){
@@ -1357,6 +1361,7 @@ async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===d
 $('detail-concept').onclick=()=>{$('concept-select').value=r.conceptId||'math.fraction.meaning';navigate('concepts')};$('detail-edit').onclick=()=>{editId=r.id;navigate('add')};$('detail-delete').onclick=async()=>{if(!await confirmBox('이 오답을 삭제할까요?','문제 기록·사진·확인 이력을 모두 삭제합니다.'))return;try{await v20RemoveMistakeGuarded(r.id,JSON.stringify(r));await restoreState();notify('오답과 사진을 삭제했습니다.');navigate('records')}catch{notify('삭제하지 못했습니다.')}};
 $('check-save').onclick=async()=>{if(!storageOk)return notify('저장소를 사용할 수 없습니다.');const fresh=records.find(x=>x.id===r.id);if(!fresh)return;const status=$('check-status').value,memo=$('check-memo').value.trim().slice(0,1000);const copy={...fresh,updatedAt:iso(),checkHistory:[...(fresh.checkHistory||[]),{at:iso(),status,memo,by:'parent_observation'}]};try{await v20SaveMistakeGuarded(copy,null,false,JSON.stringify(fresh));await restoreState();notify('학부모 관찰 결과를 저장했습니다.');renderDetail()}catch{notify('확인 기록 저장에 실패했습니다.')}};
 function renderHistory(){const el=$('check-history');el.replaceChildren();const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));entries.forEach((c,j)=>{const box=make('div','tagline');box.id='wrong-parent-time-check-'+(entries.length-1-j);box.tabIndex=-1;box.classList.add('wrong-parent-time-history-row');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)})}renderHistory();
+if(document.body.classList.contains('v218-child'))$('check-history')?.replaceChildren();
 if(r.hasPhoto){try{const b=await readOne('photos',r.id);if(token!==loadToken||route!=='detail'||detailId!==r.id)return;if(b instanceof Blob){const url=URL.createObjectURL(b),im=new Image();im.alt='기기에 저장된 문제 부분 사진';im.src=url;im.onload=()=>URL.revokeObjectURL(url);$('detail-image').append(im);$('detail-image').classList.remove('hide')}else{$('detail-image').append(make('p','small','사진 기록이 있으나 저장된 파일을 찾을 수 없습니다.'));$('detail-image').classList.remove('hide')}}catch{$('detail-image').append(make('p','small','사진을 읽지 못했습니다.'))}}}
 const curriculumCandidates=JSON.parse($('curriculum-candidate-data').textContent);
 function renderCurriculumCandidates(id){
@@ -4477,10 +4482,16 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    }
    v218Mode=mode;
    document.body.classList.toggle('v218-child',mode==='child');
+   if(mode==='child'){
+    $('wrong-parent-needs-help-queue')?.replaceChildren();
+    $('check-history')?.replaceChildren();
+    $('wrong008-last-manual-note')?.replaceChildren();
+   }
    $('v218-child-mode').setAttribute('aria-pressed',String(mode==='child'));
    $('v218-parent-mode').setAttribute('aria-pressed',String(mode==='parent'));
    if(mode==='child'&&['add','settings'].includes(route))navigate('home');
    else if(route==='home')renderHome();
+   else if(mode==='parent'&&route==='detail')renderDetail();
    return mode;
   }
   const v218NavigateBase=navigate;
