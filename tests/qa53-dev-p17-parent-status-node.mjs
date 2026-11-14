@@ -98,6 +98,8 @@ pass('existing no-matches state not doubled');
 a.search.value='문제';a.search.oninput();
 assert.deepEqual(a.visible(),['B']);
 pass('text search reapplies parent filter');
+a.photo.value='all';a.photo.onchange();
+assert.deepEqual(a.visible(),['B']);
 a.mode('child');assert.deepEqual(a.visible(),['B','E']);
 assert.match(a.page.formgrid.beforeNode.className,/v218-parent-only/);
 pass('child ignores hidden parent filter without leaking parent states');
