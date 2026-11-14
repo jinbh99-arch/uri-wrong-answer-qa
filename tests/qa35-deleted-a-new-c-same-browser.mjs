@@ -31,11 +31,15 @@ async function token(key,password){
  const r=await call('/qa/login','POST',{familyKey:key,password});
  assert.equal(r.status,200,JSON.stringify(r.body));return r.body.token;
 }
-async function open(context){
+async function open(context,expectCovered=false){
  const p=await context.newPage();await p.goto(APP,{waitUntil:'domcontentloaded'});
- if(!(await p.locator('#qa34-family-privacy-cover').count()))
+ if(expectCovered){
+  // The privacy overlay correctly intercepts the underlying navigation.
+  await p.locator('#qa34-family-privacy-cover:visible').waitFor();
+ }else{
   await p.locator('#nav-settings').click();
- await p.locator('#qa34-sync-bridge:visible').waitFor();
+  await p.locator('#qa34-sync-bridge:visible').waitFor();
+ }
  return p;
 }
 async function login(p,port,key,password){
@@ -148,7 +152,7 @@ try{
  assert.deepEqual(await local(page),original);
  pass('기존 브라우저 새로고침 뒤에도 C 재연결 거부·A 사진/관찰 로컬 원본 유지');
 
- const otherTab=await open(context);
+ const otherTab=await open(context,true);
  otherTab.on('pageerror',e=>errors.push('A2 '+e.message));
  await otherTab.locator('#qa34-family-privacy-cover:visible').waitFor();
  await reenter(otherTab,port,C,PASSWORD_C);
