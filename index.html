@@ -864,6 +864,33 @@ function renderObservationSummary(){
  for(const [key,title] of Object.entries({explained:'스스로 설명함',needs_help:'도움이 필요했음',mistake:'실수로 보임',not_checked:'확인 전'})){
   const item=make('div','mini-stat');item.append(make('strong',null,String(n[key])),make('span','small',title));box.append(item)
  }
+ // Parent-only, read-only queue: use the latest genuine observation per
+ // mistake, never infer a diagnosis from an older "needs_help" event.
+ const card=$('home-observation-card');
+ let queue=$('wrong-parent-needs-help-queue');
+ if(!queue){
+  queue=make('section','callout');
+  queue.id='wrong-parent-needs-help-queue';
+  queue.setAttribute('aria-label','도움 필요 재확인 목록');
+  card.append(queue);
+ }
+ queue.replaceChildren();
+ queue.append(make('h3',null,'도움 필요 · 다시 확인할 오답'));
+ queue.append(make('p','small','가장 최근 학부모 관찰이 도움 필요인 문제만 보여 줍니다. 원인 진단이나 자동 평가가 아닙니다.'));
+ const pending=records.filter(r=>{
+  const history=(r.checkHistory||[]).filter(c=>!wrong008ManualDate(c)&&
+   ['explained','needs_help','mistake','not_checked'].includes(c.status));
+  return history.length&&history[history.length-1].status==='needs_help';
+ });
+ if(!pending.length)queue.append(make('p','small','현재 다시 확인할 기록이 없습니다.'));
+ for(const r of pending.slice(0,30)){
+  const button=make('button','item');
+  button.type='button';button.dataset.record=r.id;
+  button.append(make('strong',null,(r.problemText||'사진으로 저장한 오답').slice(0,90)));
+  button.append(make('span','small','원문·사진·학부모 관찰 보기'));
+  queue.append(button);
+ }
+ if(pending.length>30)queue.append(make('p','small','나머지 '+(pending.length-30)+'건은 오답 목록에서 확인하세요.'));
 }
 function groupCount(){const a={};for(const r of records){const k=r.conceptId||'미분류';a[k]=(a[k]||0)+1}return a}
 function renderRecords(){
