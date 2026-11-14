@@ -3503,6 +3503,23 @@ function v230ParentObservationLabel(entry){
  if(state==='needs_help')return '학부모 관찰: 도움이 필요했다고 기록';
  return '학부모 관찰: 확인 기록 없음';
 }
+// Read only the parent-issued reviewedAt stamp. A child's retry timestamp
+// (entry.at) must NEVER be used as a substitute for an unknown observation day.
+function v230ParentObservationDateLabel(entry,nowMs=Date.now()){
+ if(!entry||!['explained','needs_help'].includes(entry.review))
+  return '학부모 관찰일: 확인 기록 없음';
+ const raw=entry.reviewedAt;
+ const m=typeof raw==='string'?raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/):null;
+ if(!m)return '학부모 관찰일: 확인 불가';
+ const [,year,month,day,hour,minute,second]=m.map(Number);
+ const days=new Date(Date.UTC(year,month,0)).getUTCDate();
+ if(month<1||month>12||day<1||day>days||hour>23||minute>59||second>59)
+  return '학부모 관찰일: 확인 불가';
+ const time=Date.parse(raw);
+ if(!Number.isFinite(time)||time<=0||time>nowMs)
+  return '학부모 관찰일: 확인 불가';
+ return '학부모 관찰일: '+new Date(time).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'});
+}
 function v230ExplanationCompare(parent,entries){
  if(entries.length<2)return;
  const panel=make('section','v230-parent-compare v218-parent-only');
@@ -3520,6 +3537,7 @@ function v230ExplanationCompare(parent,entries){
   side.append(make('p','v230-written','다시 푼 답: '+String(entry?.answer||'(미입력)')));
   side.append(make('p','v230-written','아이 설명: '+String(entry?.explanation?.trim()||'(설명 기록 없음)')));
   side.append(make('p','small v218-parent-only',v230ParentObservationLabel(entry)));
+  side.append(make('p','small v218-parent-only wrong-parent-reviewed-date',v230ParentObservationDateLabel(entry)));
   grid.append(side);
  }
  panel.append(grid);parent.append(panel);
