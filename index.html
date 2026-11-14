@@ -4231,6 +4231,45 @@ $('v212-mixed-drill-run').onclick=async()=>{
   const v29PreviousRenderHome=renderHome;
   renderHome=function(){v29PreviousRenderHome();v29RenderPractice()};
 
+  // WRONG QA57: the parent first-action's existing PHOTO/OCR/DUE states
+  // should open their actual next editable/review control, not a long detail
+  // header. This is navigation only; photos/observations remain unchanged.
+  async function wrongDevOpenSavedParentFallback(id,kind){
+    if(route!=='home'||v218Mode!=='parent')return;
+    const item=records.find(r=>r.id===id);
+    const dueDate=String(item?.studyPlan?.dueDate||'');
+    const valid=Boolean(item)&&(kind==='photo'?
+      item.hasPhoto&&!String(item.problemText||'').trim():
+      kind==='ocr'?item.ocrStatus==='browser_ocr_unconfirmed':
+      kind==='due'?/^20\\d\\d-\\d\\d-\\d\\d$/.test(dueDate)&&dueDate<=localToday():false);
+    if(!valid){qa9RenderOneAction();return}
+    if(kind==='photo'||kind==='ocr'){
+      editId=id;navigate('add');
+      for(let tries=0;tries<100;tries++){
+        await new Promise(resolve=>requestAnimationFrame(resolve));
+        if(route!=='add'||editId!==id||v218Mode!=='parent')return;
+        const target=kind==='photo'?$('problem'):$('ocr-reviewed');
+        if(!target?.isConnected||(kind==='ocr'&&target.disabled))continue;
+        target.scrollIntoView({block:'center',behavior:'instant'});
+        target.focus({preventScroll:true});
+        return;
+      }
+      notify('기존 기록 수정 화면을 열었습니다. 저장된 사진과 문장을 확인해 주세요.');
+      return;
+    }
+    detailId=id;navigate('detail');
+    for(let tries=0;tries<100;tries++){
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      if(route!=='detail'||detailId!==id||v218Mode!=='parent')return;
+      const target=$('check-status');
+      if(!target?.isConnected)continue;
+      target.scrollIntoView({block:'center',behavior:'instant'});
+      target.focus({preventScroll:true});
+      return;
+    }
+    notify('오답 상세 화면을 열었습니다. 복습 기록을 확인해 주세요.');
+  }
+
   // QA9: offer exactly one next action for the parent; no new writes or diagnosis.
   function qa9RenderOneAction(){
     const card=$('qa9-next-action'),description=$('qa9-next-desc'),button=$('qa9-next-open');
@@ -4263,6 +4302,7 @@ $('v212-mixed-drill-run').onclick=async()=>{
     button.textContent=parentPending?'👀 아이 설명 보고 부모가 관찰하기':
       (photo?'📷 사진 기록 이어서 정리하기':ocr?'🔍 OCR 기록 검토하기':due?'🗓 복습 기록 열기':'📚 최근 오답 학습 이어가기');
     button.dataset.record=target.id;
+    const fallbackKind=parentPending?null:photo?'photo':ocr?'ocr':due?'due':null;
     // QA56 P13: the selected pending explanation must lead the parent to
     // the EXISTING review control, not strand them at the top of a long detail.
     // Fallback photo/OCR/due actions retain original delegated navigation.
@@ -4293,6 +4333,9 @@ $('v212-mixed-drill-run').onclick=async()=>{
         return;
       }
       notify('오답 상세 화면을 열었습니다. 학부모 관찰 항목을 직접 확인해 주세요.');
+    }:fallbackKind?event=>{
+      event.stopPropagation();
+      void wrongDevOpenSavedParentFallback(button.dataset.record,fallbackKind);
     }:null;
     card.classList.remove('hide');
   }
