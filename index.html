@@ -897,7 +897,7 @@ function wrongParentLatestObservation(r){
 // WRONG-QA43: the last question EXPLICITLY recorded by a parent, not generated
 // AI prompts, ordinary notes or a future manual recheck plan.
 // The child's retry timestamp never substitutes for the parent's reviewedAt.
-function wrongParentLastSavedQuestion(r,nowMs=Date.now()){
+function wrongParentLastSavedQuestionSource(r,nowMs=Date.now()){
  const found=[];
  const questionFromNote=value=>{
   if(typeof value!=='string')return null;
@@ -908,24 +908,27 @@ function wrongParentLastSavedQuestion(r,nowMs=Date.now()){
   const marked=[...text.matchAll(/(?:^|[.!。]\s*)([^.!?？]{1,160}[?？])/g)];
   return marked.length?marked[marked.length-1][1].trim().slice(0,160):null;
  };
- const add=(note,stamp)=>{
+ const add=(note,stamp,type,index)=>{
   if(typeof stamp!=='string')return;
   const time=Date.parse(stamp);
   if(!Number.isFinite(time)||time<=0||time>nowMs)return;
   const question=questionFromNote(note);
-  if(question)found.push({time,question});
+  if(question)found.push({time,question,type,index});
  };
- for(const c of Array.isArray(r?.checkHistory)?r.checkHistory:[]){
+ for(const [index,c] of (Array.isArray(r?.checkHistory)?r.checkHistory:[]).entries()){
   if(!c||wrong008ManualDate(c)||
      !['explained','needs_help','mistake','not_checked'].includes(c.status))continue;
-  add(c.memo,c.at);
+  add(c.memo,c.at,'check',index);
  }
- for(const h of Array.isArray(r?.generalRetryHistory)?r.generalRetryHistory:[]){
+ for(const [index,h] of (Array.isArray(r?.generalRetryHistory)?r.generalRetryHistory:[]).entries()){
   if(!h||!['explained','needs_help'].includes(h.review))continue;
-  add(h.parentNote,h.reviewedAt);
+  add(h.parentNote,h.reviewedAt,'retry',index);
  }
  found.sort((a,b)=>b.time-a.time);
- return found[0]?.question||null;
+ return found[0]||null;
+}
+function wrongParentLastSavedQuestion(r,nowMs=Date.now()){
+ return wrongParentLastSavedQuestionSource(r,nowMs)?.question||null;
 }
 function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
  const checked=[...(Array.isArray(r.checkHistory)?r.checkHistory:[])
@@ -953,6 +956,7 @@ function wrongParentRetryAfterObservation(r,latest,nowMs=Date.now()){
 }
 // Presentation-only parent filter; never written to records or backup.
 let wrongParentUnretriedOnly=false;
+let wrongParentQuestionJumpPending=null;
 function renderObservationSummary(){
  const box=$('home-observation');if(!box)return;box.replaceChildren();
  const n={explained:0,needs_help:0,mistake:0,not_checked:0};
@@ -1013,10 +1017,20 @@ function renderObservationSummary(){
   const note=latest?.memo?latest.memo.replace(/\s+/g,' '):'';
   button.append(make('span','small wrong-parent-note-preview',
    note?'최근 부모 확인 메모: '+note:'최근 관찰 메모 없음 · 원문에서 확인'));
-  const savedQuestion=wrongParentLastSavedQuestion(r,now);
+  const savedSource=wrongParentLastSavedQuestionSource(r,now);
   button.append(make('span','small v218-parent-only wrong-parent-question-preview',
-   savedQuestion?'마지막 저장된 부모 확인 질문: '+savedQuestion:'저장된 부모 확인 질문 없음'));
+   savedSource?'마지막 저장된 부모 확인 질문: '+savedSource.question:'저장된 부모 확인 질문 없음'));
   queue.append(button);
+  if(savedSource){
+   const jump=make('button','secondary v218-parent-only wrong-parent-question-source-jump','↳ 이 질문의 실제 관찰 원본 보기');
+   jump.type='button';jump.dataset.questionSource=r.id;
+   jump.onclick=()=>{
+    if(v218Mode!=='parent')return;
+    wrongParentQuestionJumpPending={id:r.id,type:savedSource.type,index:savedSource.index,question:savedSource.question};
+    detailId=r.id;navigate('detail');
+   };
+   queue.append(jump);
+  }
  }
  if(pending.length>30)queue.append(make('p','small','나머지 '+(pending.length-30)+'건은 오답 목록에서 확인하세요.'));
  if(wrongParentUnretriedOnly){
@@ -3662,9 +3676,11 @@ function v230HistoryPanel(parent,r){
  const recent=indexed.slice(-8).reverse();
  // Keep the existing eight recent entries, but make older entries with a
  // genuinely invalid stored timestamp reachable by the parent jump links.
- const older=indexed.slice(0,Math.max(0,entries.length-8)).filter(({entry})=>
+ const older=indexed.slice(0,Math.max(0,entries.length-8)).filter(({entry,index})=>
   wrongParentTimeIssue(entry.at)||
-  (['explained','needs_help'].includes(entry.review)&&wrongParentTimeIssue(entry.reviewedAt))).reverse();
+  (['explained','needs_help'].includes(entry.review)&&wrongParentTimeIssue(entry.reviewedAt))||
+  (wrongParentQuestionJumpPending?.id===r.id&&wrongParentQuestionJumpPending.type==='retry'&&
+   wrongParentQuestionJumpPending.index===index)).reverse();
  for(const {entry,index} of [...recent,...older]){
   if(index<entries.length-8&&details.children.length===recent.length+1)
    details.append(make('p','small v218-parent-only','날짜를 확인해야 하는 과거 재풀이 기록'));
@@ -5057,6 +5073,31 @@ $('wrong-child-next-all').addEventListener('click',()=>{
     }
     panel.append(status);
     area.prepend(panel);
+  };
+
+  // QA44: exact saved question source, parent-only, ephemeral focus.
+  const wrongParentQuestionPreviousDetail=renderDetail;
+  renderDetail=async function(){
+   const requestedId=detailId;
+   await wrongParentQuestionPreviousDetail();
+   const pending=wrongParentQuestionJumpPending;
+   if(!pending||pending.id!==requestedId||route!=='detail'||detailId!==requestedId||v218Mode!=='parent')return;
+   wrongParentQuestionJumpPending=null;
+   const current=records.find(r=>r.id===requestedId);
+   const source=current&&wrongParentLastSavedQuestionSource(current);
+   if(!source||source.type!==pending.type||source.index!==pending.index||source.question!==pending.question){
+    notify('관찰 이력이 바뀌었습니다. 목록에서 다시 확인하세요.');return;
+   }
+   if(source.type==='check'){
+    const rows=Array.from($('check-history')?.children||[]).filter(row=>row.classList?.contains('tagline'));
+    const count=Array.isArray(current.checkHistory)?current.checkHistory.length:0;
+    if(rows.length===count)rows.forEach((row,j)=>{row.id='wrong-parent-time-check-'+(count-1-j);row.tabIndex=-1});
+   }
+   const target=$('wrong-parent-time-'+source.type+'-'+source.index);
+   if(!target){notify('원본 이력이 화면에 표시되지 않습니다. 기록을 직접 확인하세요.');return}
+   const details=target.closest('details');if(details)details.open=true;
+   target.scrollIntoView({block:'center',behavior:'auto'});
+   target.tabIndex=-1;target.focus({preventScroll:true});
   };
 
   // WRONG-A-ONLY-INAPP-BACK: QA-only, original A detail's existing list button.
