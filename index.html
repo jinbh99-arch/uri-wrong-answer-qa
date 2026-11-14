@@ -4215,16 +4215,30 @@ $('v212-mixed-drill-run').onclick=async()=>{
     if(!records.length){card.classList.add('hide');button.removeAttribute('data-record');return}
     const ordered=[...records].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
     const today=localToday();
+    // P13 dev adaptation: explicitly saved child explanations awaiting parent
+    // review take precedence in the EXISTING one-action card. Never guess a
+    // reason, use future/malformed retry times or create another primary CTA.
+    const now=Date.now();
+    const parentPending=ordered.map(r=>({r,
+      attempt:Array.isArray(r.generalRetryHistory)?r.generalRetryHistory.at(-1):null
+    })).filter(({attempt})=>{
+      const t=attempt&&typeof attempt.at==='string'?Date.parse(attempt.at):NaN;
+      return attempt?.review==='not_checked'&&
+        typeof attempt.explanation==='string'&&Boolean(attempt.explanation.trim())&&
+        Number.isFinite(t)&&t>0&&t<=now;
+    }).sort((a,b)=>Date.parse(b.attempt.at)-Date.parse(a.attempt.at))[0]?.r;
     const photo=ordered.find(r=>r.hasPhoto&&!String(r.problemText||'').trim());
     const ocr=ordered.find(r=>r.ocrStatus==='browser_ocr_unconfirmed');
     const due=ordered.find(r=>r.studyPlan?.dueDate&&/^20\d\d-\d\d-\d\d$/.test(r.studyPlan.dueDate)&&r.studyPlan.dueDate<=today);
-    const target=photo||ocr||due||ordered[0];
-    const reason=photo?'사진만 저장한 문제의 내용을 확인해 주세요.':
+    const target=parentPending||photo||ocr||due||ordered[0];
+    const reason=parentPending?'아이가 직접 남긴 설명을 부모가 아직 확인하지 않은 오답입니다. 상세에서 설명을 읽고 직접 관찰해 주세요.':
+      photo?'사진만 저장한 문제의 내용을 확인해 주세요.':
       ocr?'사진과 인식된 문장이 일치하는지 학부모가 확인해 주세요.':
       due?'학부모가 지정한 복습일이 된 기록입니다.':
       '최근 저장한 문제에서 개념 설명이나 재풀이를 이어갈 수 있습니다.';
     description.textContent=reason+' 원인 진단이나 자동 알림이 아닙니다.';
-    button.textContent=(photo?'📷 사진 기록 이어서 정리하기':ocr?'🔍 OCR 기록 검토하기':due?'🗓 복습 기록 열기':'📚 최근 오답 학습 이어가기');
+    button.textContent=parentPending?'👀 아이 설명 보고 부모가 관찰하기':
+      (photo?'📷 사진 기록 이어서 정리하기':ocr?'🔍 OCR 기록 검토하기':due?'🗓 복습 기록 열기':'📚 최근 오답 학습 이어가기');
     button.dataset.record=target.id;
     card.classList.remove('hide');
   }
