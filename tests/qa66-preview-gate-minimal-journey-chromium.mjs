@@ -74,6 +74,7 @@ async function run(){
  const card=page.locator('#records-list button[data-record]').filter({hasText:'QA66 가상 과학 오답'});
  assert.equal(await card.count(),1);
  await card.click();
+ await page.locator('#detail-image img').waitFor({timeout:10000});
  assert.equal(await page.locator('#detail-image img').count(),1);
  pass('real preview shows fictional text+1px photo original without live family image');
  await page.locator('#v230-answer').fill('가상 아이 답: 직진');
