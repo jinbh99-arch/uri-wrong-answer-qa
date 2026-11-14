@@ -32,10 +32,9 @@ jobs:
           +  return;
           + }
             const n={explained:0,needs_help:0,mistake:0,not_checked:0};
-          @@ -1359,1 +1363,1 @@
-          -function renderHistory(){const el=$('check-history');el.replaceChildren();const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));entries.forEach((c,j)=>{const box=make('div','tagline');box.id='wrong-parent-time-check-'+(entries.length-1-j);box.tabIndex=-1;box.classList.add('wrong-parent-time-history-row');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)})}renderHistory();
-          +function renderHistory(){const el=$('check-history');el.replaceChildren();if(document.body.classList.contains('v218-child'))return;const labels={explained:'스스로 설명했음',needs_help:'도움이 필요했음',mistake:'계산·표기 실수로 보임',not_checked:'확인하지 못함'};const entries=[...(r.checkHistory||[])].reverse();if(!entries.length)el.append(make('p','small','아직 확인 기록이 없습니다.'));entries.forEach((c,j)=>{const box=make('div','tagline');box.id='wrong-parent-time-check-'+(entries.length-1-j);box.tabIndex=-1;box.classList.add('wrong-parent-time-history-row');box.append(make('strong',null,`${date(c.at)} · ${wrong008ManualDate(c)?'다음 확인 수동 메모(실제 관찰 아님)':labels[c.status]||'관찰 기록'}`));if(c.memo)box.append(make('p','small',c.memo));el.append(box)})}renderHistory();
-          @@ -4478,9 +4482,15 @@
+          @@ -1359,0 +1364,1 @@
+          +if(document.body.classList.contains('v218-child'))$('check-history')?.replaceChildren();
+          @@ -4478,9 +4483,15 @@
              v218Mode=mode;
              document.body.classList.toggle('v218-child',mode==='child');
           +  if(mode==='child'){
@@ -52,8 +51,8 @@ jobs:
             }
             const v218NavigateBase=navigate;
           PATCH
-          git apply --check /tmp/wrong-qa74-only.patch
-          git apply /tmp/wrong-qa74-only.patch
+          git apply --unidiff-zero --check /tmp/wrong-qa74-only.patch
+          git apply --unidiff-zero /tmp/wrong-qa74-only.patch
           git diff --check
           test "$(git diff --name-only)" = 'index.html'
           git diff --numstat -- index.html
