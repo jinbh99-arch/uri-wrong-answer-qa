@@ -35,7 +35,7 @@ export async function startWrongQa66Preview({devSha,username,password}={}){
   throw Error('QA66_INVALID_GATE_CREDENTIAL');
  const original=await readFile(APP,'utf8');
  const updatedAt=new Date().toISOString();
- const banner='<aside id="wrong-qa66-preview-meta" role="note" style="padding:12px;background:#fef5db;color:#30230f;line-height:1.5">'+
+ const banner='<aside id="wrong-qa66-preview-meta" role="note" style="padding:12px;box-sizing:border-box;max-width:100%;overflow-wrap:anywhere;word-break:break-word;background:#fef5db;color:#30230f;line-height:1.5">'+
   '<strong>비운영 · 가상자료 전용 로컬 QA</strong> · 반영 dev SHA: '+devSha+
   ' · 검증 상태: 로컬 준비 (외부 인증·운영 DB 분리 실증 전) · 확인 시각: '+updatedAt+
   ' · 실가족 인증/사진 복원 미검증 · 배포 아님</aside>';
