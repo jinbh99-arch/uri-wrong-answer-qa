@@ -7,12 +7,13 @@ import {startWrongQa66Preview} from '../scripts/qa66-wrong-loopback-preview.mjs'
 const SHA=process.env.WRONG_QA68_SOURCE_DEV_SHA;
 assert.match(SHA||'',/^[a-f0-9]{40}$/);
 let preview,browser,checks=0;
+const secret=randomBytes(32).toString('hex');
 const pass=s=>{checks++;console.log('PASS WRONG QA68 '+s)};
 try{
- preview=await startWrongQa66Preview({devSha:SHA,username:'qa68-local',password:randomBytes(32).toString('hex')});
+ preview=await startWrongQa66Preview({devSha:SHA,username:'qa68-local',password:secret});
  browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport:{width:360,height:740},
-  httpCredentials:{username:'qa68-local',password:preview.password}});
+  httpCredentials:{username:'qa68-local',password:secret}});
  const page=await context.newPage(),external=[],errors=[];
  page.on('pageerror',e=>errors.push(String(e)));
  await page.route('**/*',route=>{
