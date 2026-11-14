@@ -1,0 +1,41 @@
+name: WRONG QA55 selected P13 P14 P18 P19 Chromium comparison
+on:
+  push:
+    branches: ['qa/wrong-dev-p13-p14-p18-p19-browser-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa55-dev-p13-p14-p18-p19-comparison-chromium.mjs'
+      - '.github/workflows/wrong-dev-qa55-p13-p14-p18-p19.yml'
+permissions:
+  contents: read
+jobs:
+  dev-journey:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only QA55 selected Chromium syntax
+        run: node --check tests/qa55-dev-p13-p14-p18-p19-comparison-chromium.mjs
+      - name: Install only new real Chromium test dependencies
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve synthetic isolated localhost
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa55.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New P13/P14/P18/P19 two-width synthetic browser comparison only
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa55-dev-p13-p14-p18-p19-comparison-chromium.mjs
+      - name: Exact QA SHA no deploy
+        run: |
+          echo "WRONG_QA55_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA55_DEPLOYMENT=false"
+# No old test reruns, no real children, operational API, or deploy.
