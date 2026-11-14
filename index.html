@@ -4311,10 +4311,9 @@ $('v212-mixed-drill-run').onclick=async()=>{
     const parentPending=ordered.map(r=>({r,
       attempt:Array.isArray(r.generalRetryHistory)?r.generalRetryHistory.at(-1):null
     })).filter(({attempt})=>{
-      const t=attempt&&typeof attempt.at==='string'?Date.parse(attempt.at):NaN;
       return attempt?.review==='not_checked'&&
         typeof attempt.explanation==='string'&&Boolean(attempt.explanation.trim())&&
-        Number.isFinite(t)&&t>0&&t<=now;
+        wrongParentTimeIssue(attempt.at,now)===null;
     }).sort((a,b)=>Date.parse(b.attempt.at)-Date.parse(a.attempt.at))[0]?.r;
     const photo=ordered.find(r=>r.hasPhoto&&!String(r.problemText||'').trim());
     const ocr=ordered.find(r=>r.ocrStatus==='browser_ocr_unconfirmed');
@@ -4339,11 +4338,10 @@ $('v212-mixed-drill-run').onclick=async()=>{
       const current=records.find(r=>r.id===id);
       const attempt=Array.isArray(current?.generalRetryHistory)?
         current.generalRetryHistory.at(-1):null;
-      const stamp=typeof attempt?.at==='string'?Date.parse(attempt.at):NaN;
       if(route!=='home'||document.body.classList.contains('v218-child')||
          !current||attempt?.review!=='not_checked'||
          typeof attempt.explanation!=='string'||!attempt.explanation.trim()||
-         !Number.isFinite(stamp)||stamp<=0||stamp>Date.now()){
+         wrongParentTimeIssue(attempt.at)!==null){
         qa9RenderOneAction();return;
       }
       detailId=id;navigate('detail');
