@@ -16,7 +16,15 @@ if(root&&location.origin===LOCAL_ORIGIN){
  const SERVER_KEY='qa34-synthetic-local-gateway-v1';
  const INSTANCE_KEY='qa34-synthetic-local-gateway-instance-v1';
  const REVOKE_KEY='qa34-synthetic-local-session-revoke-v1';
- let cover=null,activeFamily='';
+ let cover=null,activeFamily='',privacyObserver=null;
+ function enforcePrivacyCover(){
+  // The underlying app may rerender or toggle inert during a focused tab's
+  // async session check. While a cover exists, keyboard/pointer access must
+  // never be reopened by those unrelated UI updates.
+  if(!cover?.isConnected)return;
+  for(const node of [document.getElementById('qa-main'),document.querySelector('header')])
+   if(node&&!node.inert)node.inert=true;
+ }
  const boundFamily=()=>localStorage.getItem(BOUND_KEY)||'';
  const boundServer=()=>localStorage.getItem(SERVER_KEY)||'';
  const boundInstance=()=>localStorage.getItem(INSTANCE_KEY)||'';
@@ -56,6 +64,12 @@ if(root&&location.origin===LOCAL_ORIGIN){
   if(main)main.inert=true;
   const header=document.querySelector('header');
   if(header)header.inert=true;
+  if(!privacyObserver){
+   privacyObserver=new MutationObserver(enforcePrivacyCover);
+   privacyObserver.observe(document.body,{subtree:true,childList:true,
+    attributes:true,attributeFilter:['inert']});
+  }
+  enforcePrivacyCover();
   const retry=cover.querySelector('#qa34-foreground-retry');
   retry.hidden=!token;
   retry.disabled=checkingForeground;
@@ -64,8 +78,10 @@ if(root&&location.origin===LOCAL_ORIGIN){
   cover.querySelector('#qa34-reenter-family').focus();
   // Signal the actual app to withdraw any previously granted UI consent.
   document.dispatchEvent(new Event('qa34:family-locked'));
+  enforcePrivacyCover(); // also guard synchronous listeners of the lock event
  }
  function unlockLocalView(){
+  if(privacyObserver){privacyObserver.disconnect();privacyObserver=null}
   if(cover?.isConnected)cover.remove();
   const main=document.getElementById('qa-main');if(main)main.inert=false;
   const header=document.querySelector('header');if(header)header.inert=false;
