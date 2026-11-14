@@ -1039,9 +1039,15 @@ function renderObservationSummary(){
   queue.append(make('p','small','관찰·재풀이 시각을 확인할 수 없는 오답은 “없음”으로 단정하지 않고 이 보기에서 제외합니다. 체크를 해제하면 전체 목록을 볼 수 있습니다.'));
  // Sort by the latest valid parent observation, not by retry or record date.
  // Equal/unknown timestamps retain their original record order (stable tie-break).
+ const nowMs=Date.now();
+ // Invalid/future observations stay accessible but cannot outrank verified parent dates.
+ const observationSortTime=entry=>{
+  const t=entry.observation?.time;
+  return Number.isFinite(t)&&t>0&&t<=nowMs?t:-1;
+ };
  const eligible=records.map((r,index)=>({r,index,observation:wrongParentLatestObservation(r)}))
   .filter(entry=>entry.observation?.status==='needs_help')
-  .sort((a,b)=>b.observation.time-a.observation.time||a.index-b.index);
+  .sort((a,b)=>observationSortTime(b)-observationSortTime(a)||a.index-b.index);
  const pending=eligible.filter(entry=>!wrongParentUnretriedOnly||
   wrongParentRetryAfterObservation(entry.r,entry.observation)==='관찰 이후 재풀이: 기록 없음');
  if(!pending.length)queue.append(make('p','small',wrongParentUnretriedOnly?
