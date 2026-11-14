@@ -1,0 +1,30 @@
+name: WRONG QA40 unknown retry parent expander (Node DOM only)
+on:
+  push:
+    branches: ['qa/wrong-unknown-retry-expander-20261114']
+    paths:
+      - 'index.html'
+      - 'tests/qa40-unknown-retry-expand-node-dom.mjs'
+      - '.github/workflows/wrong-qa40-unknown-retry-expand.yml'
+permissions:
+  contents: read
+jobs:
+  unknown-retry-parent-dom:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New source-based synthetic Node DOM only
+        run: |
+          node --check tests/qa40-unknown-retry-expand-node-dom.mjs
+          node tests/qa40-unknown-retry-expand-node-dom.mjs
+      - name: Trace exact candidate and protect deployment
+        run: |
+          echo "WRONG_QA40_UNKNOWN_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA40_DEPLOYMENT=false"
+# No previous CI, browsers, real-family auth, private uploads or deployment.
