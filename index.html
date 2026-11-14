@@ -5238,6 +5238,78 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    target.after(back);
   };
 
+  // WRONG-P17 dev integration: one parent-only, in-memory filter over the
+  // ALREADY filtered record cards. Preserve the existing subject/photo/text/
+  // concept filters, latest saved review, and manual-date note semantics.
+  // No event, review state, family data or record is written by this control.
+  const wrongDevP17Wrap=make('div','v218-parent-only wrong-dev-p17-filter');
+  wrongDevP17Wrap.id='wrong-dev-p17-filter-wrap';
+  const wrongDevP17Label=make('label','field','학부모 확인 상태로 찾기');
+  wrongDevP17Label.htmlFor='wrong-dev-p17-filter';
+  const wrongDevP17Select=make('select','control');
+  wrongDevP17Select.id='wrong-dev-p17-filter';
+  for(const [value,label] of [
+   ['all','전체 오답 보기 (기본)'],
+   ['pending','아이 설명 있음 · 부모 관찰 전'],
+   ['manual','다음 확인 수동 날짜 메모 있음']
+  ]){
+   const option=make('option',null,label);option.value=value;
+   wrongDevP17Select.append(option);
+  }
+  wrongDevP17Wrap.append(wrongDevP17Label,wrongDevP17Select,
+   make('p','small','이 기기의 저장 기록만 읽습니다. 수동 날짜 메모는 알림·예약·완료 판정이 아니며, 부모 화면 선택은 로그인 인증이 아닙니다.'));
+  // Put near the first list filters, not below the list or behind a zoomed header.
+  $('page-records')?.querySelector('.formgrid')?.before(wrongDevP17Wrap);
+  const wrongDevP17BaseRecords=renderRecords;
+  renderRecords=function(){
+   wrongDevP17BaseRecords();
+   if(route!=='records'||v218Mode!=='parent'||wrongDevP17Select.value==='all')return;
+   const shownList=$('records-list');
+   if(!shownList)return;
+   // Only classify existing on-screen record IDs; never bypass prior filters.
+   const cards=Array.from(shownList.querySelectorAll('[data-record]'));
+   if(!cards.length)return;
+   const now=Date.now(),selected=wrongDevP17Select.value;
+   const matches=new Set(records.filter(r=>{
+    if(selected==='manual')
+     return Array.isArray(r.checkHistory)&&r.checkHistory.some(h=>Boolean(wrong008ManualDate(h)));
+    if(selected!=='pending')return false;
+    const h=Array.isArray(r.generalRetryHistory)?r.generalRetryHistory.at(-1):null;
+    const stamp=h&&typeof h.at==='string'?Date.parse(h.at):NaN;
+    return h?.review==='not_checked'&&
+     typeof h.explanation==='string'&&Boolean(h.explanation.trim())&&
+     Number.isFinite(stamp)&&stamp>0&&stamp<=now;
+   }).map(r=>r.id));
+   let count=0;
+   for(const card of cards){
+    const keep=matches.has(card.dataset.record);
+    card.classList.toggle('hide',!keep);
+    if(keep)count++;
+   }
+   if(!count){
+    const empty=make('p','callout small',selected==='pending'?
+     '현재 검색 조건에 부모가 아직 확인하지 않은 아이 설명이 없습니다. 기존 필터를 바꾸거나 전체 오답을 보세요.':
+     '현재 검색 조건에 날짜가 확인되는 수동 다음 확인 메모가 없습니다. 예약·자동 알림이 아닙니다.');
+    empty.id='wrong-dev-p17-empty';
+    shownList.append(empty);
+   }
+   $('records-count').textContent+=' · 부모 상태 필터 '+count+'건 (진단·자동 완료 아님)';
+  };
+  // Existing handlers captured earlier renderRecords wrappers. Rebind ALL
+  // controls through final composition so changing subject/photo/concept/text
+  // also re-applies parent state without changing the child-visible list.
+  $('wrong007-filter-subject').onchange=renderRecords;
+  $('v11-filter-status').onchange=renderRecords;
+  $('filter-concept').onchange=renderRecords;
+  $('search').oninput=renderRecords;
+  wrongDevP17Select.onchange=()=>{if(v218Mode==='parent'&&route==='records')renderRecords()};
+  const wrongDevP17BaseMode=v218ApplyMode;
+  v218ApplyMode=function(mode){
+   const result=wrongDevP17BaseMode(mode);
+   if(result!=='blocked'&&route==='records')renderRecords();
+   return result;
+  };
+
   // WRONG-A-ONLY-INAPP-BACK: QA-only, original A detail's existing list button.
   // No P13-P18 selection/filter, History API, persistence, photo or review write.
   const wrongAOnlyNavigateBase=navigate;
