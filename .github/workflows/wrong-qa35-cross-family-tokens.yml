@@ -1,0 +1,32 @@
+name: WRONG QA35 cross-family token ledger (Node only)
+on:
+  push:
+    branches: ['qa/wrong-hidden-tab-local-privacy-lock-20261114']
+    paths:
+      - 'tests/qa35-cross-family-token-ledger.mjs'
+      - '.github/workflows/wrong-qa35-cross-family-tokens.yml'
+permissions:
+  contents: read
+jobs:
+  cross-family-token-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new synthetic token regression syntax only
+        run: node --check tests/qa35-cross-family-token-ledger.mjs
+      - name: Run one new actual Node HTTP and temporary AES-GCM ledger test
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+          QA_DURABLE_TEST_ONLY: '1'
+        run: node tests/qa35-cross-family-token-ledger.mjs
+      - name: Record SHA without deployment
+        run: |
+          echo "WRONG_QA35_FAMILY_TOKEN_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_DEPLOYMENT=false"
+# Synthetic tokens only, no remote auth, production data, Chromium or deploy.
