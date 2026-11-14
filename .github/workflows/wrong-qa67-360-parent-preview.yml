@@ -1,0 +1,39 @@
+name: WRONG QA67 fictional 360px parent screenshots
+on:
+  push:
+    branches: ['qa/wrong-360-parent-preview-capture-20261114']
+    paths:
+      - 'tests/qa67-360-parent-preview-capture-chromium.mjs'
+      - '.github/workflows/wrong-qa67-360-parent-preview.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic-mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new code syntax only
+        run: node --check tests/qa67-360-parent-preview-capture-chromium.mjs
+      - name: Install Chromium for new synthetic 360px visual evidence
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Actual 360px parent and 200 percent visual screenshots
+        env:
+          WRONG_QA67_SOURCE_DEV_SHA: 'b756c007a5f7c0389b5195dcc475c80a82f04909'
+        run: node tests/qa67-360-parent-preview-capture-chromium.mjs
+      - name: Keep fictional screenshots as private workflow artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-qa67-fictional-360-preview
+          path: qa67-fictional-360-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 7
+# This workflow does NOT deploy a website or use external Auth, real photos, DB or production credentials.
