@@ -53,12 +53,22 @@ async function background(context,page){
  const other=await context.newPage();
  await other.goto('about:blank');
  await other.bringToFront();
- await page.waitForFunction(()=>document.hidden===true,null,{timeout:8000});
+ // In headless Chromium, bringing another tab forward need not flip
+ // document.hidden. Drive only that browser event seam deterministically;
+ // the QA app, IndexedDB, network and DOM remain the actual Chromium objects.
+ await page.evaluate(()=>{
+  Object.defineProperty(document,'hidden',{configurable:true,value:true});
+  document.dispatchEvent(new Event('visibilitychange'));
+ });
  await page.locator('#qa34-family-privacy-cover:visible').waitFor();
  assert.equal(await page.locator('#qa-main').evaluate(el=>el.inert),true);
  assert.equal(await page.evaluate(()=>document.querySelector('#qa34-logout')?.disabled),true);
  assert.deepEqual(await local(page),reference);
  await page.bringToFront();
+ await page.evaluate(()=>{
+  delete document.hidden;
+  document.dispatchEvent(new Event('visibilitychange'));
+ });
  await page.locator('#qa34-family-privacy-cover:visible').waitFor();
  await other.close();
 }
