@@ -1,0 +1,40 @@
+name: WRONG QA35 deleted A to new C actual browser
+on:
+  push:
+    branches: ['qa/wrong-deleted-a-to-new-c-browser-20261114']
+    paths:
+      - 'tests/qa35-deleted-a-new-c-same-browser.mjs'
+      - '.github/workflows/wrong-qa35-a-to-c-browser.yml'
+permissions:
+  contents: read
+jobs:
+  browser-a-to-c:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Only new QA browser scenario syntax
+        run: node --check tests/qa35-deleted-a-new-c-same-browser.mjs
+      - name: Install only required real Chromium browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Serve isolated localhost app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/wrong-qa35-a-c.log 2>&1 &
+          for i in 1 2 3 4 5; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: New single synthetic deleted A to new C Chromium boundary
+        env:
+          QA_SYNTHETIC_FAMILY_ONLY: '1'
+        run: node tests/qa35-deleted-a-new-c-same-browser.mjs
+      - name: Report exact candidate SHA and no deployment
+        run: |
+          echo "WRONG_QA35_A_C_BROWSER_SHA=$(git rev-parse HEAD)"
+          echo "WRONG_QA35_DEPLOYMENT=false"
+# Synthetic localhost only. No real family accounts, data, storage or deployment.
