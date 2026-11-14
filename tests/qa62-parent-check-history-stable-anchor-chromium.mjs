@@ -82,6 +82,8 @@ async function scenario(width,kind){
   const bounds=await page.locator('#wrong-parent-time-check-0').evaluate(el=>{
    const b=el.getBoundingClientRect();return {top:b.top,bottom:b.bottom,innerHeight};
   });
+  console.log('WRONG_QA62_ANCHOR_METRIC='+JSON.stringify({width,kind,bounds,
+   active:await page.evaluate(()=>document.activeElement?.id)}));
   assert.ok(bounds.top>=0&&bounds.bottom<=bounds.innerHeight,
    'source anchor must be visible in viewport');
   assert.equal(await page.locator('#check-history > .tagline').count(),2);
