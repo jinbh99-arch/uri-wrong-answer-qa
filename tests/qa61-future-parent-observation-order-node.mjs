@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const s=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const start=s.indexOf(' const nowMs=Date.now();\n // Invalid/future observations stay accessible');
+const end=s.indexOf(' const pending=eligible.filter(',start);
+assert.ok(start>=0&&end>start,'real product queue code');
+const actual=s.slice(start,end);
+let checks=0;
+const run=(rows,now)=>new Function('records','Date','wrongParentLatestObservation',actual+'\nreturn eligible.map(e=>e.r.id)')(
+ rows,{now:()=>now},r=>r.observation);
+const mk=(id,time,status='needs_help')=>({id,observation:{time,status}});
+const t=Date.parse('2026-11-14T10:00:00Z');
+const fixture=[mk('future',t+86400000),mk('valid-old',t-86400000),mk('invalid',0),mk('valid-new',t-1000),mk('nan',NaN),mk('same',t-1000),mk('other',t-10,'explained')];
+const original=fixture.map(x=>({id:x.id,time:x.observation.time,status:x.observation.status}));
+assert.deepEqual(run(fixture,t),['valid-new','same','valid-old','future','invalid','nan']);checks++;
+assert.deepEqual(run([mk('future',t+1)],t),['future']);checks++;
+assert.deepEqual(run([mk('unknown',0),mk('valid',t)],t),['valid','unknown']);checks++;
+assert.deepEqual(run([mk('a',t),mk('b',t)],t),['a','b']);checks++;
+assert.deepEqual(run([mk('a',NaN),mk('b',0),mk('c',t+1)],t),['a','b','c']);checks++;
+assert.deepEqual(fixture.map(x=>({id:x.id,time:x.observation.time,status:x.observation.status})),original);checks++;
+assert.match(s,/관찰일 확인 불가/);checks++;
+assert.match(s,/관찰 이후 재풀이: 확인 불가/);checks++;
+assert.doesNotMatch(actual,/localStorage|indexedDB|fetch\(|\.put\(|\.delete\(/);checks++;
+console.log('WRONG_QA61_RESULT='+JSON.stringify({status:'PASS',checks,kind:'Node22 actual product queue sorting',recordsMutated:false,release:false,safeToRestore:false}));
