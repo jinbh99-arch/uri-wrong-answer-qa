@@ -4263,6 +4263,37 @@ $('v212-mixed-drill-run').onclick=async()=>{
     button.textContent=parentPending?'👀 아이 설명 보고 부모가 관찰하기':
       (photo?'📷 사진 기록 이어서 정리하기':ocr?'🔍 OCR 기록 검토하기':due?'🗓 복습 기록 열기':'📚 최근 오답 학습 이어가기');
     button.dataset.record=target.id;
+    // QA56 P13: the selected pending explanation must lead the parent to
+    // the EXISTING review control, not strand them at the top of a long detail.
+    // Fallback photo/OCR/due actions retain original delegated navigation.
+    button.onclick=parentPending?async event=>{
+      event.stopPropagation();
+      const id=button.dataset.record;
+      const current=records.find(r=>r.id===id);
+      const attempt=Array.isArray(current?.generalRetryHistory)?
+        current.generalRetryHistory.at(-1):null;
+      const stamp=typeof attempt?.at==='string'?Date.parse(attempt.at):NaN;
+      if(route!=='home'||document.body.classList.contains('v218-child')||
+         !current||attempt?.review!=='not_checked'||
+         typeof attempt.explanation!=='string'||!attempt.explanation.trim()||
+         !Number.isFinite(stamp)||stamp<=0||stamp>Date.now()){
+        qa9RenderOneAction();return;
+      }
+      detailId=id;navigate('detail');
+      for(let tries=0;tries<150;tries++){
+        await new Promise(resolve=>requestAnimationFrame(resolve));
+        if(route!=='detail'||detailId!==id||
+           document.body.classList.contains('v218-child'))return;
+        const explanation=$('wrong-p0-child-reason-readonly');
+        const review=$('v230-review'),question=$('detail-text');
+        if(!explanation?.isConnected||!review?.isConnected||!question?.isConnected||
+           !question.textContent.includes(String(current.problemText||'')))continue;
+        explanation.scrollIntoView({block:'center',behavior:'instant'});
+        review.focus({preventScroll:true});
+        return;
+      }
+      notify('오답 상세 화면을 열었습니다. 학부모 관찰 항목을 직접 확인해 주세요.');
+    }:null;
     card.classList.remove('hide');
   }
   const qa9PreviousRenderHome=renderHome;
@@ -5326,6 +5357,28 @@ $('wrong-child-next-all').addEventListener('click',()=>{
         if(bounds.top>=0&&bounds.bottom<=innerHeight)return;
         window.scrollBy({top:bounds.top-12,behavior:'instant'});
         back.focus({preventScroll:true});
+      });
+    }
+    return result;
+  };
+
+  // QA56 P18/P19: at zoom 200% the current parent filter can be
+  // >2000px below the first viewport after A's navigation resets scroll to 0.
+  // Move to the EXISTING selector only if genuinely offscreen; no new CTA,
+  // persisted UI state, URL/history mutation, or child-mode intervention.
+  const wrongDevP19OriginalNavigate=navigate;
+  navigate=function(next){
+    const result=wrongDevP19OriginalNavigate(next);
+    if(next==='records'&&v218Mode==='parent'){
+      requestAnimationFrame(()=>{
+        if(route!=='records'||v218Mode!=='parent')return;
+        const selector=$('wrong-dev-p17-filter');
+        const label=$('wrong-dev-p17-filter-wrap')?.querySelector('label');
+        if(!selector||!label)return;
+        const bounds=label.getBoundingClientRect();
+        if(bounds.top>=0&&bounds.bottom<=innerHeight)return;
+        window.scrollBy({top:bounds.top-12,behavior:'instant'});
+        selector.focus({preventScroll:true});
       });
     }
     return result;
