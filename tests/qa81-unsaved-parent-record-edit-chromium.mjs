@@ -131,6 +131,10 @@ try{
   pass('child DOM/text/visible fields contain neither saved nor discarded parent memo');
 
   await page.locator('#v218-parent-mode').click();
+  // Cancel/edit may navigate home: explicitly reopen the SAME stored record.
+  await page.locator('#nav-records').click();
+  await page.locator('#records-list button[data-record]').first().click();
+  await page.locator('#detail-memo').waitFor({timeout:15000});
   await page.waitForFunction(text=>document.querySelector('#detail-memo')?.textContent?.includes(text),saved);
   const after=await snapshot(page);
   assert.deepEqual(after,before,'parent/child mode journey changed the exact saved photo or record');
