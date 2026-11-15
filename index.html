@@ -4514,6 +4514,7 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    document.body.classList.toggle('v218-child',mode==='child');
    if(mode==='child'){
     $('wrong-parent-needs-help-queue')?.replaceChildren();
+    for(const id of ['v227-metrics','v227-events','v227-evidence'])$(id)?.replaceChildren();
     $('check-history')?.replaceChildren();
     $('wrong008-last-manual-note')?.replaceChildren();
     $('wrong008-next-review')?.remove();
@@ -4839,6 +4840,10 @@ $('wrong-child-next-all').addEventListener('click',()=>{
   function v227RenderParentReport(){
     const stats=$('v227-metrics'),events=$('v227-events'),evidence=$('v227-evidence'),control=$('v227-period');
     if(!stats||!events||!evidence||!control)return;
+    if(document.body.classList.contains('v218-child')){
+      stats.replaceChildren();events.replaceChildren();evidence.replaceChildren();
+      return;
+    }
     const period=control.value,summary=v227ReportModel(records,period,Date.now());
     stats.replaceChildren();events.replaceChildren();
     for(const [num,label] of [
