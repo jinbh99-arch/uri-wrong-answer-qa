@@ -1732,7 +1732,91 @@ async function v23RestoreWithPhotoCheck(items,images,p,baseline,photoBaseline,ta
  if(current!==photoBaseline){
   throw Object.assign(Error('복원 확인 중 사진 내용이 변경됐습니다.'),{code:'V22_RESTORE_CHANGED'});
  }
- return v22RestoreOnlyIfUnchanged(items,images,p,baseline,targetDb,announce);
+ return v23RestoreLockedPhotoAtomic(items,images,p,baseline,photoBaseline,targetDb,announce);
+}
+
+// W7 QA safety candidate: fingerprint current photos while the SAME readwrite
+// transaction holds the photo/write lock. A raw same-size photo replacement
+// can no longer slip in between asynchronous SHA-256 and destructive clear.
+// Keep the IDB transaction alive with queued read requests; perform all writes
+// ONLY inside an IDB request success callback (where the transaction is active).
+// Any browser unable to retain the transaction must abort without replacing data.
+function v23RestoreLockedPhotoAtomic(items,images,p,baseline,photoBaseline,targetDb=db,announce=true){
+ return new Promise((resolve,reject)=>{
+  if(!targetDb||typeof baseline!=='string'||typeof photoBaseline!=='string')
+   return reject(Error('복원 안전검사 기준이 없습니다.'));
+  let tx=null,stale=false,failed=null;
+  const rejectReason=()=>stale?
+   Object.assign(Error('다른 탭에서 기록 또는 사진이 변경되어 복원을 중단했습니다.'),{code:'V22_RESTORE_CHANGED'}):
+   (failed||tx?.error||Error('사진 검증 중 복원 트랜잭션이 취소됐습니다.'));
+  const abort=(err,changed=false)=>{
+   if(changed)stale=true;else if(err)failed=err;
+   try{tx?.abort()}catch{}
+  };
+  try{
+   tx=targetDb.transaction(['mistakes','photos','settings'],'readwrite');
+   v22RequestState(tx,state=>{
+    try{
+     if(v22StateSignature(state)!==baseline){
+      abort(Error('기존 오답·설정 정보가 변경됐습니다.'),true);return;
+     }
+     if(!v217SettingsRestorable(state.settingsKeys)){
+      abort(Error('알 수 없는 사용자 설정이 있어 복원을 중단했습니다.'));return;
+     }
+     const keys=state.photosKeys,values=state.photosValues;
+     if(!Array.isArray(keys)||!Array.isArray(values)||keys.length!==values.length){
+      abort(Error('사진 목록 일치 여부를 확인하지 못했습니다.'));return;
+     }
+     let completed=false,signature=null,digestFailure=null,settled=false;
+     const settings=tx.objectStore('settings');
+     // Each pending request keeps the readwrite transaction open while
+     // Blob.arrayBuffer() and crypto.subtle.digest resolve asynchronously.
+     function keepTransactionAlive(){
+      const req=settings.get('profile');
+      req.onsuccess=()=>{
+       if(settled)return;
+       if(!completed){keepTransactionAlive();return}
+       settled=true;
+       if(digestFailure){abort(digestFailure,digestFailure.code==='V22_RESTORE_CHANGED');return}
+       if(signature!==photoBaseline){
+        abort(Error('사진의 내용이 복원 직전 변경됐습니다.'),true);return;
+       }
+       try{
+        const mistakes=tx.objectStore('mistakes'),photos=tx.objectStore('photos');
+        mistakes.clear();photos.clear();settings.clear();
+        for(const item of items){
+         mistakes.put({...item,hasPhoto:!!images[item.id]},item.id);
+         if(images[item.id])photos.put(images[item.id],item.id);
+        }
+        settings.put({nickname:String(p.nickname),grade:Number(p.grade),subject:'math'},'profile');
+        settings.put({at:iso(),count:items.length},'migrated-v01');
+       }catch(err){abort(err)}
+      };
+     }
+     keepTransactionAlive();
+     (async()=>{
+      if(!globalThis.crypto?.subtle)throw Error('SHA-256을 지원하지 않아 복원을 중단합니다.');
+      let total=0;const entries=[];
+      for(let i=0;i<keys.length;i++){
+       const blob=values[i],key=String(keys[i]);
+       if(!(blob instanceof Blob)||blob.size<1)throw Error('사진 데이터가 손상됐습니다.');
+       total+=blob.size;
+       if(total>64*1024*1024)throw Error('사진 용량이 안전 비교 한도를 초과했습니다.');
+       const bytes=await blob.arrayBuffer();
+       const digest=await crypto.subtle.digest('SHA-256',bytes);
+       const hex=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+       entries.push([key,blob.size,blob.type,hex]);
+      }
+      return JSON.stringify(entries.sort((a,b)=>a[0].localeCompare(b[0])));
+     })().then(value=>{signature=value;completed=true},
+      err=>{digestFailure=err;completed=true});
+    }catch(err){abort(err)}
+   },err=>abort(err));
+   tx.oncomplete=()=>{if(announce)v20AnnounceWrite();resolve(true)};
+   tx.onerror=()=>reject(rejectReason());
+   tx.onabort=()=>reject(rejectReason());
+  }catch(err){reject(err)}
+ });
 }
 
 // ===== v0.4 optional OCR + local persistence navigation test =====
