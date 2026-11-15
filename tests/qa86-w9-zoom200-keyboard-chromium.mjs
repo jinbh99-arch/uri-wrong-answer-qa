@@ -70,6 +70,26 @@ try{
  await shot(page,'keyboard-registration-at-zoom200');
  pass('200% zoom keyboard enters and saves synthetic wrong answer');
 
+ // Manual recheck only exists after a genuine child retry and parent observation.
+ // This is a test-fixture workflow prerequisite, not a product UI defect.
+ await page.locator('#v218-child-mode').focus();
+ await page.keyboard.press('Enter');
+ await page.locator('#v230-answer').focus();
+ await page.keyboard.insertText('QA86 synthetic child retry answer');
+ await page.locator('#v230-explanation').focus();
+ await page.keyboard.insertText('QA86 synthetic child explanation');
+ await page.locator('#v230-save').focus();
+ await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('#v25-learning-flow')?.textContent?.includes('일반 재풀이 기록 1회'),null,{timeout:15000});
+ await page.locator('#v218-parent-mode').focus();
+ await page.keyboard.press('Enter');
+ await page.locator('#v230-review').selectOption('needs_help');
+ await page.locator('#v230-review-save').focus();
+ await page.keyboard.press('Space');
+ await page.waitForFunction(()=>document.querySelector('#v25-learning-flow')?.textContent?.includes('도움이 필요했다고 관찰'),null,{timeout:15000});
+ await page.locator('#wrong008-next-date').waitFor({state:'visible',timeout:15000});
+ pass('child retry and parent observation establish manual-recheck prerequisite by keyboard');
+
  const future=new Date(Date.now()+11*86400000).toISOString().slice(0,10);
  await page.locator('#wrong008-next-date').focus();
  assert.equal(await page.locator('#wrong008-next-date').evaluate(el=>el===document.activeElement),true);
