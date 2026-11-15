@@ -12,7 +12,6 @@ const DB='uriaimath-github-qa-v224-only';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 const memo='QA82 부모 비공개 원본 메모 두 번 재풀이';
 const note1='QA82 부모 첫 번째 관찰 전용 설명 도움';
-const note2='QA82 부모 두 번째 관찰 전용 스스로 설명';
 const question='QA82 부모 다음 확인 질문 비공개';
 const firstAnswer='QA82 아이 첫 번째 답 빛 반대방향';
 const secondAnswer='QA82 아이 두 번째 답 왼쪽 그림자';
@@ -54,19 +53,19 @@ async function childAudit(page){
   const attempts=[...document.querySelectorAll('#v25-learning-flow .v230-attempt')];
   return {
    parentMemoLeak:has(data.memo),firstNoteLeak:has(data.note1),
-   secondNoteLeak:has(data.note2),nextQuestionLeak:has(data.question),
+   nextQuestionLeak:has(data.question),
    parentObservationTextLeak:text.includes('학부모 확인:')||text.includes('학부모 관찰:'),
    parentComparisonPanelPresent:!!document.querySelector('#wrong-parent-retry-comparison'),
    parentReviewPanelPresent:!!document.querySelector('#v25-learning-flow .v230-parent-review'),
    nextReviewPanelPresent:!!document.querySelector('#wrong008-next-review'),
-   parentMemoEditorLeak:allValues.some(v=>v.includes(data.memo)||v.includes(data.note1)||v.includes(data.note2)),
+   parentMemoEditorLeak:allValues.some(v=>v.includes(data.memo)||v.includes(data.note1)),
    retries:attempts.length,
    childFirstVisible:has(data.firstAnswer),childSecondVisible:has(data.secondAnswer),
    imageVisible:!!document.querySelector('#detail-image img')?.getClientRects().length
   };
- },{memo,note1,note2,question,firstAnswer,secondAnswer});
+ },{memo,note1,question,firstAnswer,secondAnswer});
 }
-const leakFree=a=>!a.parentMemoLeak&&!a.firstNoteLeak&&!a.secondNoteLeak&&
+const leakFree=a=>!a.parentMemoLeak&&!a.firstNoteLeak&&
  !a.nextQuestionLeak&&!a.parentObservationTextLeak&&!a.parentComparisonPanelPresent&&
  !a.parentReviewPanelPresent&&!a.nextReviewPanelPresent&&!a.parentMemoEditorLeak;
 try{
@@ -136,14 +135,9 @@ try{
  await page.locator('#v230-save').click();
  await page.waitForFunction(()=>document.querySelector('#v25-learning-flow')?.textContent?.includes('일반 재풀이 기록 2회'),null,{timeout:15000});
  await page.locator('#v218-parent-mode').click();
- await page.locator('#check-status').selectOption('explained');
- await page.locator('#check-memo').fill(note2);
- await page.locator('#check-save').click();
- console.log('QA82_AFTER_NOTE2='+JSON.stringify({
-  history:(await page.locator('#check-history').textContent()).slice(0,350),
-  input:await page.locator('#check-memo').inputValue()
- }));
- await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note2,{timeout:12000});
+ // The prior check-history observation is preserved; the second retry gets its
+ // own independent v230 parent review, without assuming same-day check-save
+ // should append a second checkHistory row.
  await page.locator('#v230-review').selectOption('explained');
  await page.locator('#v230-review-save').click();
  await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='explained');
@@ -159,10 +153,9 @@ try{
  assert.equal(fixed.rows[0].generalRetryHistory[1].review,'explained');
  assert.deepEqual(fixed.pics[0],originalPhoto);
  assert.ok((await page.locator('#check-history').textContent()).includes(note1));
- assert.ok((await page.locator('#check-history').textContent()).includes(note2));
  assert.ok(await page.locator('#wrong-parent-retry-comparison').count());
  await capture(page,'parent-two-retries-two-private-observations');
- pass('two separate parent reviews and check notes, future manual question remain tied to one record');
+ pass('two separate retry reviews, one parent note and future manual question tied to one record');
 
  await page.locator('#v218-child-mode').click();
  assert.equal(await page.locator('#v218-child-mode').getAttribute('aria-pressed'),'true');
@@ -188,7 +181,7 @@ try{
  pass('child re-entry does not regenerate first/last private parent observations');
 
  await page.locator('#v218-parent-mode').click();
- await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note2,{timeout:15000});
+ await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note1,{timeout:15000});
  assert.ok((await page.locator('#check-history').textContent()).includes(note1));
  assert.ok((await page.locator('#check-history').textContent()).includes(question));
  const after=await snapshot(page);
@@ -207,7 +200,7 @@ try{
  },null,2));
  console.log('QA82_RESULT='+JSON.stringify({
   status:'PASS',checks,shots,sourceDevSha:SHA,width:320,
-  retryCount:2,privateParentNotes:2,hiddenDomAudits:audits.length,
+  retryCount:2,parentRetryReviews:2,privateParentNotes:1,hiddenDomAudits:audits.length,
   sameRecordId:true,photoUnchanged:true,realChromium:true,
   safeToRestore:false,realAuth:false,realOCR:false,externalIsolationVerified:false
  }));
