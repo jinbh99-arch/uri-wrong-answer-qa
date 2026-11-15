@@ -111,16 +111,28 @@ try{
    window.__qa90db=db;window.__qa90name=name;
    stage='seed-readwrite';
    const t=db.transaction(['mistakes','photos','settings'],'readwrite');
-   t.objectStore('mistakes').put({id:'qa90-old',problemText:'가상 WebKit 원본',hasPhoto:true},'qa90-old');
+   const requestErrors=[];
+   function monitor(request,what){
+    request.addEventListener('error',event=>{
+     requestErrors.push({what,name:request.error?.name||'null',message:request.error?.message||'',target:event.target?.constructor?.name||''});
+    });
+   }
+   monitor(t.objectStore('mistakes').put({id:'qa90-old',problemText:'가상 WebKit 원본',hasPhoto:true},'qa90-old'),'mistakes-put');
    stage='seed-blob';
-   t.objectStore('photos').put(new Blob([new Uint8Array(256*1024).fill(43)],{type:'image/png'}),'qa90-old');
+   monitor(t.objectStore('photos').put(new Blob([new Uint8Array(256*1024).fill(43)],{type:'image/png'}),'qa90-old'),'photos-256KiB-put');
    stage='seed-settings';
-   t.objectStore('settings').put({nickname:'원래',grade:3,subject:'math'},'profile');
+   monitor(t.objectStore('settings').put({nickname:'원래',grade:3,subject:'math'},'profile'),'settings-put');
    stage='seed-commit';
    await new Promise((ok,no)=>{
     t.oncomplete=ok;
-    t.onerror=()=>no(Error('IDB_SEED_ERROR '+String(t.error?.name||'null')+' '+String(t.error?.message||'')));
-    t.onabort=()=>no(Error('IDB_SEED_ABORT '+String(t.error?.name||'null')+' '+String(t.error?.message||'')));
+    t.onerror=event=>no(Error('IDB_SEED_ERROR '+JSON.stringify({
+     txError:t.error?.name||'null',targetError:event.target?.error?.name||'null',
+     requestErrors,isSecureContext,origin:location.origin,hasIndexedDb:!!indexedDB
+    })));
+    t.onabort=event=>no(Error('IDB_SEED_ABORT '+JSON.stringify({
+     txError:t.error?.name||'null',targetError:event.target?.error?.name||'null',
+     requestErrors
+    })));
    });
    return {ok:true,stage:'seed-complete',stores:[...db.objectStoreNames]};
   }catch(e){return {ok:false,stage,name:e?.name||'unknown',detail:String(e?.message||e)}}
