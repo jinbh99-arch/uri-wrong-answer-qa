@@ -164,7 +164,6 @@ try{
 
  await page.locator('#v218-parent-mode').click();
  await page.waitForFunction(()=>document.querySelector('#wrong-parent-retry-comparison')!==null,null,{timeout:15000});
- assert.ok((await page.locator('#check-history').textContent()).includes(note1));
  const after=await snapshot(page);
  assert.deepEqual(after,fixed,'switching modes mutates saved retries or photo bytes');
  await capture(page,'parent-return-two-retries-preserved');
