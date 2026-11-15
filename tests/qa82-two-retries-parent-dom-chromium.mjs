@@ -44,12 +44,18 @@ async function snapshot(page){
 }
 async function childAudit(page){
  return page.evaluate(data=>{
-  const text=document.body.textContent||'';
+  // Search all actual UI text nodes, including hidden DOM, but NOT inline
+  // JavaScript source (body.textContent includes SCRIPT and makes a false leak).
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  let uiText='',node;
+  while((node=walker.nextNode())){
+   if(!node.parentElement?.closest('script,style,noscript,template'))uiText+=node.nodeValue||'';
+  }
   const visible=document.body.innerText||'';
   const allValues=[...document.querySelectorAll('input,textarea,select')].map(el=>String(el.value||''));
-  const has=value=>text.includes(value)||visible.includes(value)||allValues.some(x=>x.includes(value));
+  const has=value=>uiText.includes(value)||visible.includes(value)||allValues.some(x=>x.includes(value));
   const hits=[...document.querySelectorAll('body *')]
-   .filter(el=>el.children.length===0&&/(학부모 확인:|학부모 관찰:)/.test(el.textContent||''))
+   .filter(el=>!el.closest('script,style,noscript,template')&&el.children.length===0&&/(학부모 확인:|학부모 관찰:)/.test(el.textContent||''))
    .slice(0,12).map(el=>({
     tag:el.tagName,id:el.id,classes:typeof el.className==='string'?el.className:'',
     parent:el.parentElement?.id||'',text:(el.textContent||'').slice(0,200)
@@ -57,7 +63,7 @@ async function childAudit(page){
   const attempts=[...document.querySelectorAll('#v25-learning-flow .v230-attempt')];
   return {
    parentMemoLeak:has(data.memo),
-   parentObservationTextLeak:text.includes('학부모 확인:')||text.includes('학부모 관찰:'),observationHitNodes:hits,
+   parentObservationTextLeak:uiText.includes('학부모 확인:')||uiText.includes('학부모 관찰:'),observationHitNodes:hits,
    parentComparisonPanelPresent:!!document.querySelector('#wrong-parent-retry-comparison'),
    parentReviewPanelPresent:!!document.querySelector('#v25-learning-flow .v230-parent-review'),
    nextReviewPanelPresent:!!document.querySelector('#wrong008-next-review'),
