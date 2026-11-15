@@ -22,8 +22,8 @@
 
 실제 dev SHA `f00a019c1eace0b42f2efe8cef8b8e119adfb971`의 `index.html` 지정 함수만 직접 대조:
 - **1162행, `renderRecords`**: `records.filter(r => subject/concept/search)` 뒤 `list('records-list', filtered, ...)`. 검색조건에 가족 소유권·검증된 로그인 주체가 없다. 일반 목록/홈의 기존 데이터 경계를 증명하지 못한다.
-- **1352행, `renderDetail`**: `records.find(x=>x.id===detailId)`; `detail-memo`에 `r.memo`를 표시하고 사진은 **1383행** `readOne('photos',r.id)`로 조회한다. 선택한 오답 ID와 가족 소유권을 교차검증하지 않는다.
-- **1320~1335행, 저장**: `rec`에 `childNickname: old?.childNickname||profile.nickname`이 있으나 이는 사용자 입력 프로필이지 인증된 가족 소유권 키가 아니다. 검증된 `familyId`, 인증 주체 또는 서버 거부 응답의 근거가 이 범위에서 확인되지 않는다.
+- **1349행, `renderDetail`**: `records.find(x=>x.id===detailId)`; `detail-memo`에 `r.memo`를 표시하고 사진은 **1378행** `readOne('photos',r.id)`로 조회한다. 선택한 오답 ID와 가족 소유권을 교차검증하지 않는다.
+- **1306행, 저장**: `rec`에 `childNickname: old?.childNickname||profile.nickname`이 있으나 이는 사용자 입력 프로필이지 인증된 가족 소유권 키가 아니다. 검증된 `familyId`, 인증 주체 또는 서버 거부 응답의 근거가 이 범위에서 확인되지 않는다.
 - **`navigate` / `list` 875~900행**: `data-record` 클릭→`detailId`만 바꾸어 상세를 렌더한다. 이는 브라우저 내부 화면 전환이지 서버 조회/HTTP403이 아니다.
 
 **판정:** 현재 공개된 단일 브라우저 IndexedDB에 임의의 가상 가족 A/B 소유권 플래그를 얹어 화면만 가리는 것은 보안경계를 확립하지 못한다. 실제 서버 신원·저장소 분리가 없는 상태에서 제품 UI에 가드를 삽입하면 가짜 안전성을 제공할 위험이 있으므로 **W4 제품 수정·dev 병합을 보류**한다. 기존 QA74~86 PASS 재실행·개편 금지. 다음 #87 승인 불요 대체는 **W7 격리 IndexedDB 복원 중간 실패·동시 변경 실패주입**으로 한정한다.
