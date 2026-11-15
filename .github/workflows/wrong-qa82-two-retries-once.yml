@@ -20,10 +20,6 @@ jobs:
           node-version: '22'
       - name: Check new QA82 script syntax only
         run: node --check tests/qa82-two-retries-parent-dom-chromium.mjs
-      - name: Set up isolated Chromium
-        run: |
-          npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
       - name: Apply only confirmed v227 parent activity DOM scrub on QA (no deployment)
         run: |
           cat >/tmp/wrong-qa82-local.patch <<'PATCH'
@@ -31,31 +27,35 @@ jobs:
           --- a/index.html
           +++ b/index.html
           @@ -4513,7 +4513,8 @@
-             v218Mode=mode;
-             document.body.classList.toggle('v218-child',mode==='child');
-             if(mode==='child'){
-              $('wrong-parent-needs-help-queue')?.replaceChildren();
+              v218Mode=mode;
+              document.body.classList.toggle('v218-child',mode==='child');
+              if(mode==='child'){
+               $('wrong-parent-needs-help-queue')?.replaceChildren();
           +    for(const id of ['v227-metrics','v227-events','v227-evidence'])$(id)?.replaceChildren();
-              $('check-history')?.replaceChildren();
-              $('wrong008-last-manual-note')?.replaceChildren();
-              $('wrong008-next-review')?.remove();
+               $('check-history')?.replaceChildren();
+               $('wrong008-last-manual-note')?.replaceChildren();
+               $('wrong008-next-review')?.remove();
           @@ -4839,6 +4840,10 @@
-            function v227RenderParentReport(){
-              const stats=$('v227-metrics'),events=$('v227-events'),evidence=$('v227-evidence'),control=$('v227-period');
-              if(!stats||!events||!evidence||!control)return;
+             function v227RenderParentReport(){
+               const stats=$('v227-metrics'),events=$('v227-events'),evidence=$('v227-evidence'),control=$('v227-period');
+               if(!stats||!events||!evidence||!control)return;
           +    if(document.body.classList.contains('v218-child')){
           +      stats.replaceChildren();events.replaceChildren();evidence.replaceChildren();
           +      return;
           +    }
-              const period=control.value,summary=v227ReportModel(records,period,Date.now());
-              stats.replaceChildren();events.replaceChildren();
-              for(const [num,label] of [
+               const period=control.value,summary=v227ReportModel(records,period,Date.now());
+               stats.replaceChildren();events.replaceChildren();
+               for(const [num,label] of [
           PATCH
           git apply --check /tmp/wrong-qa82-local.patch
           git apply /tmp/wrong-qa82-local.patch
           git diff --check
           test "$(git diff --name-only)" = "index.html"
           test "$(git diff --numstat -- index.html)" = "$(printf '5\t0\tindex.html')"
+      - name: Set up isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
       - name: Only new synthetic two-retry child DOM and photo identity path
         env:
           WRONG_QA82_DEV_SHA: '184d9f548c52109a73619afd342eb377ed1a6996'
