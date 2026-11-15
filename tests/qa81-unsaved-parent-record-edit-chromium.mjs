@@ -67,7 +67,7 @@ try{
   });
   const page=await ctx.newPage(),errors=[],outside=[];
   page.on('pageerror',e=>errors.push(String(e)));
-  page.on('dialog',d=>d.accept());
+  page.on('dialog',d=>d.dismiss());
   await page.route('**/*',route=>{
     const url=route.request().url();
     if(url.startsWith(preview.url))return route.continue();
@@ -113,6 +113,8 @@ try{
   pass('unsaved parent record edit protected from child-mode switch and IDB unchanged');
 
   // Explicit user cancellation is an allowed discard; no automatic save.
+  page.removeAllListeners('dialog');
+  page.on('dialog',d=>d.accept());
   await page.locator('#cancel-edit').click();
   await page.waitForFunction(text=>document.querySelector('#detail-memo')?.textContent?.includes(text),saved);
   assert.deepEqual(await snapshot(page),before,'cancelling draft altered the original IDB record');
