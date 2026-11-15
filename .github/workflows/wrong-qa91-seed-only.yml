@@ -1,0 +1,44 @@
+name: WRONG QA91 WebKit synthetic IndexedDB seed gate
+on:
+  push:
+    branches: ['qa/wrong-w7-same-metadata-photo-race-20261115-1426']
+    paths:
+      - '.github/workflows/wrong-qa91-seed-only.yml'
+      - 'tests/qa91-w7-webkit-idb-seed-diagnostic.mjs'
+permissions:
+  contents: read
+jobs:
+  diagnose-synthetic-seed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate QA91 diagnostic syntax
+        run: node --check tests/qa91-w7-webkit-idb-seed-diagnostic.mjs
+      - name: Install WebKit for NEW DB-seed diagnostic only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps webkit
+      - name: Try 5 isolated values; do not claim app restore PASS
+        env:
+          WRONG_QA90_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+        run: node tests/qa91-w7-webkit-idb-seed-diagnostic.mjs | tee qa91-seed-log.txt
+      - name: If seed succeeds, exercise the NEW WebKit restore guard regression
+        env:
+          WRONG_QA90_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+        run: node tests/qa90-w7-webkit-locked-transaction.mjs | tee qa90-after-seed-log.txt
+      - name: Preserve red or green evidence, never deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa91-webkit-seed-evidence-and-conditional-qa90
+          path: |
+            qa91-seed-log.txt
+            qa90-after-seed-log.txt
+            qa-proof/qa90/*
+          retention-days: 7
+          if-no-files-found: warn
+# QA-only branch; 127.0.0.1 isolated WebKit, no public deployment or real child data.
