@@ -1,0 +1,38 @@
+name: WRONG QA89 W7 same-metadata photo-only race gate
+on:
+  push:
+    branches: ['qa/wrong-w7-same-metadata-photo-race-20261115-1426']
+    paths:
+      - 'tests/qa89-w7-same-metadata-photo-gap-chromium.mjs'
+      - '.github/workflows/wrong-qa89-photo-gap.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-race:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify new test syntax only
+        run: node --check tests/qa89-w7-same-metadata-photo-gap-chromium.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exercise one NEW raw photo-only race; unsafe overwrite fails workflow
+        env:
+          WRONG_QA89_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+        run: node tests/qa89-w7-same-metadata-photo-gap-chromium.mjs
+      - name: Preserve source SHA and synthetic evidence on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa89-raw-photo-only-race-evidence
+          path: qa-proof/qa89/*
+          retention-days: 7
+          if-no-files-found: warn
+# This deliberately FAILS CI if app's byte-consistency invariant does not hold.
+# No user records, actual backup restore, hosted environment or operational DB.
