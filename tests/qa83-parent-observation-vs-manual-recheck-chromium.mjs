@@ -134,6 +134,11 @@ try{
  await page.locator('#nav-home').click();
  await page.locator('#nav-records').click();
  await page.locator('#records-list button[data-record]').first().click();
+ await page.waitForFunction(()=>{
+  const note=document.querySelector('#wrong008-last-manual-note')?.textContent||'';
+  const comp=document.querySelector('#wrong-parent-retry-comparison')?.textContent||'';
+  return note.includes('상태: 아직 확인 전으로 기록됨')&&comp.includes('가장 최근 재풀이');
+ },null,{timeout:15000});
  ui=await checkUi(page);
  assert.match(ui.future,/상태: 아직 확인 전으로 기록됨/);
  assert.match(ui.comparison,/처음 재풀이/);
