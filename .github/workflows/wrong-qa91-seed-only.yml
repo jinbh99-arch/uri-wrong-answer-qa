@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   diagnose-synthetic-seed:
-    runs-on: ubuntu-24.04
+    runs-on: macos-15
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
@@ -18,18 +18,22 @@ jobs:
           node-version: '22'
       - name: Validate QA91 diagnostic syntax
         run: node --check tests/qa91-w7-webkit-idb-seed-diagnostic.mjs
-      - name: Install WebKit for NEW DB-seed diagnostic only
+      - name: Install macOS WebKit for NEW DB-seed diagnostic only
         run: |
           npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps webkit
+          npx playwright install webkit
       - name: Try 5 isolated values; do not claim app restore PASS
         env:
           WRONG_QA90_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
-        run: node tests/qa91-w7-webkit-idb-seed-diagnostic.mjs | tee qa91-seed-log.txt
+        run: |
+          set -euo pipefail
+          node tests/qa91-w7-webkit-idb-seed-diagnostic.mjs | tee qa91-seed-log.txt
       - name: If seed succeeds, exercise the NEW WebKit restore guard regression
         env:
           WRONG_QA90_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
-        run: node tests/qa90-w7-webkit-locked-transaction.mjs | tee qa90-after-seed-log.txt
+        run: |
+          set -euo pipefail
+          node tests/qa90-w7-webkit-locked-transaction.mjs | tee qa90-after-seed-log.txt
       - name: Preserve red or green evidence, never deploy
         if: always()
         uses: actions/upload-artifact@v4
