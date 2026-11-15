@@ -1,0 +1,48 @@
+name: WRONG QA82 only NEW two-retry accumulated parent DOM 320px
+on:
+  push:
+    branches: ['qa/wrong-two-retries-parent-dom-20261115-1159']
+    paths:
+      - 'tests/qa82-two-retries-parent-dom-chromium.mjs'
+      - '.github/workflows/wrong-qa82-two-retries-once.yml'
+permissions:
+  contents: write
+jobs:
+  new-two-retries-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new QA82 script syntax only
+        run: node --check tests/qa82-two-retries-parent-dom-chromium.mjs
+      - name: Set up isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Only new synthetic two-retry child DOM and photo identity path
+        env:
+          WRONG_QA82_DEV_SHA: '184d9f548c52109a73619afd342eb377ed1a6996'
+        run: node tests/qa82-two-retries-parent-dom-chromium.mjs
+      - name: Remove one-off workflow on QA branch after PASS
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-two-retries-parent-dom-20261115-1159'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/wrong-qa82-two-retries-once.yml
+          git diff --cached --check
+          git commit -m 'chore(qa82): remove one-off workflow after two-retry proof'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Store real 320px synthetic screenshots and DOM audits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa82-two-retries-parent-dom-320px-proof
+          path: qa-proof/qa82/*
+          retention-days: 7
+          if-no-files-found: warn
+# No existing QA74-81 regressions or external deployed service are contacted.
