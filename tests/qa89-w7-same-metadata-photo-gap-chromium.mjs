@@ -55,7 +55,7 @@ try{
   const u=route.request().url();
   if(u===preview.url&&route.request().resourceType()==='document'){
    const response=await route.fetch(),html=await response.text();
-   const seam=' return v22RestoreOnlyIfUnchanged(items,images,p,baseline,targetDb,announce);';
+   const seam=' return v23RestoreLockedPhotoAtomic(items,images,p,baseline,photoBaseline,targetDb,announce);';
    const marker='// ===== v0.4 optional OCR + local persistence navigation test =====';
    assert.equal(html.split(seam).length,2);
    assert.equal(html.split(marker).length,2);
@@ -149,12 +149,39 @@ try{
   '보호 결과: 추가 조사 필요'
  ]);
  await shot(page,'actual-guard-result');
+ let positiveRestorePass=false;
+ if(protectedCorrectly){
+  // New non-race regression: a valid, confirmed fake backup must still restore.
+  await page.evaluate(async()=>{
+   delete window.__qa89Gate;
+   const db=window.__qa89db;
+   const base=await window.__qa89guards.baseline(db);
+   const photos=await window.__qa89guards.photo(db);
+   await window.__qa89guards.restore(
+    [{id:'qa89-verified',problemText:'검증된 합성 복원본',hasPhoto:true}],
+    {'qa89-verified':new Blob([new Uint8Array([99,98,97,96])],{type:'image/png'})},
+    {nickname:'복원가족',grade:4},base,photos,db);
+  });
+  const positive=await snapshot(page);
+  assert.equal(positive.rows.length,1);
+  assert.equal(positive.rows[0].id,'qa89-verified');
+  assert.equal(positive.photos.length,1);
+  assert.equal(positive.photos[0].id,'qa89-verified');
+  assert.deepEqual(positive.photos[0].bytes,[99,98,97,96]);
+  assert.equal(positive.settings.find(x=>x.id==='profile')?.value?.nickname,'복원가족');
+  positiveRestorePass=true;
+  await panel(page,'QA89 정상 가상 복원 호환성',[
+   '최종 바이트 검사 경합 차단: 통과',
+   '사진 변경이 없는 일반 복원: 기록 1건·사진 1건·프로필 검증',
+   '실사용 자료 및 외부 DB는 사용하지 않음']);
+  await shot(page,'valid-nonrace-restore-regression');
+ }
  const report={devSha:DEV,status:protectedCorrectly?'PROTECTION_PASS':raceExposed?'SAFETY_DEFECT_REPRODUCED':'INCONCLUSIVE',
   tested:'same-size-same-MIME-photo-only-write-after-SHA256-before-IDB-readwrite',
   actualAppGuards:true,photoBytesBefore:original.photos[0].bytes,
   photoBytesConcurrent:changed.photos[0].bytes,
   concurrentPhotoSha256:changedPhotoHash,
-  result,protectedCorrectly,raceExposed,recordWasReplaced,photoWasReplaced,
+  result,protectedCorrectly,raceExposed,recordWasReplaced,photoWasReplaced,positiveRestorePass,
   originalRows:original.rows.length,concurrentRows:changed.rows.length,afterRows:after.rows.length,
   photosUnchangedAfterRace:hash(changed.photos)===hash(after.photos),
   errors,external,safeToRestore:false,productionChanged:false,screens};
