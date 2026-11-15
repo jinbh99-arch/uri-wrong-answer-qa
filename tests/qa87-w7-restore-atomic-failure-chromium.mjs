@@ -104,7 +104,7 @@ try{
     "restore:(items,imgs,p,b,ph,target)=>v23RestoreWithPhotoCheck(items,imgs,p,b,ph,target,false)",
     "});"
    ].join('');
-   return route.fulfill({response,body:html.replace(marker,hooks+'\\n'+marker),
+   return route.fulfill({response,body:html.replace(marker,hooks+'\n'+marker),
     contentType:'text/html; charset=utf-8'});
   }
   if(u.startsWith(preview.url))return route.continue();
