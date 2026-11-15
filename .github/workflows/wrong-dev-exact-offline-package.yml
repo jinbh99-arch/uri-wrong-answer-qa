@@ -1,0 +1,36 @@
+name: WRONG dev exact offline HTML package for Jin
+on:
+  push:
+    branches: ['qa/wrong-dev-ui-offline-package-20261115-1845']
+    paths:
+      - '.github/workflows/wrong-dev-exact-offline-package.yml'
+permissions:
+  contents: read
+jobs:
+  package-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy the unmodified original HTML from confirmed dev SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+          mkdir -p preview-exact-dev
+          git show "$BASE:index.html" > preview-exact-dev/index.html
+          git show "$BASE:check.html" > preview-exact-dev/check.html
+          test "$(git hash-object preview-exact-dev/index.html)" = "$(git rev-parse "$BASE:index.html")"
+          test "$(git hash-object preview-exact-dev/check.html)" = "$(git rev-parse "$BASE:check.html")"
+          printf '%s\n' '우리아이 오답노트 원본 dev 웹 화면 / 코드 그대로' '원본 dev SHA40: 8bb3055d6af6e2537c32b89e3b054598c4bc7e51' '1) ZIP 내려받아 압축을 푸세요.' '2) index.html을 Chrome/Edge에서 여세요. 모바일에서는 파일 뷰어에 따라 스크립트가 제한될 수 있습니다.' '3) 저장 기능은 HTTPS 비공개 미리보기와 다릅니다. file://에서는 사진/OCR/IndexedDB가 제한될 수 있습니다.' '4) 실제 가족 자료를 입력하지 마세요. 이는 배포·가족 인증·실제 복원 검증이 아닙니다.' '5) 확인되지 않은 W7 사진 복원 경합이 있어 실제 백업 복원·삭제를 시험하지 마세요.' '본 QA 패키지는 코드 원본만 포함하며 실제 오답/사진/계정/DB/토큰은 포함하지 않습니다.' > preview-exact-dev/먼저읽기.txt
+          (cd preview-exact-dev && sha256sum index.html check.html > SHA256SUMS.txt)
+          find preview-exact-dev -maxdepth 1 -type f -printf '%f %s bytes\n'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WRONG-EXACT-dev-8bb3055-offline-HTML-not-deployment
+          path: preview-exact-dev/
+          retention-days: 7
+          if-no-files-found: error
+# This is exact source packaging only. No actual account, photo, storage or hosted deployment.
