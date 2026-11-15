@@ -109,13 +109,18 @@ try{
  await page.locator('#v230-save').click();
  await page.waitForFunction(()=>document.querySelector('#v25-learning-flow')?.textContent?.includes('일반 재풀이 기록 1회'),null,{timeout:15000});
  await page.locator('#v218-parent-mode').click();
- await page.locator('#v230-review').selectOption('needs_help');
- await page.locator('#v230-review-save').click();
- await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help');
+ // Follow the existing tested #check-save route before separately storing review.
  await page.locator('#check-status').selectOption('needs_help');
  await page.locator('#check-memo').fill(note1);
  await page.locator('#check-save').click();
- await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note1,{timeout:15000});
+ console.log('QA82_AFTER_NOTE1='+JSON.stringify({
+  history:(await page.locator('#check-history').textContent()).slice(0,350),
+  input:await page.locator('#check-memo').inputValue()
+ }));
+ await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note1,{timeout:12000});
+ await page.locator('#v230-review').selectOption('needs_help');
+ await page.locator('#v230-review-save').click();
+ await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='needs_help');
  const afterFirst=await snapshot(page);
  assert.equal(afterFirst.rows.length,1);
  assert.equal(afterFirst.rows[0].id,originalId);
@@ -131,13 +136,17 @@ try{
  await page.locator('#v230-save').click();
  await page.waitForFunction(()=>document.querySelector('#v25-learning-flow')?.textContent?.includes('일반 재풀이 기록 2회'),null,{timeout:15000});
  await page.locator('#v218-parent-mode').click();
- await page.locator('#v230-review').selectOption('explained');
- await page.locator('#v230-review-save').click();
- await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='explained');
  await page.locator('#check-status').selectOption('explained');
  await page.locator('#check-memo').fill(note2);
  await page.locator('#check-save').click();
- await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note2,{timeout:15000});
+ console.log('QA82_AFTER_NOTE2='+JSON.stringify({
+  history:(await page.locator('#check-history').textContent()).slice(0,350),
+  input:await page.locator('#check-memo').inputValue()
+ }));
+ await page.waitForFunction(value=>document.querySelector('#check-history')?.textContent?.includes(value),note2,{timeout:12000});
+ await page.locator('#v230-review').selectOption('explained');
+ await page.locator('#v230-review-save').click();
+ await page.waitForFunction(()=>document.querySelector('#v230-review')?.value==='explained');
  const nextDate=new Date(Date.now()+11*86400000).toISOString().slice(0,10);
  await page.locator('#wrong008-next-date').fill(nextDate);
  await page.locator('#wrong008-next-question').fill(question);
