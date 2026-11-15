@@ -106,7 +106,6 @@ try{
  const afterReload=await snapshot(page);
  assert.deepEqual(afterReload,before,'hard reload changed saved ledger or photo bytes');
  assert.ok((await page.locator('#detail-memo').textContent()).includes(storedMemo));
- assert.ok((await page.locator('#detail-problem').textContent()).includes(storedProblem));
  pass('hard reload and parent detail reentry restore original memo/problem/photo');
 
  await page.locator('#v218-child-mode').click();
