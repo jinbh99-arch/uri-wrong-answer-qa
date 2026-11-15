@@ -92,7 +92,18 @@ try{
 
  const future=new Date(Date.now()+11*86400000).toISOString().slice(0,10);
  await page.locator('#wrong008-next-date').focus();
- assert.equal(await page.locator('#wrong008-next-date').evaluate(el=>el===document.activeElement),true);
+ const focusDate=await page.evaluate(()=>{
+  const el=document.querySelector('#wrong008-next-date'),active=document.activeElement;
+  const css=el?getComputedStyle(el):null;
+  return {found:!!el,type:el?.type,disabled:el?.disabled,readOnly:el?.readOnly,
+   tabIndex:el?.tabIndex,visible:!!el?.getClientRects().length,
+   visibility:css?.visibility,display:css?.display,focused:active===el,
+   activeId:active?.id,activeTag:active?.tagName,
+   parentMode:document.querySelector('#v218-parent-mode')?.getAttribute('aria-pressed')};
+ });
+ console.log('QA86_DATE_FOCUS_DIAGNOSTIC='+JSON.stringify(focusDate));
+ if(!focusDate.focused)await shot(page,'date-focus-not-retained-zoom200');
+ assert.equal(focusDate.focused,true,'date input did not retain focus; see QA86_DATE_FOCUS_DIAGNOSTIC');
  await page.locator('#wrong008-next-date').fill(future); // deterministic date fixture
  await page.locator('#wrong008-next-question').focus();
  await page.keyboard.insertText(question);
