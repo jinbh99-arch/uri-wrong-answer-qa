@@ -19,7 +19,8 @@ function render(id){
   if(id==='W03'){body=body.replace('>3/4 + 1/4 = ?</textarea>','>'+esc(state.problem)+'</textarea>')}
   if(id==='W07'){body=body.replace('1 (가상 예시)',esc(state.answer||'미입력'))}
   if(id==='W08'){body=body.replace('id="parentNote" rows="3" placeholder="예: 그림 없이 분모의 뜻을 설명함"></textarea>','id="parentNote" rows="3" placeholder="예: 그림 없이 분모의 뜻을 설명함">'+esc(state.parentNote)+'</textarea>')}
-  if(id==='W09'){body=body.replace('value="2026-11-22"','value="'+esc(state.reviewDate)+'"')}
+  if(id==='W09'){body=body.replace('value="2026-11-22"','value="'+esc(state.reviewDate)+'"');body=body.replace('왜 분모가 같으면 분자는 더하고 분모는 그대로 둘까?',esc(state.reviewQuestion))}
+  if(id==='W10'&&state.parentNote.trim()){body=body.replace('<div class="notice">위의 수치는', '<div class="tile"><div class="tile-icon mint">📝</div><div><b>이번에 남긴 부모 관찰</b><small>'+esc(state.parentNote)+'</small></div></div><div class="notice">위의 수치는')}
   let nav=[['W01','⌂','홈'],['W02','▣','등록'],['W05','▤','목록'],['W10','▥','이력']];
   const active=['W01','W02','W03','W04'].includes(id)?(id==='W01'?'W01':'W02'):['W05','W06','W07'].includes(id)?'W05':'W10';
   const chrome='<div class="phone" data-screen="'+id+'"><div class="statusbar"><span>9:41</span><span class="island"></span><span>▰ ▴ ▮</span></div><header class="appbar"><div class="app-caption"><span>WOORI · WRONG NOTE</span><span>가상 체험</span></div><div class="app-name">우리아이 오답노트 ✦</div></header><div class="mode-strip"><span>내 컴퓨터 메모리 가상 체험</span><strong>'+(state.mode==='child'?'아이 보기 · 인증 아님':'부모 보기 · 인증 아님')+'</strong></div><main class="phone-content">'+body+'</main><nav class="bottomnav" aria-label="가상 시안 이동">'+nav.map(([n,i,t])=>'<a href="#" data-go="'+n+'" class="'+(active===n?'active':'')+'"><b>'+i+'</b>'+t+'</a>').join('')+'</nav></div>';
@@ -35,7 +36,13 @@ function render(id){
 document.addEventListener('click',event=>{
  const link=event.target.closest('[data-go]'); const action=event.target.closest('[data-action]');
  if(link){event.preventDefault();const id=link.dataset.go;
-   if(id==='W08'&&state.mode==='child'){alertUser('주의: 실제 서비스에서 부모 화면 전환에는 별도 인증이 필요합니다. 지금은 시안 미리보기로 이동합니다.')}
+   if(id==='W04'&&['W02','W03'].includes(state.id)){
+     if(state.id==='W03'){state.problem=document.getElementById('problem-text')?.value||state.problem;state.correct=document.getElementById('correct-answer')?.value||'1'}
+     state.saved=true;
+   }
+   if(id==='W09'&&state.id==='W08'){state.parentNote=document.getElementById('parentNote')?.value||state.parentNote;if(state.parentNote.trim())state.history.push({date:'11/15',what:'부모 관찰: '+state.parentNote})}
+   if(id==='W10'&&state.id==='W09'){state.reviewDate=document.getElementById('reviewDate')?.value||state.reviewDate;state.reviewQuestion=document.getElementById('nextQuestion')?.value||state.reviewQuestion}
+   if(id==='W08'&&state.mode==='child'){status.textContent='부모 화면 전환은 실제 서비스에서 인증이 필요합니다. 이 파일은 기획 시안만 표시합니다.'}
    render(id);return;
  }
  if(action){
