@@ -1,0 +1,48 @@
+name: WRONG QA83 two observations separate from manual future recheck
+on:
+  push:
+    branches: ['qa/wrong-observation-vs-future-recheck-20261115-1220']
+    paths:
+      - 'tests/qa83-parent-observation-vs-manual-recheck-chromium.mjs'
+      - '.github/workflows/wrong-qa83-separate-review-one-off.yml'
+permissions:
+  contents: write
+jobs:
+  one-new-distinction-path:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax of new QA83 ONLY
+        run: node --check tests/qa83-parent-observation-vs-manual-recheck-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run only NEW two observations versus scheduled future note
+        env:
+          WRONG_QA83_DEV_SHA: '6d13cce23146cf154345d3c43e92bc31dbb672e8'
+        run: node tests/qa83-parent-observation-vs-manual-recheck-chromium.mjs
+      - name: Remove one-time workflow after PASS, isolated branch only
+        run: |
+          test "$GITHUB_REF_NAME" = 'qa/wrong-observation-vs-future-recheck-20261115-1220'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/wrong-qa83-separate-review-one-off.yml
+          git diff --cached --check
+          git commit -m 'chore(qa83): delete one-off workflow after distinct parent history proof'
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Retain actual fake-only 320px screenshots, even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa83-parent-observations-vs-future-note-320px
+          path: qa-proof/qa83/*
+          retention-days: 7
+          if-no-files-found: warn
+# Never touches public/Netlify/main/real children; does not rerun passed QA82.
