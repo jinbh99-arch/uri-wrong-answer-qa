@@ -1,0 +1,37 @@
+name: WRONG QA90 WebKit locked photo-IDB restore regression
+on:
+  push:
+    branches: ['qa/wrong-w7-same-metadata-photo-race-20261115-1426']
+    paths:
+      - 'tests/qa90-w7-webkit-locked-transaction.mjs'
+      - '.github/workflows/wrong-qa90-webkit-restore.yml'
+permissions:
+  contents: read
+jobs:
+  webkit-locked-transaction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate only new QA90 test
+        run: node --check tests/qa90-w7-webkit-locked-transaction.mjs
+      - name: Install WebKit for new transaction behavior
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps webkit
+      - name: Test real app locked restore in 390px WebKit synthetic DB
+        env:
+          WRONG_QA90_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+        run: node tests/qa90-w7-webkit-locked-transaction.mjs
+      - name: Preserve browser proof for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa90-webkit-locked-photo-transaction-proof
+          path: qa-proof/qa90/*
+          retention-days: 7
+          if-no-files-found: warn
+# QA-only source branch, synthetic localhost WebKit, no actual backup, authentication or deployment.
