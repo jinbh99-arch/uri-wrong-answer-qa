@@ -1,0 +1,37 @@
+name: WRONG QA92 actual Chromium 200 percent browser tab zoom
+on:
+  push:
+    branches: ['qa/wrong-w9-native-browser-zoom200-20261115-2151']
+    paths:
+      - 'tests/qa92-w9-native-browser-zoom-chromium.mjs'
+      - '.github/workflows/wrong-qa92-native-zoom.yml'
+permissions:
+  contents: read
+jobs:
+  native-zoom-and-keyboard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check new one-time browser zoom test
+        run: node --check tests/qa92-w9-native-browser-zoom-chromium.mjs
+      - name: Install extension-enabled Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test actual browser tab zoom200 and keyboard record/recheck
+        env:
+          WRONG_QA92_DEV_SHA: '8bb3055d6af6e2537c32b89e3b054598c4bc7e51'
+        run: node tests/qa92-w9-native-browser-zoom-chromium.mjs
+      - name: Preserve PNGs and native zoom measurements even when red
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa92-native-browser-zoom200-chromium-320css-proof
+          path: qa-proof/qa92/*
+          retention-days: 7
+          if-no-files-found: warn
+# Isolated branch, no hosted deployment; does NOT use CSS zoom.
