@@ -97,19 +97,36 @@ try{
  assert.match(await page.locator('#wrong-qa66-preview-meta').innerText(),new RegExp(SHA));
  assert.equal(await page.evaluate(()=>typeof window.__qa90g.restore),'function');
  const dbName='wrong-qa90-webkit-'+randomBytes(7).toString('hex');
- await page.evaluate(async name=>{
-  const r=indexedDB.open(name,1);
-  const db=await new Promise((ok,no)=>{
-   r.onupgradeneeded=()=>{for(const k of ['mistakes','photos','settings'])r.result.createObjectStore(k)};
-   r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);
-  });
-  window.__qa90db=db;window.__qa90name=name;
-  const t=db.transaction(['mistakes','photos','settings'],'readwrite');
-  t.objectStore('mistakes').put({id:'qa90-old',problemText:'가상 WebKit 원본',hasPhoto:true},'qa90-old');
-  t.objectStore('photos').put(new Blob([new Uint8Array(256*1024).fill(43)],{type:'image/png'}),'qa90-old');
-  t.objectStore('settings').put({nickname:'원래',grade:3,subject:'math'},'profile');
-  await new Promise((ok,no)=>{t.oncomplete=ok;t.onerror=()=>no(t.error);t.onabort=()=>no(t.error)});
+ const init=await page.evaluate(async name=>{
+  let stage='open-request';
+  try{
+   if(!indexedDB)return {ok:false,stage,detail:'indexedDB missing'};
+   const r=indexedDB.open(name,1);
+   const db=await new Promise((ok,no)=>{
+    r.onupgradeneeded=()=>{stage='create-stores';for(const k of ['mistakes','photos','settings'])r.result.createObjectStore(k)};
+    r.onsuccess=()=>ok(r.result);
+    r.onerror=()=>no(Error('IDB_OPEN_ERROR '+String(r.error?.name||'null')+' '+String(r.error?.message||'')));
+    r.onblocked=()=>no(Error('IDB_OPEN_BLOCKED'));
+   });
+   window.__qa90db=db;window.__qa90name=name;
+   stage='seed-readwrite';
+   const t=db.transaction(['mistakes','photos','settings'],'readwrite');
+   t.objectStore('mistakes').put({id:'qa90-old',problemText:'가상 WebKit 원본',hasPhoto:true},'qa90-old');
+   stage='seed-blob';
+   t.objectStore('photos').put(new Blob([new Uint8Array(256*1024).fill(43)],{type:'image/png'}),'qa90-old');
+   stage='seed-settings';
+   t.objectStore('settings').put({nickname:'원래',grade:3,subject:'math'},'profile');
+   stage='seed-commit';
+   await new Promise((ok,no)=>{
+    t.oncomplete=ok;
+    t.onerror=()=>no(Error('IDB_SEED_ERROR '+String(t.error?.name||'null')+' '+String(t.error?.message||'')));
+    t.onabort=()=>no(Error('IDB_SEED_ABORT '+String(t.error?.name||'null')+' '+String(t.error?.message||'')));
+   });
+   return {ok:true,stage:'seed-complete',stores:[...db.objectStoreNames]};
+  }catch(e){return {ok:false,stage,name:e?.name||'unknown',detail:String(e?.message||e)}}
  },dbName);
+ console.log('QA90_INIT='+JSON.stringify(init));
+ assert.equal(init.ok,true,'WebKit synthetic DB setup failed: '+JSON.stringify(init));
  const initial=await snap(page);
  assert.equal(initial.photos[0][2].length,262144);
  pass('WebKit 390px has actual app guards and private 256KiB photo source');
