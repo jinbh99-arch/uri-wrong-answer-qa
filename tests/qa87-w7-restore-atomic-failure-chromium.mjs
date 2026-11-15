@@ -36,8 +36,8 @@ async function snapshot(page){
 function digest(obj){return createHash('sha256').update(JSON.stringify(obj)).digest('hex')}
 async function marks(page){
  return page.evaluate(async()=>({
-  base:await v22CaptureRestoreBaseline(window.__qa87db),
-  photos:await v23CapturePhotoFingerprints(window.__qa87db)
+  base:await window.__qa87guards.capture(window.__qa87db),
+  photos:await window.__qa87guards.photos(window.__qa87db)
  }));
 }
 async function restoreAttempt(page,mark,uncloneable=false){
@@ -51,8 +51,8 @@ async function restoreAttempt(page,mark,uncloneable=false){
    [two.id]:new Blob([new Uint8Array([9,8,7])],{type:'image/png'})
   };
   try{
-   await v23RestoreWithPhotoCheck(items,imgs,{nickname:'가상 부모',grade:3},
-    mark.base,mark.photos,db,false);
+   await window.__qa87guards.restore(items,imgs,{nickname:'가상 부모',grade:3},
+    mark.base,mark.photos,db);
    return {ok:true};
   }catch(error){return {ok:false,code:error?.code||null,
     name:error?.name||null,message:String(error?.message||error).slice(0,180)}}
@@ -90,8 +90,24 @@ try{
   httpCredentials:{username,password},acceptDownloads:false});
  const page=await ctx.newPage(),errors=[],external=[];
  page.on('pageerror',e=>errors.push(String(e)));
- await page.route('**/*',route=>{
-  const u=route.request().url();if(u.startsWith(preview.url))return route.continue();
+ await page.route('**/*',async route=>{
+  const u=route.request().url();
+  if(u===preview.url&&route.request().resourceType()==='document'){
+   const response=await route.fetch();
+   const html=await response.text();
+   const marker='// ===== v0.4 optional OCR + local persistence navigation test =====';
+   assert.equal(html.split(marker).length,2,'expected unique probe seam in inline app script');
+   const hooks=[
+    "window.__qa87guards=Object.freeze({",
+    "capture:(target)=>v22CaptureRestoreBaseline(target),",
+    "photos:(target)=>v23CapturePhotoFingerprints(target),",
+    "restore:(items,imgs,p,b,ph,target)=>v23RestoreWithPhotoCheck(items,imgs,p,b,ph,target,false)",
+    "});"
+   ].join('');
+   return route.fulfill({response,body:html.replace(marker,hooks+'\\n'+marker),
+    contentType:'text/html; charset=utf-8'});
+  }
+  if(u.startsWith(preview.url))return route.continue();
   if(!u.startsWith('data:')&&!u.startsWith('blob:'))external.push(u);
   return route.abort();
  });
@@ -117,9 +133,9 @@ try{
   await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onabort=()=>no(tx.error);tx.onerror=()=>no(tx.error)});
   return {testDb:true,stores:[...db.objectStoreNames]};
   function assertRestoreFns(){
-   if(typeof v22CaptureRestoreBaseline!=='function'||
-      typeof v23CapturePhotoFingerprints!=='function'||
-      typeof v23RestoreWithPhotoCheck!=='function')
+   if(typeof window.__qa87guards?.capture!=='function'||
+      typeof window.__qa87guards?.photos!=='function'||
+      typeof window.__qa87guards?.restore!=='function')
     throw Error('Actual app guard functions unavailable');
   }
  });
