@@ -48,10 +48,16 @@ async function childAudit(page){
   const visible=document.body.innerText||'';
   const allValues=[...document.querySelectorAll('input,textarea,select')].map(el=>String(el.value||''));
   const has=value=>text.includes(value)||visible.includes(value)||allValues.some(x=>x.includes(value));
+  const hits=[...document.querySelectorAll('body *')]
+   .filter(el=>el.children.length===0&&/(학부모 확인:|학부모 관찰:)/.test(el.textContent||''))
+   .slice(0,12).map(el=>({
+    tag:el.tagName,id:el.id,classes:typeof el.className==='string'?el.className:'',
+    parent:el.parentElement?.id||'',text:(el.textContent||'').slice(0,200)
+   }));
   const attempts=[...document.querySelectorAll('#v25-learning-flow .v230-attempt')];
   return {
    parentMemoLeak:has(data.memo),
-   parentObservationTextLeak:text.includes('학부모 확인:')||text.includes('학부모 관찰:'),
+   parentObservationTextLeak:text.includes('학부모 확인:')||text.includes('학부모 관찰:'),observationHitNodes:hits,
    parentComparisonPanelPresent:!!document.querySelector('#wrong-parent-retry-comparison'),
    parentReviewPanelPresent:!!document.querySelector('#v25-learning-flow .v230-parent-review'),
    nextReviewPanelPresent:!!document.querySelector('#wrong008-next-review'),
@@ -143,6 +149,7 @@ try{
  assert.equal(await page.locator('#v218-child-mode').getAttribute('aria-pressed'),'true');
  const first=await childAudit(page);audits.push({step:'child-direct',...first});
  console.log('QA82_CHILD_AUDIT_DIRECT='+JSON.stringify(first));
+ await capture(page,'child-two-retries-before-dom-verdict');
  assert.equal(leakFree(first),true,'parent-only texts/panels retained in child DOM after two retries');
  assert.equal(first.retries,2,'two child retry history items not visible');
  assert.equal(first.childFirstVisible,true);assert.equal(first.childSecondVisible,true);
