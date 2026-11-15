@@ -116,6 +116,9 @@ try{
   page.removeAllListeners('dialog');
   page.on('dialog',d=>d.accept());
   await page.locator('#cancel-edit').click();
+  // The app uses its own <dialog>, not window.confirm: accept the explicit discard.
+  await page.locator('#confirm-dialog[open]').waitFor({timeout:5000});
+  await page.locator('#dlg-ok').click();
   await page.waitForFunction(text=>document.querySelector('#detail-memo')?.textContent?.includes(text),saved);
   assert.deepEqual(await snapshot(page),before,'cancelling draft altered the original IDB record');
   await page.locator('#v218-child-mode').click();
