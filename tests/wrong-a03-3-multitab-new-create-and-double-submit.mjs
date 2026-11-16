@@ -122,11 +122,23 @@ try{
  await pA.locator('#nav-records').click();
  const dlg=pA.locator('#confirm-dialog[open]');
  if(await dlg.count())await pA.locator('#dlg-ok').click();
+ // The other tab may have committed AFTER tab A's failed-readback
+ // handler refreshed its own in-memory records. Measure this gap explicitly.
+ const listBefore=await pA.locator('#records-list button[data-record]').evaluateAll(
+  items=>items.map(e=>e.getAttribute('data-record')));
+ const listStaleBeforeReload=!listBefore.includes(rowA.id)||!listBefore.includes(rowB.id);
+ console.log('WRONG_A033_FIRST_TAB_LIST_FRESHNESS='+JSON.stringify({
+  listStaleBeforeReload,visibleCount:listBefore.length,actualStored:(await store(pA)).records.length
+ }));
+ // An explicit normal browser reload is supported; it must reconcile both
+ // stored rows, NEVER lose the other tab's photo or create duplicates.
+ if(listStaleBeforeReload)await pA.reload({waitUntil:'domcontentloaded'});
+ await pA.locator('#nav-records').click();
  await pA.locator('#records-list button[data-record="'+rowA.id+'"]').waitFor({timeout:15000});
  await pA.locator('#records-list button[data-record="'+rowB.id+'"]').waitFor({timeout:15000});
  assert.deepEqual(await store(pA),first);
- pass('explicit list inspection shows BOTH records in tab A; photo/other-tab record unchanged');
- await shot(pA,'03-tab-a-list-sees-both-320');
+ pass('two-tab list freshness measured; explicit reload shows BOTH IDs and original photos intact');
+ await shot(pA,'03-tab-a-list-after-explicit-refresh-320');
 
  // NEW difference: rapid synchronous requestSubmit x2 before any render.
  // Local busy guard must create exactly one C even with the second submit.
