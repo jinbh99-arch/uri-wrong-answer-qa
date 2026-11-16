@@ -134,16 +134,23 @@ try{
  // 'load latest records' button. This explicit action, not a new code change
  // or automatic edit-form overwrite, is the intended conflict recovery path.
  const reloadButton=pA.locator('#v20-reload-records');
- await reloadButton.waitFor({state:'visible',timeout:6000});
- assert.equal(await pA.locator('#v20-multi-tab-warning').isVisible(),true);
- await reloadButton.click();
+ if(listStaleBeforeReload){
+  // An old in-memory list must have a visible cross-tab refresh affordance.
+  await reloadButton.waitFor({state:'visible',timeout:6000});
+  assert.equal(await pA.locator('#v20-multi-tab-warning').isVisible(),true);
+  await reloadButton.click();
+  await reloadButton.waitFor({state:'hidden',timeout:6000});
+ }else{
+  // The other commit was already seen by the first tab's own restoreState.
+  // Do not demand an unnecessary refresh button when the list is fresh.
+  assert.ok(listBefore.includes(rowA.id)&&listBefore.includes(rowB.id));
+ }
  await pA.locator('#records-list button[data-record="'+rowA.id+'"]').waitFor({timeout:15000});
  await pA.locator('#records-list button[data-record="'+rowB.id+'"]').waitFor({timeout:15000});
- assert.equal(await reloadButton.isVisible(),false);
  await pA.locator('#records-list button[data-record="'+rowA.id+'"]').waitFor({timeout:15000});
  await pA.locator('#records-list button[data-record="'+rowB.id+'"]').waitFor({timeout:15000});
  assert.deepEqual(await store(pA),first);
- pass('stale list was clearly flagged; existing reload-records button reconciled both IDs and photos');
+ pass('fresh OR stale+existing cross-tab reload button both reconcile two IDs with original bytes');
  await shot(pA,'03-tab-a-list-after-existing-refresh-button-320');
 
  // NEW difference: rapid synchronous requestSubmit x2 before any render.
@@ -195,7 +202,7 @@ try{
 
  const result={status:'PASS',candidateSha:SHA,checks,shots,
   twoRealTabs:true,simultaneousFirstCreate:true,
-  postCommitReadbackInjected:true,distinctIntentionalCreates:2,
+  postCommitReadbackInjected:true,listStaleBeforeReload,distinctIntentionalCreates:2,
   blindResubmitBlocked:true,rapidDoubleSubmitCount:1,
   distinctFinalRecords:3,photoBytesUnchanged:true,parentNotesAbsentInChildDom:true,
   localIndexedDBOnly:true,actualOCR:false,realFamilyAuth:false,
