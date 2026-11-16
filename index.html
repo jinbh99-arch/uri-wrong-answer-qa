@@ -873,7 +873,20 @@ document.addEventListener('qa34:family-locked',()=>{
  const file=document.getElementById('import-file');if(file)file.value='';
 });
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
-function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
+function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records'){
+ renderRecords();
+ // A-03-3: after a NEW create's committed-but-unconfirmed readback, the
+ // in-memory list may lag a separate tab's independent commit. This is a
+ // read-only refresh on entering records, never a retry or merge/write.
+ if(wrongA03UnknownCreateId){
+  $('records-count').textContent='저장 여부 확인 중 · 브라우저의 최신 오답 목록을 다시 읽고 있습니다.';
+  restoreState().then(()=>{
+   if(route==='records')renderRecords();
+  }).catch(()=>{
+   if(route==='records')$('records-count').textContent='최신 목록을 읽지 못했습니다. 브라우저를 새로고침한 뒤 기록을 확인하세요.';
+  });
+ }
+}if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
 function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);
  if(container==='records-list'){
