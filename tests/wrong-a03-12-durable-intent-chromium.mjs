@@ -186,8 +186,27 @@ async function caseReopen(ctx){
  await assertPendingBlocked(page,first);
  await screenshot(page,'04-tab-reopen-locked',390);
  await verifyViaList(page,first);
+ assert.match(await page.locator('#storage-state').innerText(),/저장소 연결/,'Reopened app must be writable after safe journal check');
  assert.equal((await ledger(page)).records.length,1);
- return {pendingPersistedAcrossTabClose:true,receiptConfirmedWithoutReplay:true};
+ // NEW beyond previous reopen check: after the verified receipt, a DIFFERENT
+ // intent in the same newly reopened tab must save successfully.
+ await page.locator('#nav-add').click();
+ assert.equal(await page.locator('#save-btn').isDisabled(),false);
+ await page.locator('#wrong007-grade').selectOption('3');
+ await page.locator('#wrong007-subject').selectOption('science');
+ await page.locator('#problem').fill('A0312 재접속 후 별도 의도: 태양계 밖의 별');
+ await page.locator('#memo').fill('A0312 두 번째 독립 등록');
+ await page.locator('#save-btn').click();
+ await page.waitForFunction(()=>!document.querySelector('#page-detail')?.classList.contains('hide'),null,{timeout:15000});
+ const after=await ledger(page);
+ assert.equal(after.records.length,2);
+ assert.equal(after.photos.length,1);
+ assert.equal(after.marker,null);
+ assert.deepEqual(after.records.find(x=>x.id===first.records[0].id),first.records[0]);
+ assert.deepEqual(after.photos[0],first.photos[0]);
+ await screenshot(page,'04b-reopen-verified-new-intent',390);
+ return {pendingPersistedAcrossTabClose:true,receiptConfirmedWithoutReplay:true,
+  reopenedStorageHealthy:true,newDistinctIntentAfterReopen:true,originalPhotoBytesStable:true};
 }
 async function caseSibling(ctx){
  const a=await setupPage(ctx),b=await setupPage(ctx);
