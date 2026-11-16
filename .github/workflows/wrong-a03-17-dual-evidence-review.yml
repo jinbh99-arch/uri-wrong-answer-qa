@@ -1,0 +1,38 @@
+name: WRONG A03-17 two evidence files manual review no repair
+on:
+  push:
+    branches: ['qa/wrong-a03-17-two-evidence-review-20261117-0050']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a03-17-dual-evidence-review-chromium.mjs'
+      - '.github/workflows/wrong-a03-17-dual-evidence-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dual-raw-evidence-only-new:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin isolated app and syntax
+        run: |
+          test "$(git hash-object index.html)" = "f8361d6176d1ab54501fb6d701d4bfb04eb46b1b"
+          node --check tests/wrong-a03-17-dual-evidence-review-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Two raw files / duplicate / photo tamper / stale snapshots / receipt lock
+        run: node tests/wrong-a03-17-dual-evidence-review-chromium.mjs
+      - name: Capture focused 320 and 390 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-17-two-evidence-review-320-390
+          path: qa-proof/wrong-a03-17/**/*
+          retention-days: 7
+          if-no-files-found: warn
