@@ -1,0 +1,39 @@
+name: WRONG A03-6 only photo rejection and menu reentry
+on:
+  push:
+    branches: ['qa/wrong-a03-6-two-boundaries-20261116']
+    paths:
+      - 'tests/wrong-a03-6-two-boundaries-chromium.mjs'
+      - '.github/workflows/wrong-a03-6-two-boundaries.yml'
+      - 'index.html'
+permissions:
+  contents: read
+jobs:
+  two-new-boundaries-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate NEW isolated boundary test syntax only
+        run: node --check tests/wrong-a03-6-two-boundaries-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Execute two previously UNTESTED edge cases only
+        env:
+          WRONG_A036_DEV_SHA: '3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b'
+          WRONG_A036_PHASE: ${{ contains(github.event.head_commit.message, '[fixed]') && 'fixed' || 'baseline' }}
+        run: node tests/wrong-a03-6-two-boundaries-chromium.mjs
+      - name: Preserve new evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-6-two-boundaries-synthetic-320-390
+          path: qa-proof/wrong-a03-6/**/*
+          retention-days: 7
+          if-no-files-found: warn
+# No A03-3, A03-5 or old A01/A02/QA78+ rerun. No production or restoration.
