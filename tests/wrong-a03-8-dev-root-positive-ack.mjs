@@ -126,6 +126,20 @@ async function main(){
  // NEW boundary: explicit fresh records-list read discovers the exact
  // committed ID and releases only this uncertain create lock.
  await page.locator('#nav-records').click();
+ await page.waitForTimeout(350);
+ const pendingDialog=page.locator('#confirm-dialog[open]');
+ result.navigationHadConfirm=Boolean(await pendingDialog.count());
+ if(result.navigationHadConfirm)await page.locator('#dlg-ok').click();
+ await page.waitForTimeout(350);
+ result.navigationDebug=await page.evaluate(()=>({
+  recordsVisible:!document.querySelector('#page-records')?.classList.contains('hide'),
+  addVisible:!document.querySelector('#page-add')?.classList.contains('hide'),
+  recordsCount:document.querySelector('#records-count')?.textContent,
+  listItems:document.querySelectorAll('#records-list [data-record]').length,
+  dialogOpen:document.querySelector('#confirm-dialog')?.open,
+  recordsText:(document.querySelector('#records-list')?.textContent||'').slice(0,260)
+ }));
+ await screenshot(page,'02-records-navigation-debug-320');
  await page.waitForFunction(()=>{
   const text=document.querySelector('#records-count')?.textContent||'';
   return !text.includes('저장 여부 확인 중')&&document.querySelectorAll('[data-record]').length>0;
