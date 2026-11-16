@@ -1,0 +1,33 @@
+name: WRONG A03-5 source-impact and rollback contract only
+on:
+  push:
+    branches: ['qa/wrong-a03-new-entry-ack-gap-20261116-1036']
+    paths:
+      - 'tests/wrong-a03-5-static-impact-rollback.mjs'
+      - '.github/workflows/wrong-a03-5-static-impact.yml'
+permissions:
+  contents: read
+jobs:
+  a03-5-static-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check only new static contract
+        run: node --check tests/wrong-a03-5-static-impact-rollback.mjs
+      - name: Source diff, protected storage functions, reverse-patch check
+        run: node tests/wrong-a03-5-static-impact-rollback.mjs
+      - name: Archive JSON static proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-5-static-scope-and-reverse-check
+          path: qa-proof/wrong-a03-5/*
+          retention-days: 7
+          if-no-files-found: warn
+# No Chromium, earlier QA rerun, server, merge, web deploy, or actual restore.
