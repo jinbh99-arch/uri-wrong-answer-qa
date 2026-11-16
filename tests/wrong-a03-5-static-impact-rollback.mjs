@@ -1,7 +1,9 @@
 // WRONG A-03-5: dev-vs-candidate STATIC scope and reverse-patch acceptance.
 // Node built-in only, no browser, child data, DB, server, app writes or deployment.
 import assert from 'node:assert/strict';
-import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {readFileSync,mkdirSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {execFileSync,spawnSync} from 'node:child_process';
 const base='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b';
 const path='index.html';
@@ -48,6 +50,19 @@ check('candidate reverse patch applies cleanly without changing tree',()=>{
  assert.equal(reverse.status,0,reverse.stderr||reverse.stdout);
  assert.equal(readFileSync(path,'utf8'),current);
 });
+check('reverse patch restores exact original HTML bytes in disposable temp dir',()=>{
+ const tmp=mkdtempSync(join(tmpdir(),'wrong-a035-rollback-'));
+ try{
+  const tmpIndex=join(tmp,path);
+  writeFileSync(tmpIndex,current,'utf8');
+  const result=spawnSync('git',['apply','--reverse','-'],{
+   cwd:tmp,input:patch,encoding:'utf8'
+  });
+  assert.equal(result.status,0,result.stderr||result.stdout);
+  assert.equal(readFileSync(tmpIndex,'utf8'),original,'reverse patch not byte-identical to pinned dev');
+  assert.equal(readFileSync(path,'utf8'),current,'product candidate altered by temp reverse trial');
+ }finally{rmSync(tmp,{recursive:true,force:true})}
+});
 const risks={
  photoConversionOutsideProtectedTry:current.includes("wrongA03SaveBusy=true;const id=")&&current.includes('blob=image?await photoBlob():null;'),
  freshAddRouteResetsUnknownId:current.includes('function renderAdd(){wrongA03SaveBusy=false;wrongA03UnknownCreateId=null;'),
@@ -62,7 +77,7 @@ const result={
  status:'PASS',kind:'static-only-NOT-browser-QA',devSha:base,qaHead:sha,
  checks:checks.length,checkNames:checks,hunks:hunk,additions:Number(stats[0]),
  deletions:Number(stats[1]),changedProductFiles:product,otherChanges:names.filter(x=>!product.includes(x)),
- reversePatchCheck:'PASS-read-only-no-files-changed',newRisksNotResolved:risks,
+ reversePatchCheck:'PASS-temporary-reverse-apply-byte-identical-to-pinned-dev',newRisksNotResolved:risks,
  mergerAuthorized:false,productionSourceChanged:false,safeToRestore:false,
  noPriorChromiumOrOlderQARerun:true,
  next:'00/Jin decision after acceptance of unresolved photo conversion and navigation caveats'
