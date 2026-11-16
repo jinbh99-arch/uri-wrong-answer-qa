@@ -1,0 +1,23 @@
+name: WRONG A03-8 dev selective patch preflight (non-merge)
+on:
+  push:
+    branches:
+      - qa/wrong-a03-8-dev-selective-preflight-20261116-1920
+  workflow_dispatch:
+jobs:
+  dev-preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout isolated dev-rooted QA
+        uses: actions/checkout@v4
+      - name: Check selective patch conflict and disposable rollback only
+        run: node --test tests/wrong-a03-8-dev-selective-preflight.test.mjs
+      - name: Archive non-deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-8-selective-preflight
+          path: artifacts/a03-8-selective-preflight.json
+          if-no-files-found: warn
