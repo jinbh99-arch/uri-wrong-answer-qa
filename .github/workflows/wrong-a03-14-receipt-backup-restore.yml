@@ -1,0 +1,37 @@
+name: WRONG A03-14 pending receipt backup restore and strict allowlist
+on:
+  push:
+    branches: ['qa/wrong-a03-14-receipt-backup-restore-20261116-2214']
+    paths:
+      - 'tests/wrong-a03-14-receipt-backup-restore-chromium.mjs'
+      - '.github/workflows/wrong-a03-14-receipt-backup-restore.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  new-backup-restore-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and scope (no application edit)
+        run: |
+          node --check tests/wrong-a03-14-receipt-backup-restore-chromium.mjs
+          git diff --exit-code 69099fa495a881b5a94d38224e36f9bee4158a39 HEAD -- index.html
+      - name: Install only Chromium for synthetic runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New pending-receipt backup/restore + corrupt-id fail-close browser cases
+        run: node tests/wrong-a03-14-receipt-backup-restore-chromium.mjs
+      - name: Save screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-14-receipt-backup-restore-320-390
+          path: qa-proof/wrong-a03-14/**/*
+          retention-days: 7
+          if-no-files-found: warn
