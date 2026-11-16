@@ -73,11 +73,13 @@ async function fill(page,txt){
 }
 async function injectPhotoRejectOnce(page){
  await page.evaluate(()=>{
-  const original=photoBlob;
+  // photoBlob is closed over inside the app IIFE. Its canvas drawing API
+  // is the actual rejection seam: throwing in a Promise executor rejects it.
+  const original=CanvasRenderingContext2D.prototype.drawImage;
   window.__a036Photo={called:0};
-  photoBlob=async function(){
+  CanvasRenderingContext2D.prototype.drawImage=function(...args){
    window.__a036Photo.called++;
-   photoBlob=original;
+   CanvasRenderingContext2D.prototype.drawImage=original;
    throw Error('A036_SYNTHETIC_PHOTO_CONVERSION_REJECT_ONCE');
   };
  });
@@ -97,9 +99,6 @@ async function injectReadbackOnce(page){
 }
 async function flags(page){
  return page.evaluate(()=>({
-  coreBusy:wrongA03SaveBusy,
-  wrapperBusy:v13SaveBusy,
-  unknownId:wrongA03UnknownCreateId,
   saveDisabled:document.querySelector('#save-btn').disabled,
   formVisible:!document.querySelector('#page-add').classList.contains('hide'),
   error:document.querySelector('#form-error').textContent,
@@ -124,19 +123,17 @@ async function entryCaseA(ctx){
  const retried=await ledger(page),afterRetry=await flags(page);
  const rescued=retried.records.length===1&&retried.photos.length===1&&
   retried.records[0].id===retried.photos[0].id;
- const locked=rejected.coreBusy||(!rescued&&retried.records.length===0);
- assert.equal(rejected.wrapperBusy,false,'outer submission wrapper must clear its own lock');
- assert.equal(rejected.coreBusy,false,'core busy must release after rejected conversion');
- assert.equal(rescued,true,'second normal submit must save exactly one record/photo');
- assert.equal(retried.records[0].problemText,TEXT_A);
- assert.equal(retried.records[0].memo,MEMO);
- assert.equal(retried.photos[0].bytes.length>0,true);
+ const locked=!rescued&&retried.records.length===0;
  await shot(page,'A-normal-retry-320');
  await page.setViewportSize({width:390,height:844});
  await shot(page,'A-normal-retry-390');
  outcomes.A={rejected,retriedState:afterRetry,locked,firstLedger:atFailure,
   finalIds:retried.records.map(r=>r.id),photoBytes:retried.photos.map(x=>x.bytes.length),
   caughtInjection:pageErrors.filter(x=>x.includes('A036_SYNTHETIC_PHOTO_CONVERSION_REJECT_ONCE'))};
+ assert.equal(rescued,true,'second normal submit must save exactly one record/photo');
+ assert.equal(retried.records[0].problemText,TEXT_A);
+ assert.equal(retried.records[0].memo,MEMO);
+ assert.equal(retried.photos[0].bytes.length>0,true);
  assert.equal(pageErrors.filter(x=>!x.includes('A036_SYNTHETIC_PHOTO_CONVERSION_REJECT_ONCE')).length,0);
  await page.close();
 }
@@ -175,10 +172,6 @@ async function entryCaseB(ctx){
  await page.locator('#mistake-form').evaluate(x=>x.requestSubmit());
  await page.waitForTimeout(1100);
  const after=await ledger(page),afterFlags=await flags(page);
- assert.deepEqual(after.records,first.records,'no new ID or overwrite before checking records list');
- assert.deepEqual(after.photos,first.photos,'original photo blob bytes must remain identical');
- assert.equal(beforeLeave.unknownId,first.records[0].id);
- assert.equal(reentry.unknownId,first.records[0].id,'unknown create ID must remain guarded until records inspection');
  await shot(page,'B-menu-reentry-before-list-320');
  await page.setViewportSize({width:390,height:844});
  await shot(page,'B-menu-reentry-before-list-390');
@@ -186,7 +179,12 @@ async function entryCaseB(ctx){
  assert.ok(dims.scroll<=dims.w+2,'390px horizontal overrun');
  outcomes.B={firstId:first.records[0].id,beforeLeave,reentry,afterFlags,
   finalIds:after.records.map(r=>r.id),
-  photoBytesPreserved:true,actualReadbackInjected:true,readonlyFails:1,menuReentryWithoutList:true};
+  photoBytesPreserved:JSON.stringify(after.photos)===JSON.stringify(first.photos),
+  actualReadbackInjected:true,readonlyFails:1,menuReentryWithoutList:true};
+ assert.deepEqual(after.records,first.records,'no new ID or overwrite before checking records list');
+ assert.deepEqual(after.photos,first.photos,'original photo blob bytes must remain identical');
+ assert.equal(beforeLeave.saveDisabled,true,'unconfirmed form should be locked');
+ assert.equal(reentry.saveDisabled,true,'the lock must persist without list inspection');
  assert.deepEqual(pageErrors,[]);
  await page.close();
 }
