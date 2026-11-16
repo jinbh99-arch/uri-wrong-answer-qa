@@ -1,0 +1,38 @@
+name: WRONG A03-8 dev-root scoped composition positive ACK release
+on:
+  push:
+    branches:
+      - qa/wrong-a03-8-dev-selective-preflight-20261116-1920
+    paths:
+      - tests/fixtures/a03-8-dev-to-predecessor-guard.patch
+      - tests/fixtures/a03-6-selective-index-only.patch
+      - tests/wrong-a03-8-dev-root-positive-ack.mjs
+      - .github/workflows/wrong-a03-8-dev-root-positive.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  positive-ack-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check for new case
+        run: node --check tests/wrong-a03-8-dev-root-positive-ack.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Compose dev-root code in disposable runner and validate NEW positive ACK lock release
+        run: node tests/wrong-a03-8-dev-root-positive-ack.mjs
+      - name: Save evidence even if verification fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-8-dev-root-positive-ack-320-390
+          path: qa-proof/wrong-a03-8-positive-ack/**/*
+          retention-days: 7
+          if-no-files-found: warn
