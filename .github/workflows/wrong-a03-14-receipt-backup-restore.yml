@@ -26,9 +26,9 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Inspect only unverified valid export then pending receipt backup restore
+      - name: Inspect only malformed receipt missing-ID strict fail-close
         env:
-          A0314_CASE: backupRestorePending
+          A0314_CASE: malformedReceiptFailClosed
         run: node tests/wrong-a03-14-receipt-backup-restore-chromium.mjs
       - name: Save screenshots and JSON
         if: always()
