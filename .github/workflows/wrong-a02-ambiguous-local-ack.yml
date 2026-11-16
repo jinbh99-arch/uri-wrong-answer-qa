@@ -1,0 +1,37 @@
+name: WRONG A02 ambiguous local readback and retry (isolated)
+on:
+  push:
+    branches: ['qa/wrong-a02-ambiguous-local-ack-retry-20261116-1022']
+    paths:
+      - 'tests/wrong-a02-ambiguous-idb-readback-retry.mjs'
+      - '.github/workflows/wrong-a02-ambiguous-local-ack.yml'
+permissions:
+  contents: read
+jobs:
+  wrong-a02-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check ONLY new A02
+        run: node --check tests/wrong-a02-ambiguous-idb-readback-retry.mjs
+      - name: Install Chromium only
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: A02 real local app with injected one-time post-commit readback loss
+        env:
+          WRONG_A02_DEV_SHA: '3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b'
+        run: node tests/wrong-a02-ambiguous-idb-readback-retry.mjs
+      - name: Preserve synthetic proof even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a02-local-readback-ambiguous-child-parent-retry-320-390
+          path: qa-proof/wrong-a02/*
+          retention-days: 7
+          if-no-files-found: warn
+# No older QA/CI rerun. No server ACK, production deployment, or restore.
