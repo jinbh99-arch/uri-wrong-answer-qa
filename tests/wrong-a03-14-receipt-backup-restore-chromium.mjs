@@ -101,21 +101,27 @@ async function create(page,problem,memo,ackLost=false){
  }
  return ledger(page);
 }
-async function validatedExport(page,expected){
- await page.evaluate(()=>{
-  if(!window.__a0314Exports){
-   window.__a0314Exports=[];
-   document.addEventListener('qa34:validated-synthetic-export',e=>window.__a0314Exports.push(e.detail));
-  }
- });
+async function validatedExport(page,expectedRows){
  await go(page,'settings');
+ const downloadPromise=page.waitForEvent('download',{timeout:15000});
  await page.locator('#export-json').click();
- await page.waitForFunction(n=>Array.isArray(window.__a0314Exports)&&window.__a0314Exports.length>=n,expected,{timeout:15000});
- const all=await page.evaluate(()=>window.__a0314Exports);
- const backup=all.at(-1);
+ let download;
+ try{download=await downloadPromise}
+ catch(e){
+  const debug=await page.evaluate(()=>({
+   origin:location.origin,
+   status:document.querySelector('#v07-backup-result')?.textContent,
+   toast:document.querySelector('#toast')?.textContent,
+   storage:document.querySelector('#storage-state')?.textContent,
+   route:document.querySelector('#page-settings')?.className
+  }));
+  out.exportDebug=debug;
+  throw Error('VALIDATED_UI_EXPORT_NOT_DELIVERED '+JSON.stringify(debug));
+ }
+ const backup=JSON.parse(readFileSync(await download.path(),'utf8'));
  assert.equal(backup.format,'uriaimath-offline-backup-v02');
- assert.ok(Array.isArray(backup.records));
- assert.equal(Object.keys(backup.photos||{}).length,backup.records.length);
+ assert.equal(backup.records.length,expectedRows);
+ assert.equal(Object.keys(backup.photos||{}).length,expectedRows);
  assert.match(await page.locator('#v07-backup-result').innerText(),/전체 백업 생성 및 자체 검사 통과/);
  return backup;
 }
@@ -150,7 +156,6 @@ async function pendingScenario(ctx){
  await page.waitForFunction(()=>document.querySelector('#v07-backup-result')?.textContent?.includes('전체 백업 생성 중단'),null,{timeout:14000});
  const blockedText=await page.locator('#v07-backup-result').innerText();
  assert.match(blockedText,/설정|복원/);
- assert.equal(await page.evaluate(()=>window.__a0314Exports?.length),1);
  assert.equal(downloads,beforeAttempts,'No plaintext backup download when receipt pending');
  assert.deepEqual(await ledger(page),pending);
  await screen(page,'03-backup-refused-pending',390);
@@ -191,7 +196,7 @@ async function pendingScenario(ctx){
  assert.deepEqual(cleared.photos,pending.photos);
  await screen(page,'05-confirmed-list-releases-receipt',320);
  // Normal backup resumes after receipt confirmation and preserves TWO real rows.
- const afterBackup=await validatedExport(page,1);
+ const afterBackup=await validatedExport(page,2);
  assert.equal(afterBackup.records.length,2);
  assert.equal(Object.keys(afterBackup.photos).length,2);
  assert.deepEqual(afterBackup.records.find(x=>x.id===original.records[0].id).checkHistory,
@@ -227,7 +232,8 @@ async function malformedScenario(ctx){
  const add=page.locator('#nav-add');
  await add.click();
  await page.locator('#problem').fill('A0314 오염된 확인장부 이후 신규 문제 차단');
- await page.locator('#save-btn').click();
+ assert.equal(await page.locator('#save-btn').isDisabled(),true,'UI must disable save when unsafe settings receipt exists');
+ await page.locator('#mistake-form').evaluate(f=>f.requestSubmit());
  await page.locator('#form-error:not(.hide)').waitFor({timeout:13000});
  assert.match(await page.locator('#form-error').innerText(),/저장소를 사용할 수 없습니다/);
  assert.deepEqual(await ledger(page),poisoned);
