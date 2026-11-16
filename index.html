@@ -866,8 +866,8 @@ wrongA0316Panel.className='card';
 wrongA0316Panel.setAttribute('aria-labelledby','wrong-a0316-title');
 wrongA0316Panel.innerHTML='<h3 id="wrong-a0316-title">원본 보관 파일과 현재 저장소 비교 (읽기 전용 시범)</h3>'+
  '<p class="small">먼저 위의 현재 저장소 원본 파일을 직접 보관한 뒤, 받은 JSON 파일을 다시 선택해 전체 기록·사진 바이트·설정·미확정 ID의 일치 여부를 확인합니다. 내용이 일치해도 자동 해제·수리·복원·삭제는 하지 않습니다. 파일은 서버로 보내지 않습니다.</p>'+
- '<input id="wrong-a0316-file" type="file" accept=".json,application/json" aria-label="원본 보관 JSON 파일 선택" /> '+
- '<button type="button" class="secondary" id="wrong-a0316-verify">내려받은 원본과 현재 저장소 읽기 비교</button>'+
+ '<input id="wrong-a0316-file" type="file" accept=".json,application/json" aria-label="원본 보관 JSON 파일 선택" style="display:block;max-width:100%;width:100%;min-width:0;box-sizing:border-box;overflow:hidden" /> '+
+ '<button type="button" class="secondary" id="wrong-a0316-verify" style="max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere">내려받은 원본과 현재 저장소 읽기 비교</button>'+
  '<p class="small" id="wrong-a0316-result" role="status" aria-live="polite">미실시 · 원본 파일을 먼저 안전하게 보관하세요.</p>';
 $('v220-rescue-panel').append(wrongA0316Panel);
 $('wrong-a0316-verify').onclick=async()=>{
