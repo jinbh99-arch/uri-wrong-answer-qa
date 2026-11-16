@@ -1,0 +1,40 @@
+name: WRONG A03-9 dev tailored save safety synthetic Chromium
+on:
+  push:
+    branches: ['qa/wrong-a03-9-dev-tailored-safety-20261116-2027']
+    paths:
+      - index.html
+      - tests/wrong-a03-9-dev-tailored-chromium.mjs
+      - .github/workflows/wrong-a03-9-dev-tailored.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-new-diff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: New synthetic test syntax and patch whitespace
+        run: |
+          node --check tests/wrong-a03-9-dev-tailored-chromium.mjs
+          git diff --check 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- index.html
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Execute only A03-9 dev-custom diff boundaries and true patch rollback
+        run: node tests/wrong-a03-9-dev-tailored-chromium.mjs
+      - name: Collect screenshots and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-9-dev-tailored-synthetic-320-390
+          path: qa-proof/wrong-a03-9/**/*
+          retention-days: 7
+          if-no-files-found: warn
