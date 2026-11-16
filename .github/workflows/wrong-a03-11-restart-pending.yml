@@ -1,0 +1,37 @@
+name: WRONG A03-11 new volatile pending ID after reload and tab restart
+on:
+  push:
+    branches: ['qa/wrong-a03-11-restart-pending-20261116-2105']
+    paths:
+      - 'tests/wrong-a03-11-restart-pending-chromium.mjs'
+      - '.github/workflows/wrong-a03-11-restart-pending.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  only-new-restart-risk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check new test syntax; no product change
+        run: |
+          node --check tests/wrong-a03-11-restart-pending-chromium.mjs
+          test "$(git status --porcelain -- index.html)" = ""
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Prove pending ID loss on reload / tab reopen / sibling tab
+        run: node tests/wrong-a03-11-restart-pending-chromium.mjs
+      - name: Preserve blocking evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-11-restart-pending-BLOCKED-evidence
+          path: qa-proof/wrong-a03-11/**/*
+          retention-days: 7
+          if-no-files-found: warn
