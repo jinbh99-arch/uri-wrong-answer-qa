@@ -119,6 +119,20 @@ try{
   const stable=await snap(page);assert.deepEqual(stable,first);
   pass('fixed UI prevents blind resubmit; new ID and photo are unchanged');
   await shot(page,'02-fixed-resubmit-disabled-320');
+  // The blocked form must offer a safe way out and must not permanently
+  // prevent the parent from starting a DIFFERENT fresh entry after inspection.
+  await page.locator('#nav-records').click();
+  await page.locator('#dlg-ok').waitFor({timeout:12000});
+  await page.locator('#dlg-ok').click();
+  await page.locator('#records-list button[data-record="'+r.id+'"]').waitFor({timeout:15000});
+  assert.deepEqual(await snap(page),first);
+  await page.locator('#nav-add').click();
+  assert.equal(await page.locator('#save-btn').isEnabled(),true,
+    'new intentional create after list review should be allowed');
+  assert.equal(await page.locator('#problem').inputValue(),'',
+    'new form should not reuse ambiguous previous text');
+  assert.deepEqual(await snap(page),first,'new blank form must not create another row');
+  pass('list review resolves same-form lock; a fresh empty registration is usable without duplication');
  }
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#nav-records').click();
