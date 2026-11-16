@@ -1,0 +1,37 @@
+name: WRONG A03-3 two tabs independent creates and rapid submit
+on:
+  push:
+    branches: ['qa/wrong-a03-new-entry-ack-gap-20261116-1036']
+    paths:
+      - 'tests/wrong-a03-3-multitab-new-create-and-double-submit.mjs'
+      - '.github/workflows/wrong-a03-3-multitab.yml'
+permissions:
+  contents: read
+jobs:
+  new-multitab-edges-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check new A03-3 only
+        run: node --check tests/wrong-a03-3-multitab-new-create-and-double-submit.mjs
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Execute new competing creates and rapid submit only
+        env:
+          WRONG_A033_DEV_SHA: '3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b'
+        run: node tests/wrong-a03-3-multitab-new-create-and-double-submit.mjs
+      - name: Archive new QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-3-two-tabs-rapid-submit-320-390
+          path: qa-proof/wrong-a03-3/*
+          retention-days: 7
+          if-no-files-found: warn
+# No original A03-2, A01, A02 or older tests rerun. No production, real photos or restore.
