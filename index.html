@@ -2315,7 +2315,7 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
    v13SaveBusy=false;
    const wrongA039Blocked=Boolean(wrongA039UnknownCreateId&&!editId);
    for(const id of ['save-btn','v08-photo-save','v08-floating-save'])$(id).disabled=wrongA039Blocked;
-   if(route==='add')$('v13-save-state').textContent=wrongA039Blocked?'⚠️ 저장 확인이 끝나지 않았습니다. 오답 목록에서 같은 ID를 확인하기 전 다시 저장할 수 없습니다.':($('form-error').classList.contains('hide')?'저장 명령을 마쳤습니다. 오답 목록에서 확인하세요.':'⚠️ 저장하지 못했습니다. 위 오류 내용을 확인하세요.');
+   if(route==='add')$('v13-save-state').textContent=wrongA039Blocked?'⚠️ 저장 확인이 끝나지 않았습니다. 오답 목록에서 같은 ID를 확인하기 전 다시 저장할 수 없습니다.':($('form-error').classList.contains('hide')?'저장 명령을 마쳤습니다. 오답 목록에서 확인하세요.':'⚠️ 저장 상태를 확인해 주세요. 위 오류가 저장 전 실패인지 저장 후 확인 실패인지 구분하고, 불확실하면 목록에서 기록과 사진을 확인하세요.');
   }
  };
  // Protect unsaved parent typing, changed crop and OCR text on navigation/cancel.
