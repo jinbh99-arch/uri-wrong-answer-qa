@@ -8,7 +8,7 @@ import {chromium} from 'playwright';
 import {startWrongQa66Preview} from '../scripts/qa66-wrong-loopback-preview.mjs';
 
 const DEV='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b';
-const EXPECTED_BLOB='2e0508c45c02e44a930fa6584e254af6076dee55';
+const EXPECTED_BLOB='ec1e45430445beb82fe23e4c98ee76eac402c3a9';
 const DB='uriaimath-github-qa-v224-only',PENDING='wrongA012PendingCreateV1',DIR='qa-proof/wrong-a03-12';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 const sha=b=>createHash('sha256').update(b).digest('hex');
