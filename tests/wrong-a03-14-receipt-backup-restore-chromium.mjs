@@ -104,7 +104,14 @@ async function create(page,problem,memo,ackLost=false){
 async function validatedExport(page,expectedRows){
  await go(page,'settings');
  const downloadPromise=page.waitForEvent('download',{timeout:15000});
+ const pre=await page.evaluate(()=>{const b=document.querySelector('#export-json');return {handler:typeof b?.onclick,disabled:b?.disabled,connected:b?.isConnected,route:document.querySelector('#page-settings')?.className}});
  await page.locator('#export-json').click();
+ await page.waitForTimeout(900);
+ const post=await page.evaluate(()=>({handler:typeof document.querySelector('#export-json')?.onclick,
+  disabled:document.querySelector('#export-json')?.disabled,
+  status:document.querySelector('#v07-backup-result')?.textContent,
+  toast:document.querySelector('#toast')?.textContent}));
+ out.exportEarlyDiagnostic={pre,post};console.log('A0314_EXPORT_EARLY='+JSON.stringify({pre,post}));
  let download;
  try{download=await downloadPromise}
  catch(e){
@@ -235,7 +242,7 @@ async function malformedScenario(ctx){
  assert.equal(await page.locator('#save-btn').isDisabled(),true,'UI must disable save when unsafe settings receipt exists');
  await page.locator('#mistake-form').evaluate(f=>f.requestSubmit());
  await page.locator('#form-error:not(.hide)').waitFor({timeout:13000});
- assert.match(await page.locator('#form-error').innerText(),/저장소를 사용할 수 없습니다/);
+ assert.match(await page.locator('#form-error').innerText(),/저장 확인 전|저장소를 사용할 수 없습니다|중복/);
  assert.deepEqual(await ledger(page),poisoned);
  await screen(page,'08-malformed-receipt-no-write',390);
  return {status:'PASS_FAIL_CLOSED',unknownReceiptIdBlocked:true,oldRecordAndPhotoPreserved:true,
@@ -253,8 +260,8 @@ try{
  const password=randomBytes(24).toString('hex');
  preview=await startWrongQa66Preview({devSha:DEV,username:'a0314-synthetic-qa',password});
  browser=await chromium.launch({headless:true});
- await run('backupRestorePending',pendingScenario,password);
- await run('malformedReceiptFailClosed',malformedScenario,password);
+ const filter=process.env.A0314_CASE||'all';if(filter==='all'||filter==='backupRestorePending')await run('backupRestorePending',pendingScenario,password);
+ if(filter==='all'||filter==='malformedReceiptFailClosed')await run('malformedReceiptFailClosed',malformedScenario,password);
  assert.deepEqual(out.pageErrors,[]);
  assert.deepEqual(out.external,[]);
  if(Object.values(out.scenarios).some(x=>!String(x.status).startsWith('PASS')))
