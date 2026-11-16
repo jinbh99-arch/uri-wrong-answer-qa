@@ -38,22 +38,23 @@ async function snapshot(page){
  }),DB);
 }
 async function failNextCommittedRead(page){
- // The real app's CAS write is completed first. Only its subsequent explicit
- // readOne('mistakes',id) is failed once, without changing the IDB transaction.
- // This proves what the UI does after persisted-but-unconfirmed local writes.
+ // The real app's CAS write uses READWRITE on mistakes+photos.
+ // Inject a single synchronous failure ONLY for its next READONLY single
+ // 'mistakes' transaction after the successful commit, without touching data.
  const state=await page.evaluate(()=>{
-  if(typeof window.readOne!=='function')throw Error('READ_ONE_HOOK_MISSING');
   if(!window.__a02Ack){
-   const original=window.readOne;
+   const original=IDBDatabase.prototype.transaction;
    window.__a02Ack={armed:false,fired:0,reads:0};
-   window.readOne=function(store,key){
-    if(store==='mistakes'&&window.__a02Ack.armed){
+   IDBDatabase.prototype.transaction=function(stores,mode,...extra){
+    const names=Array.isArray(stores)?stores:[stores];
+    if(mode==='readonly'&&names.length===1&&names[0]==='mistakes'&&window.__a02Ack.armed){
      window.__a02Ack.armed=false;
      window.__a02Ack.fired++;
-     return Promise.reject(Error('QA_A02_SYNTHETIC_POST_COMMIT_READBACK_LOST'));
+     throw Error('QA_A02_SYNTHETIC_POST_COMMIT_READBACK_LOST');
     }
-    window.__a02Ack.reads++;
-    return original(store,key);
+    if(mode==='readonly'&&names.length===1&&names[0]==='mistakes')
+     window.__a02Ack.reads++;
+    return original.call(this,stores,mode,...extra);
    };
   }
   window.__a02Ack.armed=true;
