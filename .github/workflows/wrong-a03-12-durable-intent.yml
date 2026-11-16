@@ -1,0 +1,36 @@
+name: WRONG A03-12 new durable create intent receipt synthetic
+on:
+  push:
+    branches: ['qa/wrong-a03-12-durable-intent-20261116-2118']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a03-12-durable-intent-chromium.mjs'
+      - '.github/workflows/wrong-a03-12-durable-intent.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  only-new-durable-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check new durable-receipt contract only
+        run: node --check tests/wrong-a03-12-durable-intent-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify reload/reopen/sibling and atomic abort only
+        run: node tests/wrong-a03-12-durable-intent-chromium.mjs
+      - name: Archive new proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-12-durable-intent-320-390
+          path: qa-proof/wrong-a03-12/**/*
+          retention-days: 7
+          if-no-files-found: warn
