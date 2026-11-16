@@ -856,6 +856,61 @@ $('v221-rescue-current').onclick=async()=>{
  finally{btn.disabled=false}
 };
 
+// A-03-16 isolated QA candidate: compare an EXTERNALLY reselected raw evidence
+// export against an independently reread full IDB snapshot. NO database writes,
+// no repair/unlock/delete/import, and no claim that the downloaded file is safely
+// stored by the user's device. Do not treat equality as proof of data durability.
+const wrongA0316Panel=document.createElement('section');
+wrongA0316Panel.id='wrong-a0316-compare';
+wrongA0316Panel.className='card';
+wrongA0316Panel.setAttribute('aria-labelledby','wrong-a0316-title');
+wrongA0316Panel.innerHTML='<h3 id="wrong-a0316-title">원본 보관 파일과 현재 저장소 비교 (읽기 전용 시범)</h3>'+
+ '<p class="small">먼저 위의 현재 저장소 원본 파일을 직접 보관한 뒤, 받은 JSON 파일을 다시 선택해 전체 기록·사진 바이트·설정·미확정 ID의 일치 여부를 확인합니다. 내용이 일치해도 자동 해제·수리·복원·삭제는 하지 않습니다. 파일은 서버로 보내지 않습니다.</p>'+
+ '<input id="wrong-a0316-file" type="file" accept=".json,application/json" aria-label="원본 보관 JSON 파일 선택" /> '+
+ '<button type="button" class="secondary" id="wrong-a0316-verify">내려받은 원본과 현재 저장소 읽기 비교</button>'+
+ '<p class="small" id="wrong-a0316-result" role="status" aria-live="polite">미실시 · 원본 파일을 먼저 안전하게 보관하세요.</p>';
+$('v220-rescue-panel').append(wrongA0316Panel);
+$('wrong-a0316-verify').onclick=async()=>{
+ const btn=$('wrong-a0316-verify'),report=$('wrong-a0316-result'),file=$('wrong-a0316-file').files?.[0];
+ btn.disabled=true;
+ report.textContent='원본 파일의 SHA-256 검사와 현재 저장소 2회 읽기를 진행 중입니다. 저장소는 수정하지 않습니다.';
+ try{
+  if(!file||file.size<50||file.size>30*1024*1024)throw Error('30MB 이하의 실제 원본 보관 JSON 파일을 선택하세요.');
+  if(!globalThis.crypto?.subtle)throw Error('SHA-256 검사 불가: 원본 일치 판정을 보류합니다.');
+  const raw=JSON.parse(await file.text());
+  if(raw?.format!=='uriaimath-current-raw-evidence-v01'||raw.restorableByApp!==false||
+     raw.integrity?.scheme!=='v221-current-raw-evidence'||
+     raw.integrity?.algorithm!=='SHA-256'||!(/^[0-9a-f]{64}$/).test(String(raw.integrity.digest||''))||
+     !raw.stores||!raw.summary)
+   throw Error('현재 저장소 원본 보관 형식이나 SHA-256 무결성 형식이 맞지 않습니다.');
+  const checked=await v18Digest(JSON.stringify(v18DataWithoutIntegrity(raw)),'SHA-256');
+  if(checked.digest!==raw.integrity.digest)throw Error('선택한 파일의 SHA-256 검사값이 일치하지 않습니다. 파일을 사용하지 마세요.');
+  const before=await v221ReadCurrentEvidence();
+  const inFile=JSON.stringify({stores:raw.stores,summary:raw.summary});
+  const live=JSON.stringify({stores:before.stores,summary:before.summary});
+  if(inFile!==live)throw Error('원본 파일과 현재 저장소의 기록·사진·설정 내용이 다릅니다. 자동 수리를 진행하지 마세요.');
+  // The photo dataUrl conversion is async. Re-read after the comparison
+  // to catch ordinary writes concurrent with digesting.
+  const after=await v221ReadCurrentEvidence();
+  if(live!==JSON.stringify({stores:after.stores,summary:after.summary}))
+   throw Error('비교 중 저장소가 변경됐습니다. 원본 보관부터 다시 확인하세요.');
+  const keys=after.stores.settings.keys,idx=keys.indexOf(wrongA012PendingKey);
+  let verdict='현재 미확정 등록 장부는 없습니다. 이 검증은 저장소 건강 승인이나 복원 허가가 아닙니다.';
+  if(idx>=0){
+   const pending=after.stores.settings.values[idx],rowIds=after.stores.mistakes.keys;
+   verdict=(pending&&typeof pending.id==='string'&&rowIds.includes(pending.id))
+     ? '장부의 ID가 기존 기록에 존재합니다. 목록에서 직접 확인해야 하며 자동 해제하지 않습니다.'
+     : '손상된 장부 ID를 원장에서 확인할 수 없습니다. 저장 잠금을 유지하고 원본 파일을 안전하게 보관한 뒤 별도 검토가 필요합니다.';
+  }
+  report.textContent='✅ 파일 SHA-256·현재 전체 원장/사진/설정 2회 대조 일치 · 오답 '+after.summary.records+
+    '건 · 사진 '+after.summary.photos+'장 · 설정 '+after.summary.settings+'개. '+verdict+
+    ' 파일의 외부 저장 지속성은 보증하지 않으며 자동 복구·삭제는 수행하지 않았습니다.';
+ }catch(e){
+  report.textContent='⛔ 읽기 전용 비교 실패/보류: '+String(e?.message||e).slice(0,220)+
+   ' · 원본/사진/장부를 변경하지 않았고 자동 해제·재등록하지 않았습니다.';
+ }finally{btn.disabled=false}
+};
+
 $('v220-rescue-download').onclick=async()=>{
  const button=$('v220-rescue-download'),status=$('v220-rescue-status');button.disabled=true;
  status.textContent='예전 저장소 원문과 사진을 읽기 전용으로 확인 중입니다.';
