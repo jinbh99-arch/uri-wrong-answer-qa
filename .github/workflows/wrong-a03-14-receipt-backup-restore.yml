@@ -20,7 +20,8 @@ jobs:
       - name: Syntax and scope (no application edit)
         run: |
           node --check tests/wrong-a03-14-receipt-backup-restore-chromium.mjs
-          git diff --exit-code 69099fa495a881b5a94d38224e36f9bee4158a39 HEAD -- index.html
+          test "$(git hash-object index.html)" = "ec1e45430445beb82fe23e4c98ee76eac402c3a9"
+          test -z "$(git status --porcelain -- index.html)"
       - name: Install only Chromium for synthetic runner
         run: |
           npm install --no-save playwright@1.56.1
