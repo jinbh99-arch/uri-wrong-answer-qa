@@ -84,7 +84,6 @@ async function runCase(name,fn){
 async function casePhoto(ctx){
  const page=await pageSetup(ctx),text='A039 합성 국어 문제: 이야기의 중심 문장',memo='A039 합성 보호자 메모(아동 정보 아님)';
  await fill(page,'korean',text,memo,true);
- const original=CanvasRenderingContext2D.prototype.drawImage;
  await page.evaluate(()=>{
   const prior=CanvasRenderingContext2D.prototype.drawImage;
   window.__a039PhotoReject={called:0};
