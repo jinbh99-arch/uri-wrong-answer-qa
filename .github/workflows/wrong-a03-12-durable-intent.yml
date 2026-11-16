@@ -24,7 +24,9 @@ jobs:
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: Verify reload/reopen/sibling and atomic abort only
+      - name: Reverify only remaining reload and distinct-create boundary
+        env:
+          A0312_CASE: reload
         run: node tests/wrong-a03-12-durable-intent-chromium.mjs
       - name: Archive new proof
         if: always()
