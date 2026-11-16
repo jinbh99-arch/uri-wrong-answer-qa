@@ -130,15 +130,21 @@ try{
  console.log('WRONG_A033_FIRST_TAB_LIST_FRESHNESS='+JSON.stringify({
   listStaleBeforeReload,visibleCount:listBefore.length,actualStored:(await store(pA)).records.length
  }));
- // An explicit normal browser reload is supported; it must reconcile both
- // stored rows, NEVER lose the other tab's photo or create duplicates.
- if(listStaleBeforeReload)await pA.reload({waitUntil:'domcontentloaded'});
- await pA.locator('#nav-records').click();
+ // Existing app already exposes a BroadcastChannel change warning and
+ // 'load latest records' button. This explicit action, not a new code change
+ // or automatic edit-form overwrite, is the intended conflict recovery path.
+ const reloadButton=pA.locator('#v20-reload-records');
+ await reloadButton.waitFor({state:'visible',timeout:6000});
+ assert.equal(await pA.locator('#v20-multi-tab-warning').isVisible(),true);
+ await reloadButton.click();
+ await pA.locator('#records-list button[data-record="'+rowA.id+'"]').waitFor({timeout:15000});
+ await pA.locator('#records-list button[data-record="'+rowB.id+'"]').waitFor({timeout:15000});
+ assert.equal(await reloadButton.isVisible(),false);
  await pA.locator('#records-list button[data-record="'+rowA.id+'"]').waitFor({timeout:15000});
  await pA.locator('#records-list button[data-record="'+rowB.id+'"]').waitFor({timeout:15000});
  assert.deepEqual(await store(pA),first);
- pass('two-tab list freshness measured; explicit reload shows BOTH IDs and original photos intact');
- await shot(pA,'03-tab-a-list-after-explicit-refresh-320');
+ pass('stale list was clearly flagged; existing reload-records button reconciled both IDs and photos');
+ await shot(pA,'03-tab-a-list-after-existing-refresh-button-320');
 
  // NEW difference: rapid synchronous requestSubmit x2 before any render.
  // Local busy guard must create exactly one C even with the second submit.
