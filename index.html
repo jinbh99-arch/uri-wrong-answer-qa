@@ -911,6 +911,70 @@ $('wrong-a0316-verify').onclick=async()=>{
  }finally{btn.disabled=false}
 };
 
+
+// A-03-17 isolated QA: TWO separately reselected raw exports are required
+// for a non-destructive manual review. No pending receipt repair is attempted.
+// Different hashes are necessary but NOT sufficient proof of two physical backups.
+const wrongA0317Panel=document.createElement('section');
+wrongA0317Panel.id='wrong-a0317-dual-review';
+wrongA0317Panel.className='card';
+wrongA0317Panel.setAttribute('aria-labelledby','wrong-a0317-title');
+wrongA0317Panel.innerHTML='<h3 id="wrong-a0317-title">원본 보관 파일 2개 교차 확인 (읽기 전용 시범)</h3>'+
+ '<p class="small">서로 다른 시점에 받은 원본 JSON 2개를 선택하세요. 두 파일 각각의 SHA-256, 기록·사진·설정 전체와 현재 저장소 두 번의 읽기를 대조합니다. 다른 내용·동일 파일·이전 파일은 보류하며, 일치해도 복구·장부 해제·자동 수리는 하지 않습니다. 별도 장치에 실제 보관됐는지는 확인할 수 없습니다.</p>'+
+ '<label class="small" for="wrong-a0317-file-a">원본 보관 파일 1</label><input type="file" id="wrong-a0317-file-a" accept=".json,application/json" style="display:block;max-width:100%;width:100%;min-width:0;box-sizing:border-box;overflow:hidden" />'+
+ '<label class="small" for="wrong-a0317-file-b">원본 보관 파일 2</label><input type="file" id="wrong-a0317-file-b" accept=".json,application/json" style="display:block;max-width:100%;width:100%;min-width:0;box-sizing:border-box;overflow:hidden" />'+
+ '<button type="button" class="secondary" id="wrong-a0317-verify" style="max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere">두 원본 파일·현재 저장소 교차 대조</button>'+
+ '<p class="small" id="wrong-a0317-result" role="status" aria-live="polite">미실시 · 파일을 별도로 보관하고 검토하세요.</p>';
+$('v220-rescue-panel').append(wrongA0317Panel);
+async function wrongA0317ReadValidated(file){
+ if(!file||file.size<50||file.size>30*1024*1024)throw Error('각각 30MB 이하의 원본 보관 JSON 2개가 필요합니다.');
+ const raw=JSON.parse(await file.text());
+ if(raw?.format!=='uriaimath-current-raw-evidence-v01'||raw.restorableByApp!==false||
+    raw.integrity?.scheme!=='v221-current-raw-evidence'||raw.integrity?.algorithm!=='SHA-256'||
+    !(/^[0-9a-f]{64}$/).test(String(raw.integrity.digest||''))||
+    !raw.stores?.mistakes||!raw.stores?.photos||!raw.stores?.settings||!raw.summary)
+  throw Error('보관 원본의 형식·SHA-256 정보가 불완전합니다.');
+ const digest=await v18Digest(JSON.stringify(v18DataWithoutIntegrity(raw)),'SHA-256');
+ if(digest.digest!==raw.integrity.digest)throw Error('원본 보관 파일 SHA-256 불일치 · 내용을 사용하지 마세요.');
+ return raw;
+}
+$('wrong-a0317-verify').onclick=async()=>{
+ const btn=$('wrong-a0317-verify'),label=$('wrong-a0317-result');
+ btn.disabled=true;
+ label.textContent='두 파일 검증과 기록·원본 사진·설정 두 차례 읽기 비교 중입니다. 변경은 하지 않습니다.';
+ try{
+  if(!globalThis.crypto?.subtle)throw Error('SHA-256 불가로 대조 보류');
+  const files=[$('wrong-a0317-file-a').files?.[0],$('wrong-a0317-file-b').files?.[0]];
+  if(files.some(f=>!f))throw Error('원본 보관 JSON 2개를 모두 선택하세요.');
+  const first=await wrongA0317ReadValidated(files[0]);
+  const second=await wrongA0317ReadValidated(files[1]);
+  if(first.integrity.digest===second.integrity.digest)
+   throw Error('두 파일의 SHA-256이 같습니다. 같은 보관 파일의 복제인지 알 수 없어 2시점 교차 검증을 보류합니다.');
+  const subset=value=>JSON.stringify({stores:value.stores,summary:value.summary});
+  const expected=subset(first);
+  if(subset(second)!==expected)
+   throw Error('두 원본의 기록·사진·설정이 달라 수동 검토가 필요합니다. 오래된 파일일 수 있습니다.');
+  const before=await v221ReadCurrentEvidence();
+  if(subset(before)!==expected)
+   throw Error('원본 파일 2개와 현재 저장소가 다릅니다. 잠금은 유지합니다.');
+  const after=await v221ReadCurrentEvidence();
+  if(subset(after)!==expected)
+   throw Error('대조 중 현재 저장소가 변했습니다. 잠금은 유지합니다.');
+  const pos=after.stores.settings.keys.indexOf(wrongA012PendingKey);
+  const pending=pos>=0?after.stores.settings.values[pos]:null;
+  const rowPresent=pending&&typeof pending.id==='string'&&after.stores.mistakes.keys.includes(pending.id);
+  const notice=pos<0?'미확정 장부 없음 — 복원 안전 승인 아님.':rowPresent?
+    '장부 ID 존재 — 목록을 직접 확인해야 하며 잠금 자동 해제 없음.':
+    '손상 장부 ID 누락 — 신규 등록 차단·잠금 유지, 별도 수동 검토 필요.';
+  label.textContent='✅ 두 원본 SHA-256 개별 일치·내용 상호 일치·현재 전체 저장소 2회 일치. '+
+    '오답 '+after.summary.records+'건·사진 '+after.summary.photos+'장·설정 '+after.summary.settings+'개. '+
+    notice+' 실제 별도 보관·원자적 시점·복원 가능성은 증명하지 않습니다. 데이터 변경0.';
+ }catch(e){
+  label.textContent='⛔ 두 원본 수동 검토 보류: '+String(e?.message||e).slice(0,230)+
+    ' · 오답/사진/학부모 이력·장부 불변, 복구·삭제·재전송 금지.';
+ }finally{btn.disabled=false;}
+};
+
 $('v220-rescue-download').onclick=async()=>{
  const button=$('v220-rescue-download'),status=$('v220-rescue-status');button.disabled=true;
  status.textContent='예전 저장소 원문과 사진을 읽기 전용으로 확인 중입니다.';
