@@ -28,6 +28,14 @@ jobs:
         env:
           A0312_CASE: reopen
         run: node tests/wrong-a03-12-durable-intent-chromium.mjs
+      - name: Verify NEW final-blob sibling-tab atomic collision boundary
+        env:
+          A0312_CASE: sibling
+        run: node tests/wrong-a03-12-durable-intent-chromium.mjs
+      - name: Verify NEW final-blob precommit abort rollback and retry
+        env:
+          A0312_CASE: atomicAbort
+        run: node tests/wrong-a03-12-durable-intent-chromium.mjs
       - name: Archive new proof
         if: always()
         uses: actions/upload-artifact@v4
