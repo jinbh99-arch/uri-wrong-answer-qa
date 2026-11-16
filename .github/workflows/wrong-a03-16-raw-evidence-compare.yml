@@ -1,0 +1,38 @@
+name: WRONG A03-16 raw evidence safe comparison no repair
+on:
+  push:
+    branches: ['qa/wrong-a03-16-raw-evidence-verify-20261117-0030']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a03-16-raw-evidence-compare-chromium.mjs'
+      - '.github/workflows/wrong-a03-16-raw-evidence-compare.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  only-new-evidence-recovery-guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin A-03-16 candidate and syntax
+        run: |
+          test "$(git hash-object index.html)" = "5b8cd200c8dd54ef1ac64acc7c3456b14b6d0cc3"
+          node --check tests/wrong-a03-16-raw-evidence-compare-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify full evidence equality / photo tamper / stale file / no data mutations
+        run: node tests/wrong-a03-16-raw-evidence-compare-chromium.mjs
+      - name: Capture new QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-16-raw-evidence-compare-320-390
+          path: qa-proof/wrong-a03-16/**/*
+          retention-days: 7
+          if-no-files-found: warn
