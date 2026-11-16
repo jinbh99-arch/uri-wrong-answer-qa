@@ -1,0 +1,39 @@
+name: WRONG A03 new-record readback ambiguity baseline isolated
+on:
+  push:
+    branches: ['qa/wrong-a03-new-entry-ack-gap-20261116-1036']
+    paths:
+      - 'tests/wrong-a03-first-create-ambiguous-readback-chromium.mjs'
+      - '.github/workflows/wrong-a03-new-create-uncertain.yml'
+      - 'index.html'
+permissions:
+  contents: read
+jobs:
+  new-record-uncertain-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check only new A03 synthetic test
+        run: node --check tests/wrong-a03-first-create-ambiguous-readback-chromium.mjs
+      - name: Install local Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run A03 baseline/fixed using existing app UI
+        env:
+          WRONG_A03_DEV_SHA: '3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b'
+          WRONG_A03_PHASE: ${{ contains(github.event.head_commit.message, '[fixed]') && 'fixed' || 'baseline' }}
+        run: node tests/wrong-a03-first-create-ambiguous-readback-chromium.mjs
+      - name: Archive synthetic PNG/JSON even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-new-create-ambiguous-320-390-synthetic
+          path: qa-proof/wrong-a03/**/*
+          retention-days: 7
+          if-no-files-found: warn
+# Only this QA branch. No older suites, real data, external deploy, restore, or DB migration.
