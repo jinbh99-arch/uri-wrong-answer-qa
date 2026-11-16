@@ -106,7 +106,9 @@ async function validatedExport(page,expectedRows){
  const downloadPromise=page.waitForEvent('download',{timeout:15000});
  const pre=await page.evaluate(()=>{const b=document.querySelector('#export-json');return {handler:typeof b?.onclick,disabled:b?.disabled,connected:b?.isConnected,route:document.querySelector('#page-settings')?.className}});
  await page.locator('#export-json').click();
- await page.waitForTimeout(900);
+ await page.locator('#wrong-backup-confirm:not([hidden])').waitFor({timeout:10000});
+ await page.locator('#wrong-backup-continue').click();
+ await page.waitForTimeout(300);
  const post=await page.evaluate(()=>({handler:typeof document.querySelector('#export-json')?.onclick,
   disabled:document.querySelector('#export-json')?.disabled,
   status:document.querySelector('#v07-backup-result')?.textContent,
@@ -160,6 +162,8 @@ async function pendingScenario(ctx){
  await go(page,'settings');
  const beforeAttempts=downloads;
  await page.locator('#export-json').click();
+ await page.locator('#wrong-backup-confirm:not([hidden])').waitFor({timeout:10000});
+ await page.locator('#wrong-backup-continue').click();
  await page.waitForFunction(()=>document.querySelector('#v07-backup-result')?.textContent?.includes('전체 백업 생성 중단'),null,{timeout:14000});
  const blockedText=await page.locator('#v07-backup-result').innerText();
  assert.match(blockedText,/설정|복원/);
