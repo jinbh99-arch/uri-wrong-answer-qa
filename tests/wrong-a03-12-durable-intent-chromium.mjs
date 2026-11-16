@@ -155,8 +155,21 @@ async function caseReload(ctx){
  await page.locator('#problem').fill('A0312 별도 의도: 날씨 관찰');
  await page.locator('#memo').fill('A0312 신규 의도 메모');
  await page.locator('#save-btn').click();
- await page.waitForFunction(()=>!document.querySelector('#page-detail')?.classList.contains('hide'),null,{timeout:15000});
- const after=await ledger(page);
+ await page.waitForTimeout(1200);
+ const newIntentState=await page.evaluate(()=>({
+  detailVisible:!document.querySelector('#page-detail')?.classList.contains('hide'),
+  addVisible:!document.querySelector('#page-add')?.classList.contains('hide'),
+  err:document.querySelector('#form-error')?.textContent,
+  errHidden:document.querySelector('#form-error')?.classList.contains('hide'),
+  status:document.querySelector('#v13-save-state')?.textContent,
+  saveDisabled:document.querySelector('#save-btn')?.disabled
+ }));
+ const newIntentLedger=await ledger(page);
+ proof.reloadNewIntentDebug={ui:newIntentState,records:newIntentLedger.records.length,
+  photos:newIntentLedger.photos.length,marker:newIntentLedger.marker};
+ await screenshot(page,'03b-new-intent-debug',390);
+ assert.equal(newIntentState.detailVisible,true,'NEW_INTENT_NOT_COMPLETED '+JSON.stringify(proof.reloadNewIntentDebug));
+ const after=newIntentLedger;
  assert.equal(after.records.length,2);
  assert.equal(after.photos.length,1);
  assert.equal(after.marker,null);
@@ -232,7 +245,7 @@ try{
  const password=randomBytes(24).toString('hex');
  preview=await startWrongQa66Preview({devSha:DEV,username:'a0312-synthetic-qa',password});
  browser=await chromium.launch({headless:true});
- for(const [name,fn] of [['reload',caseReload],['reopen',caseReopen],['sibling',caseSibling],['atomicAbort',caseAbort]])await run(name,fn,password);
+ const selected=process.env.A0312_CASE||'all';for(const [name,fn] of [['reload',caseReload],['reopen',caseReopen],['sibling',caseSibling],['atomicAbort',caseAbort]]){if(selected!=='all'&&name!==selected)continue;await run(name,fn,password);}
  assert.deepEqual(proof.outside,[]);
  assert.deepEqual(proof.pageErrors,[]);
  if(Object.values(proof.cases).some(c=>c.status!=='PASS'))throw Error('A0312_CASE_FAILURE');
