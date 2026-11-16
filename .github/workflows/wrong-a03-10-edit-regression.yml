@@ -1,0 +1,36 @@
+name: WRONG A03-10 only existing record edit history photo and readback
+on:
+  push:
+    branches: ['qa/wrong-a03-10-edit-regression-20261116-2045']
+    paths:
+      - 'tests/wrong-a03-10-edit-regression-chromium.mjs'
+      - '.github/workflows/wrong-a03-10-edit-regression.yml'
+      - 'index.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  new-existing-edit-boundaries:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check NEW edit-only synthetic
+        run: node --check tests/wrong-a03-10-edit-regression-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run only previous untested EDIT boundaries
+        run: node tests/wrong-a03-10-edit-regression-chromium.mjs
+      - name: Save synthetic evidence on failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-10-edit-regression-320-390
+          path: qa-proof/wrong-a03-10/**/*
+          retention-days: 7
+          if-no-files-found: warn
