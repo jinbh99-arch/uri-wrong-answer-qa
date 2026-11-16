@@ -1,0 +1,38 @@
+name: WRONG A03-15 actual synthetic restore and malformed receipt raw rescue
+on:
+  push:
+    branches: ['qa/wrong-a03-15-restoration-rescue-20261116-2240']
+    paths:
+      - 'tests/wrong-a03-15-restore-rescue-chromium.mjs'
+      - '.github/workflows/wrong-a03-15-restore-rescue.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  newly-untested-restoration-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin final A-03-12 code and new test syntax
+        run: |
+          test "$(git hash-object index.html)" = "ec1e45430445beb82fe23e4c98ee76eac402c3a9"
+          test -z "$(git status --porcelain -- index.html)"
+          node --check tests/wrong-a03-15-restore-rescue-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Actual restored photo/history success and corrupt receipt raw export
+        run: node tests/wrong-a03-15-restore-rescue-chromium.mjs
+      - name: Preserve isolated failure and success evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a03-15-restore-rescue-320-390
+          path: qa-proof/wrong-a03-15/**/*
+          retention-days: 7
+          if-no-files-found: warn
