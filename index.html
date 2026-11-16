@@ -1360,6 +1360,13 @@ try{
    wrongA03UnknownCreateId=id;
    $('save-btn').disabled=true;
    $('v13-save-state').textContent='⚠️ 저장 확인 필요 · 중복 저장을 막았습니다. 오답 목록에서 이 기록을 먼저 확인해 주세요.';
+   // Even if one post-commit readback fails, the next READONLY snapshot may
+   // succeed. Refresh the in-memory list so the promised "check records"
+   // action shows the committed record rather than a stale empty list.
+   // Never claim success or trigger an automatic second write here.
+   try{await restoreState()}catch{
+    $('v13-save-state').textContent='⚠️ 저장 확인 불가 · 목록에서 보이지 않으면 새로고침 후 확인하세요. 다시 저장하지 마세요.';
+   }
   }
   $('form-error').textContent=transactionDone?'저장 동작은 실행됐으나 저장 후 확인에 실패했습니다. 중복 등록하지 말고 오답 목록에서 사진과 기록을 먼저 확인하세요.':(e?.code==='V220_CAPACITY'?'⛔ 오답 저장 한도 500건에 도달했습니다. 기존 기록을 자동 삭제하지 않았습니다. 안전하게 백업한 뒤 기록을 정리하세요.':e?.code==='V29_HISTORY'?'⛔ 기존 재풀이·복습 이력이 보존되지 않아 수정 저장을 차단했습니다. 기록을 새로 불러와 주세요.':e?.code==='WRONG003_PHOTO_MISSING'?'⛔ 기존 사진을 읽을 수 없어 수정하지 않았습니다. 백업·저장소를 확인하세요.':e?.code==='V20_STALE'?'⛔ 다른 탭 또는 화면에서 이 기록이 수정·삭제되었습니다. 작성 중인 내용을 보관한 뒤 최신 기록을 다시 불러오세요. 덮어쓰기를 차단했습니다.':'기록을 저장하지 못했습니다. 저장 공간·브라우저 사용 권한을 확인하세요.');
   $('form-error').classList.remove('hide');
