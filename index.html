@@ -2328,8 +2328,13 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
   $('v13-save-state').textContent='💾 저장·사진 읽기 확인 중입니다. 중복 등록을 방지합니다.';
   try{await v13OldSubmit.call(this,event)}finally{
    v13SaveBusy=false;
-   for(const id of ['save-btn','v08-photo-save','v08-floating-save'])$(id).disabled=false;
-   if(route==='add')$('v13-save-state').textContent=$('form-error').classList.contains('hide')?'저장 명령을 마쳤습니다. 오답 목록에서 확인하세요.':'⚠️ 저장하지 못했습니다. 위 오류 내용을 확인하세요.';
+   // An earlier create is committed but its verification ACK is unknown.
+   // Do NOT let this wrapper re-enable an unsafe second create ID.
+   const unconfirmed=route==='add'&&!editId&&!!wrongA03UnknownCreateId;
+   for(const id of ['save-btn','v08-photo-save','v08-floating-save'])$(id).disabled=unconfirmed;
+   if(route==='add')$('v13-save-state').textContent=unconfirmed?
+    '⚠️ 첫 등록의 저장 확인이 끝나지 않았습니다. 다시 저장하지 말고 오답 목록에서 기록을 먼저 확인해 주세요.':
+    $('form-error').classList.contains('hide')?'저장 명령을 마쳤습니다. 오답 목록에서 확인하세요.':'⚠️ 저장하지 못했습니다. 위 오류 내용을 확인하세요.';
   }
  };
  // Protect unsaved parent typing, changed crop and OCR text on navigation/cancel.
@@ -2338,7 +2343,10 @@ $('v08-floating-save').addEventListener('click',()=>{$('mistake-form').requestSu
   if(!nav||route!=='add'||!v13IsDirty()||v13SaveBusy)return;
   if(nav.dataset.route==='add')return;
   e.preventDefault();e.stopImmediatePropagation();
-  const ok=await confirmBox('작성 중인 내용이 있습니다','사진 선택, OCR 수정 또는 입력한 문제 문장이 저장되지 않았습니다. 이 화면을 나가면 변경 내용이 사라집니다. 그래도 나가시겠습니까?');
+  const ok=await confirmBox(wrongA03UnknownCreateId?'먼저 저장된 기록을 확인해주세요':'작성 중인 내용이 있습니다',
+   wrongA03UnknownCreateId?
+    '저장 동작은 실행됐지만 완료 여부를 확인하지 못했습니다. 새로 등록하지 말고 오답 목록에서 같은 기록이 있는지 먼저 확인해주세요. 목록으로 이동하시겠습니까?':
+    '사진 선택, OCR 수정 또는 입력한 문제 문장이 저장되지 않았습니다. 이 화면을 나가면 변경 내용이 사라집니다. 그래도 나가시겠습니까?');
   if(!ok)return;
   if(nav.id==='cancel-edit'){editId=null;navigate('records')}
   else if(nav.dataset.record){detailId=nav.dataset.record;navigate('detail')}
