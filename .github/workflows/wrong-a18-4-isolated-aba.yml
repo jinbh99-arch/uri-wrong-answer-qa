@@ -1,0 +1,29 @@
+name: WRONG A18-4 isolated ABA Chromium
+on:
+  push:
+    branches:
+      - 'qa/wrong-a03-18-4-ci-browser-20261117-0531'
+  workflow_dispatch:
+jobs:
+  isolated-aba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependency
+        run: |
+          npm install --no-save --no-package-lock playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Execute 320 and 390 isolated fixture
+        run: node tests/wrong_a03_18_4_ci_browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a18-4-isolated-aba-evidence
+          path: artifacts/a18-4/
+          if-no-files-found: warn
