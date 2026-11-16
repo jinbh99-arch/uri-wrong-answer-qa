@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
       - name: Pin A-03-16 candidate and syntax
         run: |
-          test "$(git hash-object index.html)" = "5b8cd200c8dd54ef1ac64acc7c3456b14b6d0cc3"
+          test "$(git hash-object index.html)" = "b6abcd44e223ce7379d2182b683674f50473a303"
           node --check tests/wrong-a03-16-raw-evidence-compare-chromium.mjs
       - name: Install isolated Chromium
         run: |
