@@ -1,0 +1,38 @@
+name: WRONG A18-7 ABA warning real UI Chromium
+on:
+  push:
+    branches: ['qa/wrong-a03-18-7-aba-warning-20261117-0920']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a03-18-7-warning-aba-chromium.mjs'
+      - '.github/workflows/wrong-a18-7-warning-aba.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  only-new-provisional-label:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin exact provisional-warning app and test syntax
+        run: |
+          test "$(git hash-object index.html)" = "ef15e271ca7f9495e604255a8152bc6c9c9220a1"
+          node --check tests/wrong-a03-18-7-warning-aba-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test ABA safe-warning, unchanged old photos, record ID and parent observations
+        run: node tests/wrong-a03-18-7-warning-aba-chromium.mjs
+      - name: Upload focused 320 and 390 new UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a18-7-aba-warning-320-390
+          path: qa-proof/wrong-a03-18-7/**/*
+          retention-days: 7
+          if-no-files-found: warn
