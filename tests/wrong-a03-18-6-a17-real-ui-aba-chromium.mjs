@@ -184,9 +184,10 @@ async function caseOnlyNewCompare(ctx){
  for(const width of [320,390]){
   await page.setViewportSize({width,height:width===320?760:844});
   const installed=await page.evaluate(({name,key,A,B})=>{
-   const original=window.v221ReadCurrentEvidence;
-   if(typeof original!=='function')throw Error('Original real A17 app evidence read function unavailable');
-   let n=0;
+   // The app is deliberately sealed inside an IIFE. Instrument the real
+   // FileReader path used by v221ReadCurrentEvidence, not an invented global.
+   const originalRead=FileReader.prototype.readAsDataURL;
+   let reads=0;
    window.__a186Log=[];
    const write=next=>new Promise((resolve,reject)=>{
     const open=indexedDB.open(name);
@@ -196,13 +197,19 @@ async function caseOnlyNewCompare(ctx){
      tx.oncomplete=()=>{d.close();window.__a186Log.push(next.message);resolve()};
      tx.onerror=()=>{d.close();reject(tx.error)};};
    });
-   window.v221ReadCurrentEvidence=async function(...args){
-    const snapshot=await original(...args);n++;
-    if(n===1){window.__a186Log.push('read-before');await write(B);await write(A);}
-    else window.__a186Log.push('read-after');
-    return snapshot;
+   FileReader.prototype.readAsDataURL=function(blob){
+    reads++;
+    const turn=reads,realOnload=this.onload;
+    this.onload=async function(event){
+     if(turn===1){
+      window.__a186Log.push('snapshot1-photo-read');
+      await write(B);await write(A);
+     }else if(turn===2)window.__a186Log.push('snapshot2-photo-read');
+     return realOnload.call(this,event);
+    };
+    return originalRead.call(this,blob);
    };
-   return typeof window.v221ReadCurrentEvidence==='function';
+   return typeof FileReader.prototype.readAsDataURL==='function';
   },{name:DB,key:testKey,A,B});
   assert.equal(installed,true);
   await page.locator('#wrong-a0317-verify').click();
@@ -210,7 +217,7 @@ async function caseOnlyNewCompare(ctx){
   const msg=await page.locator('#wrong-a0317-result').innerText();
   assert.match(msg,/손상 장부 ID 누락/);
   const detail=await page.evaluate(()=>({sequence:window.__a186Log,comparison:document.querySelector('#wrong-a0317-result').innerText}));
-  assert.deepEqual(detail.sequence,['read-before','B','A','read-after']);
+  assert.deepEqual(detail.sequence,['snapshot1-photo-read','B','A','snapshot2-photo-read']);
   assert.deepEqual(await ledger(page),sealed,'real photo bytes, parent history, receipt and settings untouched after ABA');
   await screen(page,'A18-6-REAL-UI-ABA-FALSE-EQUALITY',width);
   snapshots.push({width,sequence:detail.sequence,displayedSuccess:true,
