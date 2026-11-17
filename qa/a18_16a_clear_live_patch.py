@@ -5,7 +5,7 @@ def apply(data: bytes, reverse=False) -> bytes:
     for old,new in pairs:
         before,after=(new,old) if reverse else (old,new)
         b,a=before.encode('utf-8'),after.encode('utf-8')
-        if data.count(b)!=1 or data.count(a):
+        if data.count(b)!=1 or (not reverse and data.count(a)):
             raise ValueError('missing/duplicate anchor or already patched')
         data=data.replace(b,a,1)
     return data
