@@ -1658,7 +1658,12 @@ function v217SettingsRestorable(keys){
  const known=new Set(['profile','migrated-v01','v04-reentry-marker']);
  return Array.isArray(keys)&&keys.every(key=>typeof key==='string'&&known.has(key));
 }
+const A1813_SAFE_TO_RESTORE=false; // isolated QA: immutable; no operational restore authorization.
 function v22RestoreOnlyIfUnchanged(items,images,p,baseline,targetDb=db,announce=true){
+ // Fail closed BEFORE opening the primary destructive readwrite transaction.
+ // A separate IDBDatabase handle to the SAME store name must be blocked too.
+ if(A1813_SAFE_TO_RESTORE!==true&&(!targetDb||targetDb.name===DB))
+  return Promise.reject(Object.assign(Error('복원 보류: 원자적 변경 이력 검증 전에는 기록·사진을 교체할 수 없습니다.'),{code:'A1813_RESTORE_DISABLED'}));
  return new Promise((resolve,reject)=>{
   if(!targetDb||typeof baseline!=='string')return reject(Error('복원 안전검사 기준이 없습니다.'));
   let tx,stale=false,failed=null;
@@ -1683,6 +1688,28 @@ function v22RestoreOnlyIfUnchanged(items,images,p,baseline,targetDb=db,announce=
  });
 }
 
+// A18-13 isolated QA-only direct-call proof: bypass button/file handlers to reach actual
+// core restore functions. Only synthetic local test data; never a product API.
+Object.defineProperty(window,'__wrongA1813Probe',{configurable:false,value:async(kind,alternateHandle=false)=>{
+ let handle=db,own=false;
+ if(alternateHandle){
+  handle=await new Promise((resolve,reject)=>{
+   const req=indexedDB.open(DB);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });own=true;
+ }
+ try{
+  const oldState=await v22CaptureRestoreBaseline(handle);
+  const photos=await v23CapturePhotoFingerprints(handle);
+  try{
+   const args=[[],{},{nickname:'A18-13 합성',grade:3,subject:'math'},oldState,photos,handle,false];
+   if(kind==='directAtomic')await v22RestoreOnlyIfUnchanged(args[0],args[1],args[2],args[3],handle,false);
+   else if(kind==='directPhoto')await v23RestoreWithPhotoCheck(...args);
+   else if(kind==='directClear')await v213ClearOnlyIfUnchanged(oldState,photos,handle,false);
+   else throw Error('unknown isolated QA proof kind');
+   return {blocked:false,code:'UNSAFE_RESTORE_RETURNED',kind,alternateHandle};
+  }catch(error){return {blocked:true,code:String(error?.code||''),kind,alternateHandle};}
+ }finally{if(own)handle.close()}
+}});
 // ===== v2.3: photo CONTENT fingerprint preflight (additional defense, not a lock) =====
 // v2.2's atomic write transaction verifies record/profile values and photo key/size/type.
 // Blob bytes are asynchronous: computing them inside an IDB transaction is not safe.
