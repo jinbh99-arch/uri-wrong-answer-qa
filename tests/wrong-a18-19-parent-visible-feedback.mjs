@@ -85,6 +85,8 @@ try{
   await page.locator('#check-memo').fill('아이가 관찰 결과를 스스로 설명함 (QA 가상)');
   await page.locator('#check-save').click();
   await page.waitForFunction(()=>document.querySelector('#wrong002-journey')?.innerText?.includes('부모')||document.querySelector('#page-detail')?.innerText?.includes('부모'),null,{timeout:15000});
+  // Do not accept a static '부모' heading as proof that the newly saved observation is visible.
+  await page.waitForFunction(()=>document.querySelector('#page-detail')?.innerText?.includes('아이가 관찰 결과를 스스로 설명함 (QA 가상)'),null,{timeout:15000});
   assert.ok(await page.locator('#page-detail').isVisible(),'parent observation must remain on visible detail');
   const checked=await readLedger(page);
   assert.equal(checked.records[0].checkHistory?.length,1,'parent observation not persisted');
