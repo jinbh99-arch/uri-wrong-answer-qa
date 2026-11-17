@@ -1559,6 +1559,7 @@ $('profile-form').onsubmit=async e=>{
 };
 $('clear-all').onclick=async()=>{
  if(!storageOk)return notify('저장소를 사용할 수 없습니다.');
+ if(A1813_SAFE_TO_RESTORE!==true)return notify('전체 삭제는 복원 안전성 검증 전까지 보류됩니다. 기록과 사진은 그대로 유지됩니다.');
  let before,photosBefore;
  try{before=await v22CaptureRestoreBaseline();photosBefore=await v23CapturePhotoFingerprints()}
  catch(err){return notify('삭제 전 전체 기록·사진 확인에 실패해 아무것도 삭제하지 않았습니다.')}
