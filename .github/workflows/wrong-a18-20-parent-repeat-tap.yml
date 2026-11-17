@@ -1,0 +1,49 @@
+name: WRONG A18-20 parent rapid repeat save isolated Chromium
+on:
+  push:
+    branches: ['qa/wrong-a18-19-parent-visible-feedback-20261117-2235']
+    paths:
+      - 'tests/wrong-a18-20-parent-repeat-tap.mjs'
+      - '.github/workflows/wrong-a18-20-parent-repeat-tap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  repeat-parent-save:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Original QA app untouched and reversible inherited patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          from qa.a18_16a_clear_live_patch import apply
+          base=subprocess.check_output(['git','show','2a070c134511a6b402f3f3c7154c0ab610e1f55f:index.html'])
+          inherited=Path('index.html').read_bytes()
+          assert apply(base)==inherited
+          assert apply(inherited,reverse=True)==base
+          assert subprocess.check_output(['git','show','4b4c5ec3539c169948015931b63d4e51350ed9e9:index.html'])==inherited
+          print('A1820_INHERITED_QA_SOURCE_REVERSE_BYTES_PASS')
+          PY
+          test "$(git hash-object index.html)" = "f3f0d3c2dffce09ed7af613238aa7f8a92708c35"
+          node --check tests/wrong-a18-20-parent-repeat-tap.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New boundary only - rapid repeated parent save x2 320 and 390
+        run: node tests/wrong-a18-20-parent-repeat-tap.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-20-parent-repeat-save-320-390
+          path: qa-proof/wrong-a18-20/**/*
+          if-no-files-found: warn
+          retention-days: 7
