@@ -1,0 +1,37 @@
+name: WRONG A18-6 real A17 UI transient ABA Chromium
+on:
+  push:
+    branches: ['qa/wrong-a03-18-6-real-ui-aba-injection-20261117-0915']
+    paths:
+      - 'tests/wrong-a03-18-6-a17-real-ui-aba-chromium.mjs'
+      - '.github/workflows/wrong-a18-6-a17-real-ui-aba.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  only-new-a17-aba:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin A17 app blob and check test syntax
+        run: |
+          test "$(git hash-object index.html)" = "f8361d6176d1ab54501fb6d701d4bfb04eb46b1b"
+          node --check tests/wrong-a03-18-6-a17-real-ui-aba-chromium.mjs
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Prove transient A to B to A bypasses A17 read-only comparison
+        run: node tests/wrong-a03-18-6-a17-real-ui-aba-chromium.mjs
+      - name: Preserve 320 and 390 focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a18-6-real-ui-aba-320-390
+          path: qa-proof/wrong-a03-18-6/**/*
+          retention-days: 7
+          if-no-files-found: warn
