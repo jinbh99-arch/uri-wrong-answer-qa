@@ -1,0 +1,50 @@
+name: WRONG A18-15 real app three-store full bytes after clear click
+on:
+  push:
+    branches: ['qa/wrong-a18-15-real-idb-clear-click-evidence-20261117-1910']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-a18-15-real-app-idb-clear-click-chromium.mjs'
+      - '.github/workflows/wrong-a18-15-real-idb-clear-click.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-app-full-idb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact A18-14 candidate application / full original byte reversal
+        run: |
+          python3 - <<'PY'
+          from qa.a18_14_clear_ux import apply
+          import subprocess
+          from pathlib import Path
+          old=subprocess.check_output(['git','show','3ab034bc695984f926bd56141bcc6be63b0acb3f:index.html'])
+          candidate=Path('index.html').read_bytes()
+          assert old!=candidate
+          assert apply(old)==candidate, 'QA app differs from exact A18-14 reversible patch'
+          assert apply(candidate,reverse=True)==old, 'reverse patch full source bytes differ'
+          print('A1815_REAL_APP_EXACT_SOURCE_REVERSE_PASS')
+          PY
+          test "$(git hash-object index.html)" = "0ac7ac3a84f0bc198be93be6c27e603f16c0d2fb"
+          node --check tests/wrong-a18-15-real-app-idb-clear-click-chromium.mjs
+      - name: Install supported Chromium isolated
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: NEW real IndexedDB photos/records/history/pending before-after on 320 and 390 click
+        run: node tests/wrong-a18-15-real-app-idb-clear-click-chromium.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-15-real-idb-full-photo-parent-pending
+          path: qa-proof/wrong-a18-15/**/*
+          if-no-files-found: warn
+          retention-days: 7
