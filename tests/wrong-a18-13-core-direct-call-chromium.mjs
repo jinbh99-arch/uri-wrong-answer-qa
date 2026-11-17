@@ -69,6 +69,7 @@ async function exercise(page,width,before){
   const info=document.createElement('p');info.id='a18-13-direct-result';info.setAttribute('role','status');
   info.style.cssText='background:#fff6de;color:#231f12;padding:12px;border:2px solid #8c5e13;white-space:normal;overflow-wrap:anywhere';
   info.textContent='A18-13 격리 직접호출 6경계 차단 판정: '+tested.map(x=>x.blocked?'BLOCK':'FAIL').join(', ')+' / IDB 교체 트랜잭션 '+writes+'회 / 실복원 아님';
+  document.getElementById('a18-13-direct-result')?.remove();
   document.getElementById('a18-10-restore-block').after(info);
   return {tested,writes};
  });
