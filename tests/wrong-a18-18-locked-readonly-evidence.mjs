@@ -103,7 +103,22 @@ try{
   // An already existing synthetic record must remain inspectable in locked storage.
   await page.locator('#nav-records').click();
   const record=page.locator('[data-record="a1818-science-synthetic"]').first();
-  assert.ok(await record.isVisible(),'locked saved record inaccessible');
+  const recordVisible=await record.isVisible();
+  if(!recordVisible){
+   const diag=await page.evaluate(()=>({
+    storage:document.getElementById('storage-state')?.textContent,
+    recordsCount:document.getElementById('records-count')?.textContent,
+    recordsText:document.getElementById('records-list')?.innerText?.slice(0,360),
+    recordCount:document.querySelectorAll('#records-list [data-record]').length,
+    recordPageVisible:!!document.getElementById('page-records')?.getClientRects().length,
+    subjectFilter:document.getElementById('wrong007-filter-subject')?.value,
+    conceptFilter:document.getElementById('filter-concept')?.value,
+    search:document.getElementById('search')?.value,
+    pageError:document.getElementById('v19-reentry-result')?.textContent?.slice(0,100)
+   }));
+   console.log('A1818_LOCKED_LIST_DIAG='+JSON.stringify(diag));
+  }
+  assert.ok(recordVisible,'locked saved record inaccessible');
   await record.click();
   await page.locator('#a18-18-locked-retry').waitFor({state:'visible',timeout:14000});
   const retryGuide=page.locator('#a18-18-locked-retry');
