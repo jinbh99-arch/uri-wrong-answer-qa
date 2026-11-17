@@ -130,7 +130,9 @@ try{
   await page.evaluate(()=>history.back());
   await page.waitForURL(url=>url.searchParams.get('a1822')==='entry',{timeout:10000});
   assert.equal(nativeDialogs.length,countBefore,'saved memo should not trigger native leave warning');
-  await page.waitForFunction(()=>document.querySelector('#storage-state')?.textContent?.startsWith('저장소 연결'),null,{timeout:14000});
+  // Back/forward cache can restore this prior document without re-running the storage banner.
+  // Verify the actual local IndexedDB bytes rather than waiting for a particular banner.
+  await page.waitForLoadState('domcontentloaded');
   const reentered=await ledger(page);
   assert.equal(reentered.records.length,1);
   assert.equal(reentered.records[0].checkHistory?.length,1);
