@@ -1,4 +1,4 @@
-// A18-17: new parent journey only. Synthetic image/problem→save→generic retry→parent observation.
+// A18-19: NEW UI feedback regression — synthetic photo→retry success→parent forced failure→exact memo display→reload.
  // The CI execution time is NOT parent 3-minute usability evidence.
 import assert from 'node:assert/strict';
 import {createHash,randomBytes} from 'node:crypto';
@@ -6,7 +6,7 @@ import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {startWrongQa66Preview} from '../scripts/qa66-wrong-loopback-preview.mjs';
 const DEV='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b',APP='f3f0d3c2dffce09ed7af613238aa7f8a92708c35';
-const DB='uriaimath-github-qa-v224-only',DIR='qa-proof/wrong-a18-17';
+const DB='uriaimath-github-qa-v224-only',DIR='qa-proof/wrong-a18-19';
 const gitBlob=b=>createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
 assert.equal(gitBlob(readFileSync('index.html')),APP);
 mkdirSync(DIR,{recursive:true});
@@ -30,7 +30,7 @@ async function readLedger(page){
 function recordIsPersisted(ledger){return ledger.records.length===1 && ledger.photos.length===1 && ledger.photoKeys[0]===ledger.keys[0] && ledger.photos[0].bytes.length>50}
 async function screenshot(page,width,step){const path=DIR+'/parent-'+width+'-'+step+'.png';await page.screenshot({path,fullPage:true,animations:'disabled'});data.screenshots.push(path)}
 try{
- const auth={username:'wrong-a18-17',password:randomBytes(18).toString('hex')};
+ const auth={username:'wrong-a18-19',password:randomBytes(18).toString('hex')};
  preview=await startWrongQa66Preview({devSha:DEV,...auth});
  browser=await chromium.launch({headless:true});
  for(const width of [320,390]){
@@ -81,39 +81,74 @@ try{
   assert.equal(retried.records[0].generalRetryHistory?.length,1,'generic retry not persisted');
   assert.deepEqual(retried.photos[0].bytes,originalBytes,'photo modified by retry');
   await screenshot(page,width,'02-retried');
+  // New A18-19 boundary: injected ONE-SHOT failure in a synthetic parent observation write.
+  // Verify visible failure feedback and no ledger change; this is NOT evidence of a real app fault.
+  const memo='아이가 관찰 결과를 스스로 설명함 (QA 가상)';
   await page.locator('#check-status').selectOption('explained');
-  await page.locator('#check-memo').fill('아이가 관찰 결과를 스스로 설명함 (QA 가상)');
+  await page.locator('#check-memo').fill(memo);
+  await page.evaluate(()=>{
+    const original=IDBDatabase.prototype.transaction;
+    let rejected=0;
+    window.__a1819RestoreTransaction=()=>{IDBDatabase.prototype.transaction=original;return rejected};
+    IDBDatabase.prototype.transaction=function(stores,mode,...args){
+      const names=Array.isArray(stores)?stores:[stores];
+      if(mode==='readwrite'&&names.includes('mistakes')&&rejected++===0)
+        throw new DOMException('A1819_SYNTHETIC_DENIED_WRITE','AbortError');
+      return original.call(this,stores,mode,...args);
+    };
+  });
   await page.locator('#check-save').click();
-  await page.waitForFunction(()=>document.querySelector('#wrong002-journey')?.innerText?.includes('부모')||document.querySelector('#page-detail')?.innerText?.includes('부모'),null,{timeout:15000});
-  // Do not accept a static '부모' heading as proof that the newly saved observation is visible.
-  await page.waitForFunction(()=>document.querySelector('#page-detail')?.innerText?.includes('아이가 관찰 결과를 스스로 설명함 (QA 가상)'),null,{timeout:15000});
+  await page.waitForFunction(()=>document.querySelector('#toast:not(.hide)')?.textContent?.includes('확인 기록 저장에 실패했습니다.'),null,{timeout:12000});
+  assert.ok(await page.locator('#toast').isVisible(),'parent failed-write feedback not shown');
+  const forcedRejected=await page.evaluate(()=>window.__a1819RestoreTransaction());
+  assert.equal(forcedRejected,1,'synthetic parent write rejection not exercised exactly once');
+  const afterFailedParent=await readLedger(page);
+  assert.deepEqual(afterFailedParent,retried,'forced parent write failure changed real QA record or photo');
+  assert.equal(afterFailedParent.records[0].checkHistory?.length||0,0,'parent observation persisted despite failed write');
+  await screenshot(page,width,'03-parent-failure');
+
+  // Retry the same parent observation normally, without interceptors.
+  await page.locator('#check-save').click();
+  await page.waitForFunction(expected=>
+    document.querySelector('#toast:not(.hide)')?.textContent?.includes('학부모 관찰 결과를 저장했습니다.')&&
+    document.querySelector('#page-detail:not(.hide) #check-history')?.innerText?.includes(expected)
+  ,memo,{timeout:16000});
   assert.ok(await page.locator('#page-detail').isVisible(),'parent observation must remain on visible detail');
+  const shownMemo=await page.locator('#check-history').innerText();
+  assert.ok(shownMemo.includes(memo),'precise newly saved parent memo missing from visible history');
+  await screenshot(page,width,'04-parent-success');
   const checked=await readLedger(page);
   assert.equal(checked.records[0].checkHistory?.length,1,'parent observation not persisted');
   assert.equal(checked.records[0].generalRetryHistory?.length,1,'retry history lost after parent observation');
   assert.deepEqual(checked.photos[0].bytes,originalBytes,'photo overwritten by parent observation');
-  await screenshot(page,width,'03-parent-check');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.getElementById('storage-state')?.textContent?.startsWith('저장소 연결'),null,{timeout:17000});
   await page.locator('#nav-records').click();
   assert.ok(await page.locator('#records-list').isVisible(),'records not visible after reload');
+  const savedEntry=page.locator('#records-list [data-record]').first();
+  await savedEntry.waitFor({state:'visible',timeout:16000});
+  await savedEntry.click();
+  await page.waitForFunction(expected=>document.querySelector('#page-detail:not(.hide) #check-history')?.innerText?.includes(expected),memo,{timeout:16000});
+  assert.ok((await page.locator('#check-history').innerText()).includes(memo),'parent memo absent after reload and detail reopen');
   const reentry=await readLedger(page);
   assert.deepEqual(reentry.records,checked.records,'full record not identical after reload');
   assert.deepEqual(reentry.photos,checked.photos,'full photo bytes changed after reload');
+  await screenshot(page,width,'05-reloaded-memo');
   const automatedElapsedMs=Date.now()-clock;
-  data.widths[String(width)]={status:'PASS',steps:['synthetic photo+mistake','generic retry','parent check','reload'],
+  data.widths[String(width)]={status:'PASS',steps:['synthetic photo+mistake','retry UI confirmed','parent injected write-failure warning','parent exact memo visible','reload + reopen memo'],
     photoBytes:originalBytes.length,recordCount:reentry.records.length,retryCount:reentry.records[0].generalRetryHistory.length,
     parentCheckCount:reentry.records[0].checkHistory.length,photoPreserved:true,reentryPreserved:true,
+    injectedParentWriteFailure:true,failedWriteLedgerUnchanged:true,parentFailureToastVisible:true,parentSuccessToastVisible:true,exactMemoVisibleAfterReload:true,
     automatedElapsedMs,parentsThreeMinuteTiming:'NOT_TESTED'};
   await ctx.close();
  }
  assert.deepEqual(data.externalRequests,[]);assert.deepEqual(data.pageErrors,[]);
- data.status='PASS_SYNTHETIC_PARENT_PHOTO_RETRY_PARENT_OBSERVATION';
-}catch(e){data.status='FAIL';data.error=String(e);data.stack=String(e?.stack||'').slice(0,2500);process.exitCode=1;console.error('A1817_FAIL '+String(e))}
+ data.status='PASS_A1819_PARENT_EXACT_VISIBLE_AND_FAIL_SUCCESS_FEEDBACK';
+}catch(e){data.status='FAIL';data.error=String(e);data.stack=String(e?.stack||'').slice(0,2500);process.exitCode=1;console.error('A1819_FAIL '+String(e))}
 finally{
  await browser?.close();await preview?.close();
  data.sourceUnchanged=gitBlob(readFileSync('index.html'))===APP;
  writeFileSync(DIR+'/result.json',JSON.stringify(data,null,2));
- console.log('A1817_RESULT='+JSON.stringify({status:data.status,widths:data.widths,screenshots:data.screenshots.length,
+ console.log('A1819_RESULT='+JSON.stringify({status:data.status,widths:data.widths,screenshots:data.screenshots.length,
   externalRequests:data.externalRequests.length,pageErrors:data.pageErrors.length,sourceUnchanged:data.sourceUnchanged,error:data.error}));
 }
