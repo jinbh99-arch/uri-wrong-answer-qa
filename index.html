@@ -874,7 +874,18 @@ document.addEventListener('qa34:family-locked',()=>{
 });
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
-document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
+document.addEventListener('click',e=>{
+const destination=e.target.closest('[data-route],[data-record]');
+const unsavedParentMemo=$('check-memo');
+if(route==='detail'&&destination&&unsavedParentMemo?.value.trim()){
+  const sameRecord=destination.hasAttribute('data-record')&&destination.dataset.record===detailId;
+  if(!sameRecord){
+    e.preventDefault();
+    notify('저장하지 않은 학부모 관찰 메모가 있습니다. 메모를 저장하거나 내용을 지운 뒤 이동하세요.');
+    return;
+  }
+}
+const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
 function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);
  if(container==='records-list'){
   // P15/16 dev adaptation: describe only the latest SAVED retry/review state.
