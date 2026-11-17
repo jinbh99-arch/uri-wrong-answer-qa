@@ -5,7 +5,7 @@ import {createHash,randomBytes} from 'node:crypto';
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {startWrongQa66Preview} from '../scripts/qa66-wrong-loopback-preview.mjs';
-const DEV='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b',APP='0ac7ac3a84f0bc198be93be6c27e603f16c0d2fb';
+const DEV='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b',APP='d611cb6e6b7d8afb70299fe96cca78e926a2670c';
 const DB='uriaimath-github-qa-v224-only',PENDING='wrongA012PendingCreateV1',DIR='qa-proof/wrong-a18-15';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
 const blobSha=b=>createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
