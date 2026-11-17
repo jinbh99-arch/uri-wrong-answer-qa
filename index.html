@@ -874,6 +874,12 @@ document.addEventListener('qa34:family-locked',()=>{
 });
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
 function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
+window.addEventListener('beforeunload',event=>{
+  if(route==='detail'&&$('check-memo')?.value.trim()){
+    event.preventDefault();
+    event.returnValue='';
+  }
+});
 document.addEventListener('click',e=>{
 const destination=e.target.closest('[data-route],[data-record]');
 const unsavedParentMemo=$('check-memo');
