@@ -1,0 +1,53 @@
+name: WRONG A18-18 locked read-only original guidance without export
+on:
+  push:
+    branches: ['qa/wrong-a18-18-locked-original-guidance-20261117-2230']
+    paths:
+      - 'index.html'
+      - 'qa/a18_18_locked_evidence_navigation.py'
+      - 'tests/wrong-a18-18-locked-readonly-evidence.mjs'
+      - '.github/workflows/wrong-a18-18-locked-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-locked-guidance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact QA source forward and full reverse byte identity
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          from qa.a18_18_locked_evidence_navigation import apply
+          original=subprocess.check_output(['git','show','4b4c5ec3539c169948015931b63d4e51350ed9e9:index.html'])
+          candidate=Path('index.html').read_bytes()
+          assert apply(original)==candidate,'new QA actual app differs from authored reversible patch'
+          assert apply(candidate,reverse=True)==original,'full reverse bytes differ'
+          try: apply(candidate)
+          except ValueError: pass
+          else: raise AssertionError('double apply allowed')
+          print('A1818_FULL_REAL_APP_FORWARD_REVERSE_SOURCE_BYTES_PASS')
+          PY
+          test "$(git hash-object index.html)" = "7047f4643f7ebae5677fc9b9e2799659c4cbf578"
+          node --check tests/wrong-a18-18-locked-readonly-evidence.mjs
+      - name: Install supported isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New locked read-only guidance with original bytes 320/390
+        run: node tests/wrong-a18-18-locked-readonly-evidence.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-18-locked-original-readonly-parent-guidance
+          path: qa-proof/wrong-a18-18/**/*
+          if-no-files-found: warn
+          retention-days: 7
