@@ -4,6 +4,7 @@ on:
     branches: ['qa/wrong-a18-15-real-idb-clear-click-evidence-20261117-1910']
     paths:
       - 'index.html'
+      - 'qa/a18_15_locked_clear_notice.py'
       - 'tests/wrong-a18-15-real-app-idb-clear-click-chromium.mjs'
       - '.github/workflows/wrong-a18-15-real-idb-clear-click.yml'
   workflow_dispatch:
@@ -23,17 +24,18 @@ jobs:
       - name: Exact A18-14 candidate application / full original byte reversal
         run: |
           python3 - <<'PY'
-          from qa.a18_14_clear_ux import apply
+          from qa.a18_14_clear_ux import apply as apply14
+          from qa.a18_15_locked_clear_notice import apply as apply15
           import subprocess
           from pathlib import Path
           old=subprocess.check_output(['git','show','3ab034bc695984f926bd56141bcc6be63b0acb3f:index.html'])
           candidate=Path('index.html').read_bytes()
           assert old!=candidate
-          assert apply(old)==candidate, 'QA app differs from exact A18-14 reversible patch'
-          assert apply(candidate,reverse=True)==old, 'reverse patch full source bytes differ'
-          print('A1815_REAL_APP_EXACT_SOURCE_REVERSE_PASS')
+          assert apply15(apply14(old))==candidate, 'QA app differs from exact A18-14 + A18-15 patch chain'
+          assert apply14(apply15(candidate,reverse=True),reverse=True)==old, 'reverse patch full source bytes differ'
+          print('A1815_LOCKED_STORAGE_WARNING_PATCH_REVERSE_BYTES_PASS')
           PY
-          test "$(git hash-object index.html)" = "0ac7ac3a84f0bc198be93be6c27e603f16c0d2fb"
+          test "$(git hash-object index.html)" = "d611cb6e6b7d8afb70299fe96cca78e926a2670c"
           node --check tests/wrong-a18-15-real-app-idb-clear-click-chromium.mjs
       - name: Install supported Chromium isolated
         run: |
