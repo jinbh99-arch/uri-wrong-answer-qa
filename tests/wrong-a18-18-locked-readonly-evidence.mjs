@@ -102,7 +102,7 @@ try{
   await snap(page,width,'02-evidence-only');
   // An already existing synthetic record must remain inspectable in locked storage.
   await page.locator('#nav-records').click();
-  const record=page.locator('[data-record="a1818-science-synthetic"]').first();
+  const record=page.locator('#records-list [data-record="a1818-science-synthetic"]').first();
   const recordVisible=await record.isVisible();
   if(!recordVisible){
    const diag=await page.evaluate(()=>({
