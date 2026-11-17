@@ -5,14 +5,18 @@ Never changes IndexedDB or photo/record formats.
 from pathlib import Path
 import argparse
 
-BEFORE = "document.addEventListener('click',e=>{".encode("utf-8")
-AFTER = """window.addEventListener('beforeunload',event=>{
+BEFORE = """window.scrollTo(0,0)}
+document.addEventListener('click',e=>{
+const destination=e.target.closest('[data-route],[data-record]');""".encode("utf-8")
+AFTER = """window.scrollTo(0,0)}
+window.addEventListener('beforeunload',event=>{
   if(route==='detail'&&$('check-memo')?.value.trim()){
     event.preventDefault();
     event.returnValue='';
   }
 });
-document.addEventListener('click',e=>{""".encode("utf-8")
+document.addEventListener('click',e=>{
+const destination=e.target.closest('[data-route],[data-record]');""".encode("utf-8")
 
 def apply(data:bytes,reverse:bool=False)->bytes:
     old,new=(AFTER,BEFORE) if reverse else (BEFORE,AFTER)
