@@ -41,7 +41,7 @@ async function seed(page){
     hasPhoto:true,memo:'가상 부모 기록',reason:'unknown',createdAt:'2026-11-17T01:00:00Z',updatedAt:'2026-11-17T01:00:00Z',
     checkHistory:[{at:'2026-11-17T01:00:00Z',status:'explained',memo:'합성 부모 관찰 1건',by:'parent_observation'}]},id);
    tx.objectStore('photos').put(new Blob([Uint8Array.from(bytes)],{type:'image/png'}),id);
-   tx.objectStore('settings').put({id:'a18-13-damaged-pending-ledger',at:1731774000000,v:1},marker);
+   tx.objectStore('settings').put({id:'a18-15-damaged-pending-ledger',at:1731774000000,v:1},marker);
    tx.onerror=()=>{db.close();reject(tx.error)};
    tx.oncomplete=()=>{db.close();resolve()};
   };
@@ -127,7 +127,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#storage-state')?.textContent?.includes('저장소 연결')||document.querySelector('#storage-state')?.textContent?.includes('저장 차단'),null,{timeout:17000});
  const before=await ledger(page);
  assert.equal(before.records.length,1);assert.equal(before.photos.length,1);assert.equal(before.records[0].value.checkHistory.length,1);
- assert.equal(before.settings.find(x=>x.key===PENDING)?.value.id,'a18-13-damaged-pending-ledger');
+ assert.equal(before.settings.find(x=>x.key===PENDING)?.value.id,'a18-15-damaged-pending-ledger');
  await page.locator('#nav-settings').click();
  await page.waitForFunction(()=>!document.querySelector('#page-settings')?.classList.contains('hide'));
  assert.ok(await page.locator('#clear-all').isVisible());
