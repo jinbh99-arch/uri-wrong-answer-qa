@@ -36,4 +36,17 @@ try {
   }
 } finally { await browser.close(); }
 fs.writeFileSync(path.join(out, 'observation.json'), JSON.stringify(results, null, 2));
-console.log(JSON.stringify(results));
+const failures = results.flatMap(({ width, observation: o }) => {
+  const problems = [];
+  if (!o.found) problems.push('clear-all control missing');
+  else {
+    if (o.role !== 'button') problems.push('button role missing');
+    if (!o.accessibleName) problems.push('accessible name missing');
+    if (o.display === 'none' || o.visibility === 'hidden') problems.push('control not visible');
+    if (!o.focusable && !o.disabled) problems.push('enabled control cannot receive focus');
+  }
+  return problems.map(problem => ({ width, problem }));
+});
+fs.writeFileSync(path.join(out, 'assertions.json'), JSON.stringify({ failures, note: 'No destructive click; live announcements and storage-state transitions remain unverified.' }, null, 2));
+console.log(JSON.stringify({ results, failures }));
+if (failures.length) process.exitCode = 1;
