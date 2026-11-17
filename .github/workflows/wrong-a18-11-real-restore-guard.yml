@@ -1,0 +1,53 @@
+name: WRONG A18-11 real restore UI failclosed isolated
+on:
+  push:
+    branches: ['qa/wrong-a18-11-real-restore-guard-ui-20261117-1315']
+    paths:
+      - 'index.html'
+      - 'qa/a18_10_restore_guard.py'
+      - 'qa/test_a18_10_restore_guard.py'
+      - 'tests/wrong-a18-11-real-restore-ui-guard-chromium.mjs'
+      - '.github/workflows/wrong-a18-11-real-restore-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a18-11-real-restore-entry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict patch unit tests and exact original reverse patch
+        run: |
+          python3 -m unittest discover -s qa -p 'test_a18_10_restore_guard.py' -v
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          from qa.a18_10_restore_guard import patch, unpatch
+          old=subprocess.check_output(['git','show','5a68bba4e5ea9ef25174e4750cb0c090c6076887:index.html']).decode('utf-8')
+          current=Path('index.html').read_text(encoding='utf-8')
+          assert patch(old)==current, 'checked-in QA candidate differs from actual patch script'
+          assert unpatch(current)==old, 'reverse patch did not reproduce exact dev original'
+          print('A1811_PATCH_FORWARD_REVERSE_BYTE_EXACT_PASS')
+          PY
+          test "$(git hash-object index.html)" = "7a30edb28ff1a84167e36d667e57bf5c5b93d180"
+          node --check tests/wrong-a18-11-real-restore-ui-guard-chromium.mjs
+      - name: Install supported isolated Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Actual restore UI 320/390 disabled entrypoint, original records/photos preserved
+        run: node tests/wrong-a18-11-real-restore-ui-guard-chromium.mjs
+      - name: Focused mobile screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-a18-11-restore-button-file-input-failclosed-320-390
+          path: qa-proof/wrong-a18-11/**/*
+          retention-days: 7
+          if-no-files-found: warn
