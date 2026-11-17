@@ -966,7 +966,7 @@ $('wrong-a0317-verify').onclick=async()=>{
   const notice=pos<0?'미확정 장부 없음 — 복원 안전 승인 아님.':rowPresent?
     '장부 ID 존재 — 목록을 직접 확인해야 하며 잠금 자동 해제 없음.':
     '손상 장부 ID 누락 — 신규 등록 차단·잠금 유지, 별도 수동 검토 필요.';
-  label.textContent='✅ 두 원본 SHA-256 개별 일치·내용 상호 일치·현재 전체 저장소 2회 일치. '+
+  label.textContent='⚠️ 읽기 전용 두 시점의 내용만 일치했습니다. 저장소가 사이에 A→B→A로 변한 사실은 감지할 수 없습니다. 복구 안전 판정은 보류하며 잠금을 해제하지 않습니다. 두 원본 SHA-256 개별 일치·내용 상호 일치·현재 전체 저장소 2회 일치. '+
     '오답 '+after.summary.records+'건·사진 '+after.summary.photos+'장·설정 '+after.summary.settings+'개. '+
     notice+' 실제 별도 보관·원자적 시점·복원 가능성은 증명하지 않습니다. 데이터 변경0.';
  }catch(e){
