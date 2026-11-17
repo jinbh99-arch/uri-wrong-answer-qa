@@ -1,0 +1,30 @@
+name: A18-19 parent exact feedback 320 390 isolated
+on:
+  push:
+    branches:
+      - qa/wrong-a18-19-parent-visible-feedback-20261117-2235
+    paths:
+      - 'tests/wrong-a18-19-parent-visible-feedback.mjs'
+      - '.github/workflows/wrong-a18-19-parent-feedback.yml'
+  workflow_dispatch:
+jobs:
+  parent-feedback-chromium:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Real isolated UI 320 and 390 with original hash guard
+        run: node tests/wrong-a18-19-parent-visible-feedback.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-19-parent-feedback-proof
+          path: qa-proof/wrong-a18-19/
+          if-no-files-found: warn
