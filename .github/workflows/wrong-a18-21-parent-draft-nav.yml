@@ -1,7 +1,7 @@
 name: WRONG A18-21 failed parent memo draft navigation
 on:
   push:
-    branches: ['qa/wrong-a18-19-parent-visible-feedback-20261117-2235']
+    branches: ['qa/wrong-a18-21-parent-draft-nav-20261118']
     paths:
       - 'index.html'
       - 'tests/wrong-a18-21-parent-draft-nav.mjs'
