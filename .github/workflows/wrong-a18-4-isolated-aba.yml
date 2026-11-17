@@ -1,12 +1,12 @@
-name: WRONG A18-4 isolated ABA Chromium
+name: WRONG A18-5 isolated ABA Chromium verified runner
 on:
   push:
     branches:
-      - 'qa/wrong-a03-18-4-ci-browser-20261117-0531'
+      - 'qa/wrong-a03-18-5-ci-ubuntu24-20261117-0910'
   workflow_dispatch:
 jobs:
   isolated-aba:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -17,7 +17,7 @@ jobs:
           node-version: '22'
       - name: Install browser test dependency
         run: |
-          npm install --no-save --no-package-lock playwright@1.58.2
+          npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Execute 320 and 390 isolated fixture
         run: node tests/wrong_a03_18_4_ci_browser.mjs
