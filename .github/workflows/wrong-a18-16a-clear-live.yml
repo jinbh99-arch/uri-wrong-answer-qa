@@ -1,0 +1,53 @@
+name: WRONG A18-16a clean locked clear warning keyboard live region
+on:
+  push:
+    branches: ['qa/wrong-a18-16a-clear-live-state-browser-20261117-2200']
+    paths:
+      - 'index.html'
+      - 'qa/a18_16a_clear_live_patch.py'
+      - 'tests/wrong-a18-16a-live-keyboard-fixtures-chromium.mjs'
+      - '.github/workflows/wrong-a18-16a-clear-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-accessibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reversible exact app patch and static contract
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          from qa.a18_16a_clear_live_patch import apply
+          original=subprocess.check_output(['git','show','2a070c134511a6b402f3f3c7154c0ab610e1f55f:index.html'])
+          candidate=Path('index.html').read_bytes()
+          assert apply(original)==candidate, 'actual QA app != generated patch'
+          assert apply(candidate,True)==original, 'full original bytes not recovered'
+          try:apply(candidate)
+          except ValueError: pass
+          else:raise AssertionError('double application should refuse')
+          print('A1816A_REAL_APP_REVERSE_ORIGINAL_BYTES_PASS')
+          PY
+          test "$(git hash-object index.html)" = "f3f0d3c2dffce09ed7af613238aa7f8a92708c35"
+          node --check tests/wrong-a18-16a-live-keyboard-fixtures-chromium.mjs
+      - name: Install supported isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Live region clean locked storage keyboard focus 320 and 390 without destructive click
+        run: node tests/wrong-a18-16a-live-keyboard-fixtures-chromium.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-16a-a11y-clean-locked-320-390
+          path: qa-proof/wrong-a18-16a/**/*
+          if-no-files-found: warn
+          retention-days: 7
