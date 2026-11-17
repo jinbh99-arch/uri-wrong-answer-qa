@@ -1,0 +1,53 @@
+name: WRONG A18-13 primary restore direct call failclosed Chromium
+on:
+  push:
+    branches: ['qa/wrong-a18-13-atomic-write-guard-20261117-1511']
+    paths:
+      - 'index.html'
+      - 'qa/a18_13_core_restore_gate.py'
+      - 'qa/test_a18_13_core_restore_gate.py'
+      - 'tests/wrong-a18-13-core-direct-call-chromium.mjs'
+      - '.github/workflows/wrong-a18-13-core-atomic-restore-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-direct-restore:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python unit cases and exact forward/reverse patch
+        run: |
+          python3 -m unittest discover -s qa -p 'test_a18_13_core_restore_gate.py' -v
+          python3 - <<'PY'
+          from pathlib import Path
+          from qa.a18_13_core_restore_gate import patch,unpatch
+          import subprocess
+          base='ae53ab4d33370f38beb7e94f0869fc96b4f64dab'
+          original=subprocess.check_output(['git','show',base+':index.html']).decode('utf-8')
+          patched=Path('index.html').read_text(encoding='utf-8')
+          assert patch(original)==patched, 'actual index.html is not exact generated patch'
+          assert unpatch(patched)==original, 'reverse patch does not restore original'
+          print('A1813_REAL_APP_FORWARD_REVERSE_BYTES_EXACT_PASS')
+          PY
+          test "$(git hash-object index.html)" = "4734102b111b20b2185f9fe175ac0802eaebf5e5"
+          node --check tests/wrong-a18-13-core-direct-call-chromium.mjs
+      - name: Install isolated supported Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New direct core calls and alternate same-name DB handle only
+        run: node tests/wrong-a18-13-core-direct-call-chromium.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-13-internal-restore-atomic-guard-320-390
+          path: qa-proof/wrong-a18-13/**/*
+          if-no-files-found: warn
+          retention-days: 7
