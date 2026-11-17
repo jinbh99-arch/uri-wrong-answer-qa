@@ -40,6 +40,7 @@
 - 원시 CI 로그: `A1821_RESULT=PASS_A1821_FAILED_PARENT_DRAFT_NAV_GUARD`; `A1821_LOCAL_QA_MINIMAL_PATCH_FORWARD_REVERSE_BYTES_PASS` 및 `A1821_INHERITED_QA_REVERSE_BYTES_PASS`.
 - 새 QA 앱 blob: `7986d9d94fc72ec6fb447384859121048e160799` (이 변경이 기존 제품/다른 QA로 자동 반영된 것은 아님).
 - 이전 A18-19/20 QA 브랜치에서는 중간 수정 커밋 이후 **HTML blob을 구버전과 바이트 단위로 되돌리고 A18-21 시험 파일/워크플로를 제거**. 제품 dev는 독립 HEAD 재조회 불변.
+- 기존 A18-19의 정확 blob 가드가 임시 A18-21 패치에 반응하여 [중간 CI #44132756651](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44132756651)이 실패했으나, **기존 HTML 바이트 복구 후 [재확인 CI #44132924931](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44132924931)은 completed/success**. 원래 브랜치의 A18-21 RED 재현 #44132925273은 기존 미수정 HTML에서의 기대된 실패이며 해당 시험 워크플로는 원 브랜치에서 제거 완료. 기존 성공 증거를 새로운 기능의 증거로 재사용하지 않음.
 
 ## 4. 판정의 한계 및 향후 작업
 
