@@ -1558,7 +1558,7 @@ $('profile-form').onsubmit=async e=>{
  }catch(err){notify(err?.code==='V20_STALE'?'다른 탭에서 학부모 설정이 변경되어 덮어쓰지 않았습니다. 새로고침해 확인해 주세요.':'프로필을 저장하지 못했습니다. 기존 설정은 유지됩니다.')}
 };
 $('clear-all').onclick=async()=>{
- if(!storageOk)return notify('저장소를 사용할 수 없습니다.');
+ if(!storageOk)return notify('전체 삭제는 복원 안전성 검증 전까지 보류됩니다. 기록과 사진은 그대로 유지됩니다. 안전 점검이 끝나기 전에는 삭제할 수 없습니다.');
  if(A1813_SAFE_TO_RESTORE!==true)return notify('전체 삭제는 복원 안전성 검증 전까지 보류됩니다. 기록과 사진은 그대로 유지됩니다.');
  let before,photosBefore;
  try{before=await v22CaptureRestoreBaseline();photosBefore=await v23CapturePhotoFingerprints()}
