@@ -22,12 +22,18 @@ for(const width of [320,390]){
  const button=page.locator('#clear-all');
  await button.evaluate(el=>el.click());
  await page.waitForTimeout(250);
+ const after=await page.evaluate(async()=>{
+   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('wrong-a18-14-probe',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+   const value=await new Promise((resolve,reject)=>{const t=db.transaction('keep','readonly');const r=t.objectStore('keep').get('sentinel');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+   db.close();return value;
+ });
+ assert.equal(after,before,'synthetic IndexedDB sentinel mutated');
  const visible=await page.locator('body').innerText();
  assert(visible.includes('전체 삭제는 복원 안전성 검증 전까지 보류됩니다.'),'missing UX warning');
  assert.equal(dialogs,0,'unexpected native confirmation');
  assert.equal(errors.length,0,'page error '+errors.join(','));
  await page.screenshot({path:'artifacts/a18-14/clear-ux-'+width+'.png',fullPage:true});
- results.push({width,warning:true,dialogs,errors,syntheticSentinel:before});
+ results.push({width,warning:true,dialogs,errors,syntheticSentinelBefore:before,syntheticSentinelAfter:after});
  await context.close();
 }
 await browser.close();
