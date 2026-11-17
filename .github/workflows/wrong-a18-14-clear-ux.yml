@@ -1,0 +1,43 @@
+name: A18-14 isolated clear-all preconfirmation UX
+on:
+  push:
+    branches:
+      - qa/wrong-a18-14-clear-ux-contract-20261117-1538
+  workflow_dispatch:
+jobs:
+  isolated-clear-ux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Patch real isolated UI and verify exact reversal
+        run: |
+          python qa/a18_14_clear_ux.py index.html qa/a18_14_patched.html
+          python qa/a18_14_clear_ux.py --reverse qa/a18_14_patched.html qa/a18_14_reversed.html
+          cmp index.html qa/a18_14_reversed.html
+          python - <<'PY'
+          from pathlib import Path
+          original=Path('index.html').read_bytes()
+          patched=Path('qa/a18_14_patched.html').read_bytes()
+          assert original != patched
+          assert patched.count('전체 삭제는 복원 안전성 검증 전까지 보류됩니다.'.encode()) == 1
+          print('A18_14_FORWARD_REVERSE_EXACT_PASS')
+          PY
+      - name: Install isolated browser
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New 320/390 clear-all UX regression
+        run: node tests/wrong-a18-14-clear-ux-chromium.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-a18-14-clear-ux-evidence
+          path: artifacts/a18-14/
+          if-no-files-found: warn
