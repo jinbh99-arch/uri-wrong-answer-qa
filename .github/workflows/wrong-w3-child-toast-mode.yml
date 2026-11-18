@@ -1,0 +1,50 @@
+name: WRONG W3 parent toast on child mode RED to GREEN Chromium 320 390
+on:
+  push:
+    branches: ['qa/wrong-w3-child-toast-mode-boundary-20261118']
+    paths:
+      - 'qa/w3_child_toast_mode_patch.py'
+      - 'tests/wrong-w3-child-toast-guard.mjs'
+      - '.github/workflows/wrong-w3-child-toast-mode.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  child-mode-toast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin exact dev app, confirm change scope and test syntax
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = '250aff5b0a46490488b64f7b96a83c940d2d6c71'
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/wrong-w3-child-toast-guard.mjs
+          python3 -m py_compile qa/w3_child_toast_mode_patch.py
+          echo 'W3_TOAST_ORIGINAL_DEV_APP_BLOB_PASS'
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: One-run baseline RED and QA-only GREEN, exact reverse patch
+        run: |
+          set -eu
+          node tests/wrong-w3-child-toast-guard.mjs red
+          python3 qa/w3_child_toast_mode_patch.py
+          node tests/wrong-w3-child-toast-guard.mjs green
+          python3 qa/w3_child_toast_mode_patch.py --reverse
+          git diff --exit-code HEAD -- index.html
+          echo 'W3_TOAST_FULL_REVERSE_DEV_BYTES_PASS'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w3-child-toast-red-green-proof
+          path: qa-proof/w3-child-toast/**/*
+          if-no-files-found: warn
+          retention-days: 7
