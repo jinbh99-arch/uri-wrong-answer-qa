@@ -1,0 +1,57 @@
+name: WRONG W3 committed internal candidate photo toast ledger 320 390
+on:
+  push:
+    branches: ['qa/wrong-w3-internal-dev-candidate-20261119']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-w3-committed-candidate-photo-toast-integrity-320-390.mjs'
+      - '.github/workflows/wrong-w3-committed-candidate-photo-toast-320390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  committed-candidate-photo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact four-line source patch, reverse check and scoped diff
+        run: |
+          set -eu
+          test "$(git rev-parse "$DEV_SHA:index.html")" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          test "$(git rev-parse HEAD:index.html)" = 6ff6cf1c2cfeef3706381a68fc105feab8258b04
+          test "$(git diff --numstat "$DEV_SHA" HEAD -- index.html)" = "$(printf '4\t0\tindex.html')"
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          before=subprocess.check_output(['git','show','3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b:index.html'])
+          after=Path('index.html').read_bytes()
+          old=b"   if(mode==='child'){\n    $('wrong-parent-needs-help-queue')?.replaceChildren();"
+          new=b"   if(mode==='child'){\n    // QA-only: remove previous parent toast AFTER all draft-block guards pass.\n    clearTimeout(toastTimer);\n    $('toast').textContent='';\n    $('toast').classList.add('hide');\n    $('wrong-parent-needs-help-queue')?.replaceChildren();"
+          assert before.count(old)==1 and before.count(new)==0
+          assert after.count(new)==1 and after.count(old)==0
+          assert before.replace(old,new,1)==after
+          assert after.replace(new,old,1)==before
+          print('W3_COMMITTED_CANDIDATE_FOUR_LINES_EXACT_REVERSE_PASS')
+          PY
+          node --check tests/wrong-w3-committed-candidate-photo-toast-integrity-320-390.mjs
+      - name: Install ephemeral Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test committed candidate 320 and 390 using different synthetic photos
+        run: node tests/wrong-w3-committed-candidate-photo-toast-integrity-320-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w3-committed-candidate-photo-A-B-320-390
+          path: qa-proof/w3-committed-candidate/**/*
+          if-no-files-found: warn
+          retention-days: 7
