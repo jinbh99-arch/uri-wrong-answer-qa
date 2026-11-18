@@ -1,0 +1,44 @@
+name: WRONG W5 distinct photos discard reload Chromium 320 390
+on:
+  push:
+    branches: ['qa/wrong-w5-distinct-photos-discard-reload-20261118']
+    paths:
+      - 'tests/wrong-w5-distinct-photo-discard-reload-320-390.mjs'
+      - '.github/workflows/wrong-w5-distinct-photos-discard-reload.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  w5-distinct-photos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      WRONG_QA85_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact dev app and QA-only diff + Node syntax
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = '250aff5b0a46490488b64f7b96a83c940d2d6c71'
+          test "$(git rev-parse "$WRONG_QA85_DEV_SHA:index.html")" = "$(git rev-parse HEAD:index.html)"
+          git diff --exit-code "$WRONG_QA85_DEV_SHA" HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/wrong-w5-distinct-photo-discard-reload-320-390.mjs
+          echo 'W5_QA_ONLY_DEV_APP_SOURCE_BYTES_PASS'
+      - name: Install isolated Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Distinct A B PNG / discard / hard reload / parent child return
+        run: node tests/wrong-w5-distinct-photo-discard-reload-320-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w5-distinct-photos-320-390-proof
+          path: qa-proof/w5-distinct/**/*
+          if-no-files-found: warn
+          retention-days: 7
