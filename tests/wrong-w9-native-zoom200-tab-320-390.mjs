@@ -148,6 +148,10 @@ try{
   pass(target,'natural first Tab focus captured without artificial focus injection');
   await shot(page,target,'01-natural-first-tab-native200');
 
+  // The same disposable browser profile may retain the earlier 320px synthetic
+  // record when testing 390px. Compare incremental records rather than
+  // assuming the entire IndexedDB is empty; also prove prior rows are intact.
+  const startLedger=await snap(page);
   await keyEnter(page,'#nav-add');
   await page.locator('#page-add:not(.hide)').waitFor({timeout:15000});
   const added=await metrics(page);
@@ -168,12 +172,18 @@ try{
   await page.locator('#page-detail:not(.hide)').waitFor({timeout:15000});
   await page.locator('#detail-image img').waitFor({timeout:15000});
   const before=await snap(page);
-  assert.equal(before.rows.length,1,'one saved synthetic record');
-  assert.equal(before.photos.length,1,'one saved photo');
-  assert.equal(before.rows[0].id,before.photos[0].id,'photo and record IDs differ');
-  assert.equal(before.rows[0].problemText,originalProblem);
-  assert.equal(before.rows[0].memo,parentMemo);
-  const originalPhotoSha=h(Buffer.from(before.photos[0].bytes));
+  assert.equal(before.rows.length,startLedger.rows.length+1,'one NEW synthetic record required');
+  assert.equal(before.photos.length,startLedger.photos.length+1,'one NEW synthetic photo required');
+  const record=before.rows.find(row=>row.problemText===originalProblem);
+  assert.ok(record?.id,'new synthetic record not located by its exact title');
+  const photo=before.photos.find(row=>row.id===record.id);
+  assert.ok(photo,'new synthetic photo missing at matching record ID');
+  assert.equal(record.memo,parentMemo);
+  assert.deepEqual(before.rows.filter(row=>row.id!==record.id),startLedger.rows,
+    'a previous synthetic record was changed by adding the new record');
+  assert.deepEqual(before.photos.filter(row=>row.id!==record.id),startLedger.photos,
+    'a previous synthetic photo was changed by adding the new photo');
+  const originalPhotoSha=h(Buffer.from(photo.bytes));
   pass(target,'keyboard registration and synthetic photo ID+SHA persisted');
   const observation='W9 가상 관찰 '+target+' / 다시 확인';
   await page.locator('#check-status').selectOption('needs_help');
@@ -182,9 +192,11 @@ try{
   await keyEnter(page,'#check-save');
   await page.waitForFunction(v=>document.querySelector('#check-history')?.textContent?.includes(v),observation,{timeout:15000});
   const observed=await snap(page);
-  assert.equal(observed.rows.length,1);
-  assert.equal(observed.photos.length,1);
-  assert.equal(h(Buffer.from(observed.photos[0].bytes)),originalPhotoSha);
+  assert.equal(observed.rows.length,startLedger.rows.length+1);
+  assert.equal(observed.photos.length,startLedger.photos.length+1);
+  assert.equal(h(Buffer.from(observed.photos.find(p=>p.id===record.id).bytes)),originalPhotoSha);
+  assert.deepEqual(observed.rows.filter(row=>row.id!==record.id),startLedger.rows);
+  assert.deepEqual(observed.photos.filter(row=>row.id!==record.id),startLedger.photos);
   const detail=await metrics(page);
   assert.ok(detail.scrollWidth<=detail.clientWidth+3,'detail horizontal overflow '+JSON.stringify(detail));
   pass(target,'keyboard parent observation persisted, original photo SHA unchanged');
@@ -209,11 +221,11 @@ try{
   const reload=await page.reload({waitUntil:'domcontentloaded'});
   assert.equal(reload?.status(),200);
   await page.locator('#nav-records').click();
-  await page.locator('#records-list button[data-record]').first().click();
+  await page.locator('#records-list button[data-record="'+record.id+'"]').click();
   await page.locator('#page-detail:not(.hide)').waitFor({timeout:15000});
   const afterReload=await snap(page);
   assert.deepEqual(afterReload,observed,'native zoom reload mutated saved record/photo');
-  assert.equal(h(Buffer.from(afterReload.photos[0].bytes)),originalPhotoSha);
+  assert.equal(h(Buffer.from(afterReload.photos.find(p=>p.id===record.id).bytes)),originalPhotoSha);
   const final=await metrics(page);
   assert.ok(final.scrollWidth<=final.clientWidth+3,'reentry horizontal overflow '+JSON.stringify(final));
   const nativeFinal=await setNativeZoom(worker,page,2);
@@ -224,8 +236,10 @@ try{
    nativeZoomBefore:zoom.before,nativeZoomAfter:zoom.after,
    effectiveCssViewportWidth:at200.innerWidth,
    beforeFirst,firstTab:first,at100,at200,added,detail,final,child,
-   savedRecordId:before.rows[0].id,photoByteCount:before.photos[0].bytes.length,
-   photoSHA256:originalPhotoSha,modeAndReloadIDBExact:true};
+   preexistingSyntheticRecords:startLedger.rows.length,
+   savedRecordId:record.id,photoByteCount:photo.bytes.length,
+   photoSHA256:originalPhotoSha,modeAndReloadIDBExact:true,
+   previousSyntheticEntriesExact:true};
   await page.close();
  }
  assert.equal(report.checks,12);
