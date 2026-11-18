@@ -1,0 +1,43 @@
+name: WRONG W3 390 cross-record delayed OCR current-dev isolated QA
+on:
+  push:
+    branches: ['qa/wrong-w3-cross-record-ocr-390-dev-20261118']
+    paths:
+      - 'tests/wrong-w3-cross-record-ocr-390.mjs'
+      - '.github/workflows/wrong-w3-cross-record-ocr-390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  w3-390-delayed-ocr:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      WRONG_QA84_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove exact current-dev app and no product edit
+        run: |
+          test "$(git rev-parse HEAD:index.html)" = "250aff5b0a46490488b64f7b96a83c940d2d6c71"
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse "$WRONG_QA84_DEV_SHA:index.html")"
+          git diff --exit-code "$WRONG_QA84_DEV_SHA" HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/wrong-w3-cross-record-ocr-390.mjs
+          echo W3_390_PINNED_DEV_APP_BYTES_PASS
+      - name: Install Chromium for isolated 390 only
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: W3 cross-record late OCR at 390px ONLY
+        run: node tests/wrong-w3-cross-record-ocr-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w3-cross-record-ocr-390-dev-proof
+          path: qa-proof/w3-ocr-390/**/*
+          if-no-files-found: warn
+          retention-days: 7
