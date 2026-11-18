@@ -4513,6 +4513,10 @@ $('wrong-child-next-all').addEventListener('click',()=>{
    v218Mode=mode;
    document.body.classList.toggle('v218-child',mode==='child');
    if(mode==='child'){
+    // QA-only: remove previous parent toast AFTER all draft-block guards pass.
+    clearTimeout(toastTimer);
+    $('toast').textContent='';
+    $('toast').classList.add('hide');
     $('wrong-parent-needs-help-queue')?.replaceChildren();
     for(const id of ['v227-metrics','v227-events','v227-evidence'])$(id)?.replaceChildren();
     $('check-history')?.replaceChildren();
