@@ -16,7 +16,7 @@ const gitBlob=b=>createHash('sha1').update('blob '+b.length+'\0').update(b).dige
 const report={mode,sourceDevSha:DEV,appBlob:gitBlob(readFileSync('index.html')),
   screenshots:[],widths:{},pageErrors:[],externalRequests:[],realFamilyData:false,
   actualFamilyAuthVerified:false,physicalPhoneVerified:false,
-  parentToastSynthetic:true,status:'IN_PROGRESS'};
+  parentToastSynthetic:true,toastViaActualPhotoUI:true,status:'IN_PROGRESS'};
 let preview,browser;
 try{
  const auth={username:'w3-toast-synthetic',password:randomBytes(24).toString('hex')};
@@ -37,11 +37,17 @@ try{
   const response=await page.goto(preview.url,{waitUntil:'domcontentloaded'});
   assert.equal(response?.status(),200);
   await page.locator('#v218-child-mode').waitFor({state:'visible'});
-  // Exercise the same globally defined notify() used by parent photo selection.
-  // Synthetic text intentionally contains no real child's/photo's information.
-  const msg='W3 합성 부모 전용 사진선택 알림 - 아이 화면에 남기지 않기';
-  await page.evaluate(t=>notify(t),msg);
-  assert.equal(await page.locator('#toast').isVisible(),true,'toast prerequisite');
+  // Reproduce the parent's real image-selection and image-removal UI events.
+  // This app's notify() is module/local scope, not a window global function.
+  // Only an artificial 1px PNG is used, with no personal information or saves.
+  await page.locator('#nav-add').click();
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3L3YcAAAAASUVORK5CYII=','base64');
+  await page.locator('#take-photo').setInputFiles({name:'w3-toast-synthetic.png',mimeType:'image/png',buffer:png});
+  await page.waitForFunction(()=>document.querySelector('#v08-photo-ready')?.textContent?.includes('사진 선택 완료'),null,{timeout:15000});
+  await page.locator('#remove-photo').click();
+  const msg='이번 사진 선택만 취소했습니다.';
+  assert.equal(await page.locator('#toast').isVisible(),true,'real parent UI toast prerequisite');
+  assert.equal(await page.locator('#toast').textContent(),msg);
   await page.locator('#v218-child-mode').click();
   const child=await page.evaluate(()=>({
     child:document.body.classList.contains('v218-child'),
