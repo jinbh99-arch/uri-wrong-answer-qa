@@ -1,0 +1,44 @@
+name: WRONG W9 native Chrome zoom 200 and natural first Tab 320 390
+on:
+  push:
+    branches: ['qa/wrong-w9-native-zoom200-tab-320-390-20261118']
+    paths:
+      - 'tests/wrong-w9-native-zoom200-tab-320-390.mjs'
+      - '.github/workflows/wrong-w9-native-zoom200-tab-320-390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  w9-native200:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      WRONG_W9_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify pinned dev Git blob, QA isolation, test syntax
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = '250aff5b0a46490488b64f7b96a83c940d2d6c71'
+          test "$(git rev-parse HEAD:index.html)" = "$(git rev-parse "$WRONG_W9_DEV_SHA:index.html")"
+          git diff --exit-code "$WRONG_W9_DEV_SHA" HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/wrong-w9-native-zoom200-tab-320-390.mjs
+          echo W9_NATIVE200_DEV_SOURCE_BYTES_PASS
+      - name: Install Playwright Chromium (ephemeral MV3 extension zoom)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser-native 200% zoom and 320/390 keyboard+synthetic IndexedDB
+        run: node tests/wrong-w9-native-zoom200-tab-320-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w9-native200-320-390-qa-proof
+          path: qa-proof/w9-native200/**/*
+          if-no-files-found: warn
+          retention-days: 7
