@@ -1,6 +1,6 @@
 # 02 WRONG W3 — 미저장 부모 관찰·재확인 질문 전환 차단 보존 RED→GREEN 추가 QA v1.0
 
-**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 신규 CI·원시 ZIP 직접 확인 완료, 자체 PASS.** 기존 W3 토스트의 06 독립검증은 별도로 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)에서 **PASS(QA만)** 확인됨. 이번 **새 두 가드**의 06 독립 판정은 N/T. 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
+**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 신규 CI·원시 ZIP 직접 확인 완료, 자체 PASS.** 기존 W3 토스트의 06 독립검증은 별도로 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)에서 **PASS(QA만)** 확인됨. 이번 **새 두 가드**도 [06 독립차분 PASS #6979749342](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979749342)를 확인했다. 단 QA 전용, 제품 도입 미승인. 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
 
 ## 1. 미완료 검증 공백과 실제 소스 비교
 
@@ -48,5 +48,5 @@
 
 **원시 샘플 SHA256:** GREEN 390 부모 관찰 보호 `a885aa0719e6c167a5bba35afffc81dafa80dda8d0067dc58f77babc3dac11e4`; GREEN 390 부모 질문 보호 `c44c606b03e2d94cee279f3cbb0bdf45a9cae1063af51f7784f96865ad369e5c`; RED 390 아이 전환 후 경고 잔류 `38ca1c03757752bea3b20f6c9d92d92603a13c00bf6bce175b65efbf64efe412`; GREEN 390 아이 전환 후 경고 제거 `180da06571871828941f377e4bc800dddfa04f8e755a2aed0a2ee92e85239f8f`. PNG 390 사진 4장 상단을 실제 나란히 시각 검토하여 **RED는 아이 화면에 이전 경고가 남고 GREEN은 사라지는 차이**를 확인.
 
-- **독립 검증 상태:** 앞선 W3 토스트 **06 독립 PASS(QA만)** 는 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)로 이미 수령. **이번 두 신규 가드**는 02 **자체 PASS**, 06의 이번 증분 독립 대조는 **N/T**. 실가족·아이 인증/실폰·Safari·실사진/실OCR 검증 없음.
-- **다음:** 00 P0 AdSense C math 보안이 우선이며 이번 W3 부가분은 06에 SHA40/기존 동일 스크립트/ZIP 12 PNG+2 JSON/원본 역복원을 **후행 증분 독립 판정 요청**으로 인계. 다른 채팅의 실제 모델 응답을 수신했다고 간주하지 않고 **제품 적용/배포/실자료·PR 병합·예약 변경하지 않음**.
+- **독립 검증 상태:** 앞선 W3 토스트 **06 독립 PASS(QA만)** 는 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)로 이미 수령. **이번 두 신규 가드**는 02 **자체 PASS + 06 독립차분 PASS(QA만)** [#6979749342](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979749342). 06이 ZIP PNG12/JSON2·CRC/digest·가역 패치 1앵커 원본 정/역복원을 독립 확인했다. 실가족·아이 인증/실폰·Safari·실사진/실OCR 검증 없음.
+- **다음:** 00 P0 AdSense C math 보안이 우선이며 이번 W3 부가분은 06 독립 QA PASS까지 수령했다. 00의 **제품 반영 범위·실환경 검증 별도 승인 전**에는 운영 수정/배포를 수행하지 않는다. 다른 채팅의 실제 모델 응답을 수신했다고 간주하지 않고 **제품 적용/배포/실자료·PR 병합·예약 변경하지 않음**.
