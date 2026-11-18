@@ -1,6 +1,6 @@
 # 02 WRONG W3 — 미저장 부모 관찰·재확인 질문 전환 차단 보존 RED→GREEN 추가 QA v1.0
 
-**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 현재 신규 CI 결과 확인 전.** 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
+**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 현재 신규 CI 결과 확인 전.** 기존 W3 토스트의 06 독립검증은 별도로 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)에서 **PASS(QA만)** 확인됨. 이번 **새 두 가드**의 06 독립 판정은 N/T. 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
 
 ## 1. 미완료 검증 공백과 실제 소스 비교
 
