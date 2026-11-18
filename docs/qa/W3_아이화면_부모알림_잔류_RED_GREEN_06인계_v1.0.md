@@ -1,6 +1,6 @@
 # 02 WRONG W3 — 아이 화면 전환 시 이전 부모 알림 잔류 · RED→GREEN 격리 QA 인계 v1.0
 
-**2026-11-18 KST / 02 담당 · RED→GREEN 시험 시행, 신규 2차 CI 결과 확인 전.** 00 총괄 최신 [P0 우선순위 #6971077626](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6971077626)에 따라 01 AdSense 보안/06 판단이 최우선이며, 이번 검증은 **02 후행 P1**, 06의 기존 판정을 재수행하지 않는다.
+**2026-11-18 KST / 02 담당 · RED→GREEN 320/390 합성 격리 검증 성공, 원시 ZIP 직접 개봉 완료. 06 독립/제품 적용 N/T.** 00 총괄 최신 [P0 우선순위 #6971077626](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6971077626)에 따라 01 AdSense 보안/06 판단이 최우선이며, 이번 검증은 **02 후행 P1**, 06의 기존 판정을 재수행하지 않는다.
 
 ## 1. 관측과 원인(실제 제품 dev 소스)
 
@@ -27,11 +27,30 @@
 
 ## 4. 완료 판정/한계(실제 CI 값은 별도 기입)
 
-**대상:** [첫 CI 44253504233](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253504233)는 **시험 오용으로 FAIL**: 실제 앱의 로컬 `notify()`를 `page.evaluate`의 전역 함수로 잘못 간주해 `ReferenceError: notify is not defined`; 기능 FAIL 근거 아님. 시험은 실제 UI의 합성 사진선택→제외로 최소 수정했다. [2차 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980) 실행 SHA `47abbd18f6c41bbdb2ff3fce3e3c92607b0e8a71`, 결과 확인 전. 소스 3개 추가 파일만, 제품 `index.html` 변경 0.
+**대상:** [첫 CI 44253504233](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253504233)는 **시험 오용으로 FAIL**: 실제 앱의 로컬 `notify()`를 `page.evaluate`의 전역 함수로 잘못 간주해 `ReferenceError: notify is not defined`; 기능 FAIL 근거 아님. 시험은 실제 UI의 합성 사진선택→제외로 최소 수정했다. [2차 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980) 실행 SHA `47abbd18f6c41bbdb2ff3fce3e3c92607b0e8a71`, completed/SUCCESS. 소스 3개 추가 파일만, 제품 `index.html` 변경 0.
 
 - **원본 기대 RED**: 버튼으로 아이 전환됐는데 이전 부모 알림 문구가 남아 있음. 실제 출처는 W3 기존 사진 선택 경로, 신규 테스트는 전역 `notify()` 동일 경로를 **가상 문구**로 유도.
 - **격리 패치 기대 GREEN**: 아이 전환 후 전역 알림이 화면·DOM에서 사라지고, 미저장 입력에 대한 전환 차단 알림은 그대로 표시.
 - **검증 완료 기준:** CI job completed/success, 실행 SHA40, 실제 원시 PNG·JSON 각각 열기/SHA256 대조, 역패치 후 원본 blob `250aff5b0a...` 일치, 06 신규 범위 독립 검증. 성공해도 **일반 알림 표시 UX 개선일 뿐 가족 인증/실기기 개인정보 보호·운영 품질 승인 아님**.
 - **P0 우선:** 08 AdSense B안 독립 보안 판정 및 06 LEVEL 검증이 먼저다. W3는 06 후행 차분으로 보관하며 다른 앱·공개·Google 계정 변경 금지.
 
-**현재 상태:** 첫 시험 호출 오류 FAIL 인정→실 UI 조작으로 정정한 2차 CI 실행 요청 완료/결과 확인 전. 제품·배포·실자료·예약 변경 0. 검증 결과가 완료되면 이 문서의 증거 절을 실제 값으로 업데이트한 후 #82 한 번 보고한다.
+**현재 상태:** 첫 시험 호출 오류 FAIL 인정→실 UI 조작으로 정정한 2차 CI SUCCESS(RED/GREEN·미저장 입력 차단 모두 320/390 PASS). 제품·배포·실자료·예약 변경 0. 원시 PNG8/JSON2 직접 확인, 제품 dev/운영/실자료/예약 변경 0. 06은 AdSense 우선 이후 신규 차분만 독립 판정한다.
+
+
+## 5. 완료된 RED→GREEN 원시증거
+
+- 실제 성공 CI: https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980 / job 134630653505, 실행 SHA 47abbd18f6c41bbdb2ff3fce3e3c92607b0e8a71, completed/success. 
+- 원시 artifact: https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980/artifacts/14405321094 ; ZIP 실제 2,861,656 bytes, SHA256 e44a2d3f391e730f01798f09a670c42c02e3506a9f2d8676b1e947cc350aec6a. GitHub digest와 정확히 일치. PNG 8장(RED/ GREEN×320/390 각2)+JSON 2개 실제 개봉, PNG 서명/파일 해시/화면과 JSON 직접 확인.
+- 첫 CI 44253504233 FAIL은 앱 기능과 무관한 테스트 하네스의 전역 notify 호출 오류. 수정본은 실제 UI에서 합성 1픽셀 사진 선택→사진 제외 버튼을 클릭해 사진 취소 알림을 발생시켰다. 기존 320px OCR 경합 CI는 반복하지 않았다.
+
+| 320/390 확인 항목 | RED 현 dev 원형 | GREEN 가역 QA 패치 |
+|---|---|---|
+| 실제 아이 화면으로 전환 | 정상 모드 전환 후 사진 취소 토스트 **보임** | 정상 모드 전환 후 토스트 **숨김** + DOM 문구 빈 문자열 |
+| 미저장 오답을 쓴 상태에서 아이로 전환 | 전환 **차단**, 부모 경고 표시, 작성 내용 유지 | **동일 보호 유지** (차단 메시지를 잘못 지우지 않음) |
+| 가로 폭·오류·외부 요청 | 320/390 너비 유지, JS 오류0·외부요청0 | 동일 PASS |
+| 실제 원본 복원 | 제품 dev index Git blob 250aff5b0a46490488b64f7b96a83c940d2d6c71 고정 | 격리 패치 후 정확 역패치, 원본 바이트 동일 PASS |
+
+- RED JSON 상태 EXPECTED_BASELINE_TOAST_LEAK / GREEN JSON 상태 PASS_QA_ONLY_TOAST_SCRUB; 320·390 폭별 모두 일치. 390 RED 아이 모드 원시 화면에는 실제로 '이번 사진 선택만 취소했습니다.' 알림이 보이고 GREEN에서는 사라지는 것을 육안으로 확인. 미저장 입력 시 경고는 두 경우 모두 화면과 JSON에 유지.
+- PNG SHA256 참고: RED 390 아이 모드 68015be31d60f417fdb111110288d99b0ade859d5c5976e6f5bde8c50ac278b0; GREEN 390 아이 모드 2fe3b46bc67723be2fdffd3f6f35588f5d2cebe489f3d270f86c383a73aade16.
+- CI는 patch.py 적용·역패치 로그 W3_CHILD_TOAST_REVERSIBLE_PATCH_PASS 및 W3_TOAST_FULL_REVERSE_DEV_BYTES_PASS를 모두 기록. 제품 index는 QA 브랜치에 반영하지 않았고, GitHub 변경은 테스트/patch/workflow와 문서뿐.
+- **독립검증/운영 한계:** 06 신규 판정 대기, 실제 이름/사진/OCR/실인증/실폰·다른 브라우저 N/T. 화면 모드 토글은 계정 접근제어가 아니다. AdSense 01/08/06 P0가 우선이므로 02 UX 결과는 후행 큐로 인계하고 제품·배포를 변경하지 않는다.
