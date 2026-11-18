@@ -1,6 +1,6 @@
 # 02 WRONG W3 — 미저장 부모 관찰·재확인 질문 전환 차단 보존 RED→GREEN 추가 QA v1.0
 
-**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 현재 신규 CI 결과 확인 전.** 기존 W3 토스트의 06 독립검증은 별도로 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)에서 **PASS(QA만)** 확인됨. 이번 **새 두 가드**의 06 독립 판정은 N/T. 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
+**작성일:** 2026-11-18 KST · **02 승인된 격리 QA 보충, 신규 CI·원시 ZIP 직접 확인 완료, 자체 PASS.** 기존 W3 토스트의 06 독립검증은 별도로 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)에서 **PASS(QA만)** 확인됨. 이번 **새 두 가드**의 06 독립 판정은 N/T. 제품 운영/계정/DB/배포/예약 변경 0. 기존 [W3 토스트 격리 성공 CI 44253835980](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44253835980)을 재실행하지 않는다.
 
 ## 1. 미완료 검증 공백과 실제 소스 비교
 
@@ -20,10 +20,33 @@
 | 미저장 질문 입력 삭제 → 아이 선택 | **정상 아이 전환**. RED 원본에는 직전 부모 경고가 일시 잔류, GREEN에는 경고 문구/표시 0 | 저장 원장 변경0, 외부 요청/JS 오류0 |
 | 원본 정확성 | `index.html` Git blob `250aff5b0a46490488b64f7b96a83c940d2d6c71` 핀 | 임시 patch 적용→실행→정확 역패치→`git diff --exit-code` |
 
-**실제 CI:** [신규 CI 44310593267](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44310593267), 실행 SHA `55b8adbf2557dcd148d1114fe1d5ca043efefa0b` (테스트·workflow·patch만). **초기 작성 시 CI 설치 중; 최종 PASS/FAIL 단정 금지**. 예상 원시 증거: RED 320/390 3 PNG씩, GREEN도 각 3 PNG씩 **총 PNG12+JSON2**. CI 결과 수령 후 실제 ZIP/digest/PNG/JSON 파일 확인 뒤 갱신한다.
+**실제 CI:** [신규 CI 44310593267](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44310593267), 실행 SHA `55b8adbf2557dcd148d1114fe1d5ca043efefa0b` (테스트·workflow·patch만). **최종 CI SUCCESS·자체 RED→GREEN 320/390 PASS**. **실제 원시 증거:** RED·GREEN 320/390 각 3 PNG씩 **총 PNG12+JSON2**, ZIP 직접 개봉 및 SHA/PNG 크기·JSON 값 대조 완료.
 
 ## 3. 독립/운영 경계와 00 의존관계
 
 - 이번 검증은 **아이/부모 로컬 보기 모드의 UX·미저장 입력 보호**만 확인한다. 보기 전환은 로그인/가족 인증이 아니다. 실제 아동 사진·실OCR·외부 제3자 SDK·실폰·스크린리더·운영 저장 내구성 **N/T**.
 - 제품 dev에는 토스트 제거가 **아직 적용되지 않았다**. 성공해도 임의로 병합하지 않고 **06 독립 원시 대조 → 00 명시 승인 → 제품 반영·환경 테스트** 순서를 지킨다.
 - [00/87 최신 21:32 KST 커서](https://github.com/jinbh99-arch/uri-homework-manager/issues/87)와 [00→08 LEVEL AdSense C math #6978436704](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6978436704)가 **P0 선행**. 02 W3의 이번 **P1 후행 독립 검증 후보**는 기존 성공 CI·예약/다른 방 직접 실행을 반복하지 않고 신규 두 가드 차분만 제출한다.
+
+
+## 4. 실제 실행 완료 / 원시 파일 검증 결과 — 02 자체 PASS
+
+- **신규 [CI #44310593267](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44310593267)** / job `134823391387`, 실행 SHA **`55b8adbf2557dcd148d1114fe1d5ca043efefa0b`**, completed/success. 해당 SHA가 dev와 다른 파일은 **신규 가역 패치 스크립트/시험/workflow 3개**, 앱과 QA 미리보기 서버 변경 0. CI `W3_TWO_GUARDS_PINNED_DEV_AND_QA_ISOLATION_PASS`, `W3_TWO_GUARDS_EXACT_REVERSE_ORIGINAL_BYTES_PASS` 직접 로그 확인.
+- [**원시 artifact #14429374261**](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44310593267/artifacts/14429374261), ZIP **5,178,507 bytes**, SHA256 **`89d125ef4a84d07e0a26ca0fc2a48e4bd9b5f4400bcd99bc1e7e6ec978e4a9b8`**, GitHub artifact digest와 일치. **ZIP 직접 개봉 완료:** 320·390 각각 RED 3 PNG + GREEN 3 PNG, 합계 **PNG12장**(서명·크기·파일SHA 확인) 및 원시 `red/result.json`·`green/result.json` 2개를 읽어 아래 상태값 대조.
+- **RED 원본** `index.html` Git blob `250aff5b0a46490488b64f7b96a83c940d2d6c71`. RED `result.status=PASS_BASELINE_PARENT_WARNING_LEAK_REPRODUCED` (320/390 각각 관찰 메모·재확인 질문 보호 차단 PASS, 입력 취소→아이 전환 후 **이전 ‘저장하지 않은 부모 재확인 질문’ 알림이 남음**).
+- **GREEN QA 패치 임시 적용** `index.html` Git blob `6ff6cf1c2cfeef3706381a68fc105feab8258b04`, `result.status=PASS_PATCH_PRESERVES_BOTH_GUARDS_AND_CLEARS_CHILD_WARNING`. 320·390 모두 차단 보호 경고·원래 입력 보존 PASS, 정상 아이 전환 후 이전 토스트 **`toastVisible=false`, `toastText=''`**. 테스트 작업공간 즉시 역패치 후 원본 `index.html` 바이트 완전 복원. **제품 repo dev에는 GREEN 패치를 적용하지 않음.**
+
+| 새 보호 사례 / 폭 | RED 제품 원본 | GREEN QA 패치 | 원장·UI 안전 |
+|---|---|---|---|
+| 320 부모 **미저장 관찰 메모** 차단 | PASS | PASS | 모드=부모, 경고 표시, 메모 미삭제, DB deepEqual |
+| 390 부모 **미저장 관찰 메모** 차단 | PASS | PASS | 동일 |
+| 320 비수학 **다음 확인 질문** 차단 | PASS | PASS | 질문 미삭제, 저장된 재풀이 기록 불변 |
+| 390 비수학 **다음 확인 질문** 차단 | PASS | PASS | 동일 |
+| 320 보호 질문 입력 지운 후 아이 전환 | RED 경고 잔류 재현 | **GREEN 알림 표시·DOM 텍스트 제거 PASS** | 저장된 오답·재풀이 불변 |
+| 390 보호 질문 입력 지운 후 아이 전환 | RED 경고 잔류 재현 | **GREEN 알림 표시·DOM 텍스트 제거 PASS** | 동일 |
+| 외부 요청/JS 오류 | 0 / 0 | 0 / 0 | 합성·로컬 Chromium만, 실 SDK 수신 N/T |
+
+**원시 샘플 SHA256:** GREEN 390 부모 관찰 보호 `a885aa0719e6c167a5bba35afffc81dafa80dda8d0067dc58f77babc3dac11e4`; GREEN 390 부모 질문 보호 `c44c606b03e2d94cee279f3cbb0bdf45a9cae1063af51f7784f96865ad369e5c`; RED 390 아이 전환 후 경고 잔류 `38ca1c03757752bea3b20f6c9d92d92603a13c00bf6bce175b65efbf64efe412`; GREEN 390 아이 전환 후 경고 제거 `180da06571871828941f377e4bc800dddfa04f8e755a2aed0a2ee92e85239f8f`. PNG 390 사진 4장 상단을 실제 나란히 시각 검토하여 **RED는 아이 화면에 이전 경고가 남고 GREEN은 사라지는 차이**를 확인.
+
+- **독립 검증 상태:** 앞선 W3 토스트 **06 독립 PASS(QA만)** 는 [#6979473254](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6979473254)로 이미 수령. **이번 두 신규 가드**는 02 **자체 PASS**, 06의 이번 증분 독립 대조는 **N/T**. 실가족·아이 인증/실폰·Safari·실사진/실OCR 검증 없음.
+- **다음:** 00 P0 AdSense C math 보안이 우선이며 이번 W3 부가분은 06에 SHA40/기존 동일 스크립트/ZIP 12 PNG+2 JSON/원본 역복원을 **후행 증분 독립 판정 요청**으로 인계. 다른 채팅의 실제 모델 응답을 수신했다고 간주하지 않고 **제품 적용/배포/실자료·PR 병합·예약 변경하지 않음**.
