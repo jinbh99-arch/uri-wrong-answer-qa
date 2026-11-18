@@ -1,6 +1,6 @@
 # 02 WRONG W9 — 실제 200% 탭 확대의 첫 Tab 본문 이동·화면 캡처 오차 차분 검증 v1.0
 
-**2026-11-18 / 02 담당 / 격리 QA 전용.** 이 문서는 [기존 W9 자체 PASS 12/12 #6975842245](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6975842245)를 반복하지 않고 **남아 있던 키보드 바로가기 목적지 검증·캡처 글자 잘림 여부**만 독립 차분으로 검사한다. **신규 CI 결과 확인 전 판정은 진행 중.**
+**2026-11-18 / 02 담당 / 격리 QA 전용.** 이 문서는 [기존 W9 자체 PASS 12/12 #6975842245](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-6975842245)를 반복하지 않고 **남아 있던 키보드 바로가기 목적지 검증·캡처 글자 잘림 여부**만 독립 차분으로 검사한다. **신규 CI 44289641424 자체 PASS(2/2)·원시 ZIP PNG6/JSON1 직접 대조 완료. 06 독립/실기기 N/T.**
 
 ## 1. 선행 사실과 미검증
 
@@ -28,4 +28,33 @@
 
 **PASS:** 두 폭 모두 native zoom=2, 스킵링크 첫 focus가 키보드로 도달·시각 포커스 존재, 링크 텍스트 범위가 CSS viewport 안에 위치, Enter 뒤 본문 실제 초점·해시 일치. **별도 육안 분리:** PNG의 2배 확대 잘림 의심과 CSS Range 결과를 비교해 실제 클리핑인지 캡처 산출물 한계인지 확인; 본문 전체 가독성 N/T 잔존 가능. **FAIL:** Enter 뒤 focus 이동 실패, 링크 CSS 글리프 뷰포트 밖, 수평 넘침 등의 실제 DOM 증거. **N/T:** 원시 캡처/CI 접근 불가, 실폰·스크린리더·브라우저 간 동일성.
 
-**다음:** 신규 CI 결과와 원시 ZIP/PNG/JSON의 SHA/실물 화면을 확인해 이번 문서에 추가하고 #82에 인계. 06 독립 판정은 01 AdSense 보안·00 공개 승인 게이트보다 후순위. 제품 dev/main·PR80 Draft·`safeToRestore:false`·DB·실가족·배포·광고/계정·유료 API·예약 설정 변경 0.
+**다음:** 아래 완료 증거와 원본앱 SHA를 00/06에 인계하고, AdSense P0 이후 06 차분 독립검증. 06 독립 판정은 01 AdSense 보안·00 공개 승인 게이트보다 후순위. 제품 dev/main·PR80 Draft·`safeToRestore:false`·DB·실가족·배포·광고/계정·유료 API·예약 설정 변경 0.
+
+
+## 4. 실제 CI·ZIP·문서 기하학 대조 — 02 자체 PASS(2/2)
+
+- [**CI 44289641424**](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44289641424) job `134751202390`: completed/success, **실행 SHA `e412955198b8308c5f0a9a7217a92ac09198e8b6`**. 실행 단계 `W9_SKIP_SOURCE_BYTES_INTACT` PASS, product dev의 `index.html` blob `250aff5b0a46490488b64f7b96a83c940d2d6c71` + QA 서버 코드 변경 0. 테스트/워크플로 두 파일만 신규 추가. 현 문서 추가 후에도 dev 원본 불변.
+- [**원시 artifact 14421072282**](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44289641424/artifacts/14421072282) ZIP **595,070 bytes**, SHA256 **`6b5c1d75b7f9d3eae2299779d8b365f2516ce9ef890ec97e976ec952df894077`**; GitHub artifact digest 동일. **실제 ZIP 개봉:** PNG 6장(폭별 3장)+`result.json` 1개(328,783 bytes, SHA256 `ddc9c0cfad0aa1336f869a892f94f7ecb06cde8d9042104813db895ef31bdf8a`)를 직접 읽어 PNG 서명·해상도·JSON의 DOM 좌표/해시를 대조. 원시 320/390 첫 Tab viewport PNG를 별도 열어 시각 검토했다.
+- W9 전용 신코드는 **브라우저 확장 `chrome.tabs.setZoom(2)`**로 실제 내장 탭 확대를 수행했고 `getZoom`을 다시 읽었다. 물리 viewport 640/780, 유효 CSS `innerWidth` 320/390. 인위 `.focus()` 전 `document.activeElement=BODY`, 첫 Tab 뒤 실제 `<a class="qa16-skip">` 포커스, `href="#qa-main"`. 네이티브 `Enter` 뒤 두 폭 모두 `location.hash="#qa-main"`, **`document.activeElement===main#qa-main` = true**, `main.tabIndex=-1`. 단순 URL/hash 변화가 아니라 **본문 초점 이동을 직접 실증**한 것.
+
+| 정량적 원시 항목 | 320 CSS px | 390 CSS px |
+|---|---|---|
+| Chrome native zoom / CSS zoom | 2.0 / 없음 | 2.0 / 없음 |
+| 바로가기 링크 DOM rectangle (CSS px) | left 12, right **258.71** / 폭 246.71 | left 12, right **258.71** / 폭 246.71 |
+| 바로가기 텍스트 Range 조각 viewport 초과 | **0개** | **0개** |
+| 헤더 제목·소개·배지의 Range 조각 viewport 초과 | **0개** | **0개** |
+| 첫 Tab 후 native Enter의 main 실제 초점/해시 | **PASS** / `#qa-main` | **PASS** / `#qa-main` |
+| 문서 scrollWidth | 320 | 390 |
+| viewport 페이지 PNG 실제 크기 | **640×940 픽셀** | **780×940 픽셀** |
+| 스킵링크 요소만 PNG 크기 | 246×50 | 246×50 |
+| page JS 오류 / 차단 대상 외부요청 | **0 / 0** | **0 / 0** |
+| 실제 휴대전화·실스크린리더·Chrome 수동 메뉴 UI | **N/T** | **N/T** |
+
+**핵심 원인 분리:** 이전 W9 성공 CI가 `fullPage:true`로 생성한 PNG는 **320/390 픽셀 너비**, 브라우저의 물리 viewport는 640/780이었다. 그 이미지만 보면 글자가 오른쪽으로 잘려 실제 UI가 결함인 듯 보였다. 이번 **native 탭 확대 조건의 viewport 캡처 `fullPage:false,scale:'css'`는 640/780 픽셀 너비**로 출력됐고, 동일한 첫 Tab 상태에서 전면의 스킵링크와 제목·설명 글자가 온전히 표시됐다. 동시에 DOM 텍스트의 실제 CSS Range 좌표도 320/390 너비 안에 있었다. 따라서 **검사한 링크·제목·설명에서 실제 CSS 영역 밖 글리프 노출 결함을 확인할 수 없었고**, **이전 잘림 의심은 특정 Playwright fullPage screenshot 출력 좌표계의 불일치로 설명되는 게 유력**하다. 이것을 모든 200% 브라우저·휴대폰의 전체 글자 가독성 보증으로 승격할 수는 없다.
+
+**시각 표본 PNG 해시:**
+- `320-firsttab-page-viewport.png` 640×940, SHA256 `38314565e846ca4203ea87143c32cd7426d3020940249149cb7c1da9b5192c46`.
+- `390-firsttab-page-viewport.png` 780×940, SHA256 `8f667d45ce471a2300574039181d8fd27e8071ca2e738d766e4d7256e6c18e1f`.
+- `320-after-skip-enter.png` SHA256 `52276a84ba52299455318893b1d37aa30ea310f44d87e93afd3e68f4f3788037`.
+
+**증거 수준/후속:** 02의 새 범위 **격리 Chromium 자체 PASS 2/2**. [이전 W9 native200 저장 안전 PASS 12/12](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44284806565)와 이번 2/2는 **서로 다른 시험**이며 기존 성공 CI 재실행 0. 실폰·화면낭독기·실데이터/가족 인증 및 06 독립 판정 N/T. **01 AdSense URL 비저장 C안의 00 P0를 우선**, 02 W9는 후행 독립 QA 요청. 제품 dev/main·PR병합·배포·광고/실자료·유료 도구/예약 변경 0.
