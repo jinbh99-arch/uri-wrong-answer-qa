@@ -1,0 +1,10 @@
+diff --git a/index.html b/index.html
+--- a/index.html
++++ b/index.html
+@@ -4515,2 +4515,6 @@
+   if(mode==='child'){
++    // QA-only: remove previous parent toast AFTER all draft-block guards pass.
++    clearTimeout(toastTimer);
++    $('toast').textContent='';
++    $('toast').classList.add('hide');
+    $('wrong-parent-needs-help-queue')?.replaceChildren();
