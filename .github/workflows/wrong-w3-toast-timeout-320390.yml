@@ -1,0 +1,43 @@
+name: WRONG W3 toast timeout rapid mode 320 390
+on:
+  push:
+    branches: ['qa/wrong-w3-toast-timeout-boundary-20261120']
+    paths:
+      - 'tests/wrong-w3-toast-timeout-rapid-mode-320-390.mjs'
+      - '.github/workflows/wrong-w3-toast-timeout-320390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  toast-timeout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify unchanged four-line app and source rollback boundary
+        run: |
+          set -eu
+          DEV_SHA=3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+          test "$(git rev-parse "$DEV_SHA:index.html")" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          test "$(git rev-parse HEAD:index.html)" = 6ff6cf1c2cfeef3706381a68fc105feab8258b04
+          test "$(git diff --numstat "$DEV_SHA" HEAD -- index.html)" = "$(printf '4\t0\tindex.html')"
+          node --check tests/wrong-w3-toast-timeout-rapid-mode-320-390.mjs
+          echo W3_TEMPORAL_APPROVED_FOUR_LINES_UNCHANGED
+      - name: Install ephemeral Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: New 3.4s expiry and rapid-mode 320 390 regression
+        run: node tests/wrong-w3-toast-timeout-rapid-mode-320-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w3-timeout-rapid-mode-320-390
+          path: qa-proof/w3-toast-timeout/**/*
+          if-no-files-found: warn
+          retention-days: 7
