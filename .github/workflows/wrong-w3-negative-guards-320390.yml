@@ -1,0 +1,43 @@
+name: WRONG W3 negative guards 320 390
+on:
+  push:
+    branches: ['qa/wrong-w3-internal-dev-candidate-20261119']
+    paths:
+      - 'tests/wrong-w3-blocked-drafts-toast-guards-320-390.mjs'
+      - '.github/workflows/wrong-w3-negative-guards-320390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  negative-guards:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure same approved four-line source candidate and original dev
+        run: |
+          set -eu
+          DEV_SHA=3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+          test "$(git rev-parse "$DEV_SHA:index.html")" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          test "$(git rev-parse HEAD:index.html)" = 6ff6cf1c2cfeef3706381a68fc105feab8258b04
+          test "$(git diff --numstat "$DEV_SHA" HEAD -- index.html)" = "$(printf '4\t0\tindex.html')"
+          node --check tests/wrong-w3-blocked-drafts-toast-guards-320-390.mjs
+          echo W3_GUARDS_APP_SOURCE_EXACT_FOUR_LINES_PASS
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test blocked draft and warning preservation at 320 390
+        run: node tests/wrong-w3-blocked-drafts-toast-guards-320-390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-w3-negative-guards-320-390
+          path: qa-proof/w3-blocked-draft-guards/**/*
+          if-no-files-found: warn
+          retention-days: 7
