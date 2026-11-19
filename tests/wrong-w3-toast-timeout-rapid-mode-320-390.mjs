@@ -36,11 +36,13 @@ async function ledger(page){
 }
 async function parentToast(page){
  await page.locator('#v218-parent-mode').click();
- // Inject only an ephemeral parent notification into the real notify() path.
- // The photo-remove button is intentionally hidden without a photo; trying to
- // click it was a TEST SETUP error in CI 44636194747, not a product failure.
- await page.evaluate(()=>notify('W3 합성 부모 임시 알림 — 저장 없음'));
- assert.match(await page.locator('#toast').textContent(),/W3 합성 부모 임시 알림/);
+ // Dispatch synthetic .click() to the existing photo-remove handler even
+ // though its button is intentionally hidden until a photo is chosen.
+ // This exercises the real in-closure notify() timer without a real photo.
+ // CI 44636194747: Playwright click on hidden control was a setup error.
+ // CI 44636474051: notify() was not global (closure); setup error again.
+ await page.evaluate(()=>document.getElementById('remove-photo').click());
+ assert.match(await page.locator('#toast').textContent(),/이번 사진 선택만 취소했습니다/);
  assert.equal(await page.locator('#toast').isVisible(),true);
 }
 async function childClean(page,label){
