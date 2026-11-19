@@ -94,6 +94,11 @@ try{
   await page.locator('#wrong007-subject').selectOption('science');
   await page.locator('#save-btn').click();
   await page.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:15000});
+  // WRONG-008 shows the next-question form only after a non-math retry.
+  await page.locator('#v230-answer').fill('합성 재풀이 답안 '+width);
+  await page.locator('#v230-explanation').fill('합성 재풀이 설명 '+width);
+  await page.locator('#v230-save').click();
+  await page.waitForFunction(()=>document.querySelector('#wrong002-state')?.textContent?.includes('다시 푼 기록 1회'),null,{timeout:15000});
   const before=await snapshot(page);
   assert.equal(before.rows.length,1);
   assert.deepEqual(before.photoIds,[]);
