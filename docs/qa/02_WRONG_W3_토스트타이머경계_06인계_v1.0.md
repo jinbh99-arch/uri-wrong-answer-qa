@@ -14,7 +14,7 @@
 - dev index blob: 250aff5b0a46490488b64f7b96a83c940d2d6c71
 - 기존 W3 QA index blob: 6ff6cf1c2cfeef3706381a68fc105feab8258b04 (제품 대비 +4/-0)
 - 격리 브랜치: qa/wrong-w3-toast-timeout-boundary-20261120
-- 시험 실행 SHA: 2c135fa6c95ee0e7e84197263876d06c80456fd8
+- 최신 시험 실행 SHA: 75c7cc06466d8ac2bfc97f5575295dacc86dca1c
 - 신규 test: tests/wrong-w3-toast-timeout-rapid-mode-320-390.mjs
 - 신규 workflow: .github/workflows/wrong-w3-toast-timeout-320390.yml
 - index.html, dev, main, PR80, 저장원장/사진, 인증, 광고, 예약은 수정하지 않음.
@@ -26,8 +26,9 @@
 
 ## 실제 1차 실패와 수정
 - 최초 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44636194747 **FAIL**. 사진 미선택 시 숨겨진 remove-photo 버튼을 클릭한 **테스트 준비 오류**; 30초 UI 타임아웃. 제품 실패 증거 아님. 원본/index 핀 검사는 통과.
-- 수정 범위: 테스트 파일만; 숨겨진 버튼 클릭을 합성 notify() 함수 호출로 대체. workflow 및 앱 소스 불변. 테스트 재검증용 신규 SHA 2c135fa6c95ee0e7e84197263876d06c80456fd8.
-- 신규 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44636474051 **작성 시 실행 중**. 앱 소스 핀 검사 PASS, Chromium 320/390 결과·원시 PNG/JSON·CRC·06 독립 검증 아직 N/T. 실제 결과 확인 전 PASS로 승격 금지.
+- 2차 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44636474051 **FAIL**. 이 앱의 notify()는 외부 전역이 아닌 클로저 내부라서 QA의 전역 호출이 ReferenceError로 실패. **제품 실패 아님 / 테스트 주입경로 오류**.
+- 3차 국소 보정: 기존 사진 제외 핸들러의 인클로저 알림 함수만 합성 DOM click()으로 발동. 사용자 실제 클릭이 아닌 테스트 주입이며 사진 선택/실자료 없음. 테스트 파일 외 index/workflow 불변.
+- 3차 신규 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44637181739 **작성 시 진행 중**. 앱 소스 핀 검사/실행 완료 여부는 CI 참조, Chromium 결과·원시 PNG/JSON·06 독립 검증은 완료 전 N/T. 성공으로 선반영 금지.
 
 ## 다음/보호
 CI 완료 시 06은 신규 3.4초 시간경계·반복 전환·원장/사진·화면 및 원시 결과만 독립 대조. 실폰·실인증·운영 N/T. PR80 Draft, safeToRestore:false, dev push BLOCK 유지. 자동배포 전 채널 비연동 검증 및 00 별도 판단 없이는 제품 반영 금지. 신규방 GitHub 열람과 00 인수 승인/예약 연결은 별도다.
