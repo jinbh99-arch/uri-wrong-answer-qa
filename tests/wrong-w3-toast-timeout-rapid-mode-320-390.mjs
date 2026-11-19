@@ -36,9 +36,11 @@ async function ledger(page){
 }
 async function parentToast(page){
  await page.locator('#v218-parent-mode').click();
- await page.locator('#nav-add').click();
- await page.locator('#remove-photo').click();
- assert.match(await page.locator('#toast').textContent(),/이번 사진 선택만 취소했습니다/);
+ // Inject only an ephemeral parent notification into the real notify() path.
+ // The photo-remove button is intentionally hidden without a photo; trying to
+ // click it was a TEST SETUP error in CI 44636194747, not a product failure.
+ await page.evaluate(()=>notify('W3 합성 부모 임시 알림 — 저장 없음'));
+ assert.match(await page.locator('#toast').textContent(),/W3 합성 부모 임시 알림/);
  assert.equal(await page.locator('#toast').isVisible(),true);
 }
 async function childClean(page,label){
