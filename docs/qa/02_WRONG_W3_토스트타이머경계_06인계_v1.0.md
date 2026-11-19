@@ -28,7 +28,8 @@
 - 최초 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44636194747 **FAIL**. 사진 미선택 시 숨겨진 remove-photo 버튼을 클릭한 **테스트 준비 오류**; 30초 UI 타임아웃. 제품 실패 증거 아님. 원본/index 핀 검사는 통과.
 - 2차 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44636474051 **FAIL**. 이 앱의 notify()는 외부 전역이 아닌 클로저 내부라서 QA의 전역 호출이 ReferenceError로 실패. **제품 실패 아님 / 테스트 주입경로 오류**.
 - 3차 국소 보정: 기존 사진 제외 핸들러의 인클로저 알림 함수만 합성 DOM click()으로 발동. 사용자 실제 클릭이 아닌 테스트 주입이며 사진 선택/실자료 없음. 테스트 파일 외 index/workflow 불변.
-- 3차 신규 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44637181739 **작성 시 진행 중**. 앱 소스 핀 검사/실행 완료 여부는 CI 참조, Chromium 결과·원시 PNG/JSON·06 독립 검증은 완료 전 N/T. 성공으로 선반영 금지.
+- 3차 신규 CI https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44637181739 **SUCCESS**; 실행 SHA 75c7cc06466d8ac2bfc97f5575295dacc86dca1c. 320px/390px 신규 시간경계 **자체 10/10 PASS**. 앱 소스 SHA 핀과 index +4/-0 유지 PASS. 기록상 페이지 오류 0, 외부 요청 0, 합성 오답/사진 원장 각각 0→0. 새 3400ms 토스트 타이머 만료 후 3650ms 시점도 재노출 없음; 각 폭 부모알림3/아이전환3 관찰.
+- 원시 artifact https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44637181739/artifacts/14584297431 ZIP 790323 bytes·PNG6/JSON1 직접 개봉·CRC PASS, SHA256 **7dbe8f22e1b788ba93678ad6bd8eaef87857c7037ddc076652d03d0152f20990** (GitHub digest 일치). 320 부모 경고/아이 소거/반복 소거 3장 육안 확인. 이는 **02 자체 격리 QA PASS**이며 06 별도 독립 판정/실폰·실인증·운영 N/T.
 
 ## 다음/보호
 CI 완료 시 06은 신규 3.4초 시간경계·반복 전환·원장/사진·화면 및 원시 결과만 독립 대조. 실폰·실인증·운영 N/T. PR80 Draft, safeToRestore:false, dev push BLOCK 유지. 자동배포 전 채널 비연동 검증 및 00 별도 판단 없이는 제품 반영 금지. 신규방 GitHub 열람과 00 인수 승인/예약 연결은 별도다.
