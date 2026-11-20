@@ -1,0 +1,44 @@
+name: WRONG ACK unknown double submit isolated 320 390
+on:
+  push:
+    branches: ['qa/wrong-ack-unknown-duplicate-probe-20261121']
+    paths:
+      - 'tests/wrong-ack-unknown-duplicate-probe-320390.mjs'
+      - '.github/workflows/wrong-ack-unknown-duplicate-probe-320390.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ack-unknown-reproduction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      WRONG_ACK_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin original product bytes and verify no app modifications
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          test "$(git rev-parse "$WRONG_ACK_DEV_SHA:index.html")" = "$(git rev-parse HEAD:index.html)"
+          git diff --exit-code "$WRONG_ACK_DEV_SHA" HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          node --check tests/wrong-ack-unknown-duplicate-probe-320390.mjs
+          echo ACK_ORIGINAL_APP_BYTES_INTACT
+      - name: Install isolated Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Commit then readback failure and consecutive submissions
+        run: node tests/wrong-ack-unknown-duplicate-probe-320390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-ack-unknown-double-submit-320390-baseline
+          path: qa-proof/ack-unknown-double-submit/**/*
+          if-no-files-found: warn
+          retention-days: 7
