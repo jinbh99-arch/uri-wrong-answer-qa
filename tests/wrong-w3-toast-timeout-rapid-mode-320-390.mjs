@@ -88,12 +88,18 @@ try{
   await childClean(page,'third');
   assert.equal(await page.locator('#toast').textContent(),'');
   assert.equal(await page.locator('#toast').isVisible(),false);
+  // Independent QA finding: prior run observed only 100ms after final switch.
+  // Observe the last fresh 3400ms timer through expiry as well.
+  await page.waitForTimeout(3650);
+  assert.equal(await page.locator('#toast').textContent(),'');
+  assert.equal(await page.locator('#toast').isVisible(),false);
+  assert.equal(await page.locator('#v218-child-mode').getAttribute('aria-pressed'),'true');
   check('rapid-repeat-does-not-restore-warning',w);
   assert.deepEqual(await ledger(page),initial);
   await shot(page,w,'rapid-child-clean');
   check('synthetic-ledger-unchanged',w);
   report.widths[w]={status:'PASS',parentAlerts:3,childTransitions:3,
-    originalTimeoutMs:3400,observedAfterMs:3650,originalLedger:initial};
+    originalTimeoutMs:3400,observedAfterMs:3650,rapidFinalObservedAfterMs:3650,originalLedger:initial};
   await context.close();
  }
  assert.equal(report.checks,10);
