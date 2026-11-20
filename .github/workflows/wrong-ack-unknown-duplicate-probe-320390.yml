@@ -1,4 +1,4 @@
-name: WRONG ACK unknown double submit isolated 320 390
+name: WRONG ACK uncertain retry patched isolated 320 390
 on:
   push:
     branches: ['qa/wrong-ack-unknown-duplicate-probe-20261121']
@@ -21,14 +21,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Pin original product bytes and verify no app modifications
+      - name: Pin QA-only app bytes and exact original inverse
         run: |
           set -eu
-          test "$(git rev-parse HEAD:index.html)" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
-          test "$(git rev-parse "$WRONG_ACK_DEV_SHA:index.html")" = "$(git rev-parse HEAD:index.html)"
-          git diff --exit-code "$WRONG_ACK_DEV_SHA" HEAD -- index.html scripts/qa66-wrong-loopback-preview.mjs
+          test "$(git rev-parse HEAD:index.html)" = 63e31915875a79a2ebcf21d7c722daa9f8deeb98
+          test "$(git rev-parse "$WRONG_ACK_DEV_SHA:index.html")" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          git diff --check "$WRONG_ACK_DEV_SHA" HEAD -- index.html
+          git diff --exit-code "$WRONG_ACK_DEV_SHA" HEAD -- scripts/qa66-wrong-loopback-preview.mjs
+          node tests/wrong-ack-exact-patch-revert-check.mjs
           node --check tests/wrong-ack-unknown-duplicate-probe-320390.mjs
-          echo ACK_ORIGINAL_APP_BYTES_INTACT
+          echo ACK_QA_PATCH_EXACT_REVERSION_VERIFIED
       - name: Install isolated Chromium
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
@@ -38,7 +40,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: wrong-ack-unknown-double-submit-320390-baseline
+          name: wrong-ack-unknown-double-submit-320390-patched
           path: qa-proof/ack-unknown-double-submit/**/*
           if-no-files-found: warn
           retention-days: 7

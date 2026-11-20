@@ -11,8 +11,8 @@ const APP='250aff5b0a46490488b64f7b96a83c940d2d6c71';
 assert.equal(process.env.WRONG_ACK_DEV_SHA,DEV);
 const OUT='qa-proof/ack-unknown-double-submit';
 mkdirSync(OUT,{recursive:true});
-const report={contract:'WRONG_ACK_UNKNOWN_DOUBLE_SUBMIT_A_PROBE',phase:'BASELINE_ONLY',
-  devSha:DEV,appBlob:APP,synthetic:true,realFamily:false,realPhone:false,
+const report={contract:'WRONG_ACK_UNKNOWN_DOUBLE_SUBMIT_A_PROBE',phase:'ISOLATED_PATCH',
+  devSha:DEV,originalAppBlob:APP,patchedAppBlob:'63e31915875a79a2ebcf21d7c722daa9f8deeb98',synthetic:true,realFamily:false,realPhone:false,
   appCommittedChanges:false,safeToRestore:false,cases:[],screenshots:[],
   pageErrors:[],externalRequests:[],errors:[]};
 const png=(bytes)=>({width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),
@@ -113,6 +113,7 @@ async function one(preview,browser,width,mode,credentials) {
   evidence.after=await dbSnapshot(page);
   assert.ok(evidence.after.count>=1 && evidence.after.count<=2,'unexpected synthetic record count');
   evidence.duplicate=evidence.after.count>1;
+  assert.equal(evidence.after.count,1,'patched ACK guard must prevent duplicate UUID creation');
   evidence.idDistinct=new Set(evidence.after.ids).size===evidence.after.ids.length;
   evidence.photoBytesPreserved=evidence.after.photos.length>=1&&
     evidence.after.photos.every(x=>x.size>0)&&
@@ -121,11 +122,21 @@ async function one(preview,browser,width,mode,credentials) {
   evidence.uncertainMessage=(await page.locator('#form-error').textContent()).slice(0,240);
   evidence.url=page.url();
   await shot(page,'width-'+width+'-'+mode+'-final');
-  // Child DOM check is independent of whether the second save was blocked.
+  // A dirty parent draft must block child switching; never classify that as a leak.
   await page.locator('#v218-child-mode').click();
-  if(await page.locator('#nav-records').count())await page.locator('#nav-records').click();
+  evidence.childAttemptBeforeList=await page.locator('#v218-child-mode').getAttribute('aria-pressed');
+  if(evidence.childAttemptBeforeList!=='true'&&await page.locator('#cancel-edit').isVisible()){
+    await page.locator('#cancel-edit').click();
+  }
+  // User checks the persisted list only after a deliberate fresh page load.
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#nav-records').click();
   const list=page.locator('#records-list button[data-record]');
-  if(await list.count())await list.first().click();
+  await list.first().waitFor({timeout:15000});
+  assert.equal(await list.count(),evidence.after.count,'reentry must show persisted records');
+  await list.first().click();
+  await page.locator('#v218-child-mode').click();
+  assert.equal(await page.locator('#v218-child-mode').getAttribute('aria-pressed'),'true','child mode must actually be active');
   evidence.childMemoDom=await page.evaluate(memo=>({
     body:document.body.textContent?.includes(memo)||false,
     input:document.querySelector('#memo')?.value?.includes(memo)||false,
@@ -160,7 +171,8 @@ try{
   }
  }
  const anyDuplicate=report.cases.some(x=>x.duplicate);
- report.status=anyDuplicate?'DYNAMIC_DUPLICATE_CONFIRMED':'DYNAMIC_DUPLICATE_NOT_REPRODUCED';
+ report.status=anyDuplicate?'PATCH_FAILED_DUPLICATE':'PATCH_BLOCKS_DUPLICATE_RETRIES';
+ if(anyDuplicate)exitCode=1;
  report.privacy='CHILD_DOM_TESTED_SYNTHETIC_ONLY';
  report.familyAuth='NOT_TESTED';
  console.log('WRONG_ACK_FINDING='+report.status);
