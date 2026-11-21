@@ -29,8 +29,16 @@ function save(name,bytes){
  const item={name,file,...img(bytes)};report.screenshots.push(item);return item;
 }
 async function screen(page,label,ctx){
+ // Wait for two compositor frames after ACK DOM update; a blank frame is evidence,
+ // never silently substitute the CDP image for Playwright.
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>
+   requestAnimationFrame(resolve))));
  const playwright=save(label+'-playwright',await page.screenshot({
   fullPage:false,scale:'css',animations:'disabled'}));
+ const playwrightBytes=await page.screenshot({fullPage:false,scale:'css',animations:'disabled'});
+ const blankSuspect=playwrightBytes.length<8000;
+ if(blankSuspect)throw Error('PLAYWRIGHT_SCREENSHOT_BLANK_SUSPECT_'+label+
+   '_BYTES_'+playwrightBytes.length);
  let cdp=null,error=null;
  try{
   const session=await ctx.newCDPSession(page);
@@ -223,6 +231,23 @@ try{
    const tabOrder=await saveByTabEnter(a);
    await a.waitForFunction(()=>document.querySelector('#form-error')?.textContent?.includes('중복 등록하지 말고'),null,{timeout:15000});
    const atFailure=await warningState(a);
+   // Explicit occlusion probe: visible bounding box alone is insufficient.
+   const overlap=await a.evaluate(()=>{
+    const alert=document.querySelector('#form-error');
+    const ar=alert.getBoundingClientRect();
+    const candidates=[...document.querySelectorAll('body *')].filter(e=>
+      e!==alert && e.id!=='form-error' &&
+      (e.id==='v08-photo-ready'||/toast/i.test(e.id+' '+e.className)));
+    return candidates.map(e=>{
+      const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
+      const x=Math.max(0,Math.min(ar.right,r.right)-Math.max(ar.left,r.left));
+      const y=Math.max(0,Math.min(ar.bottom,r.bottom)-Math.max(ar.top,r.top));
+      return {id:e.id,classes:String(e.className).slice(0,120),
+       display:cs.display,visibility:cs.visibility,opacity:cs.opacity,
+       overlapArea:x*y,rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
+    }).filter(x=>x.display!=='none'&&x.visibility!=='hidden'&&Number(x.opacity)>0&&x.overlapArea>0);
+   });
+   assert.equal(overlap.length,0,'ACK_ALERT_TOAST_OCCLUSION_'+JSON.stringify(overlap));
    const immediate=await screen(a,width+'-ack-immediate-native200',aContext);
    // The initial viewport means scrollY 0, independent of auto-scroll to save.
    await a.evaluate(()=>scrollTo(0,0));await a.waitForTimeout(100);
@@ -273,7 +298,7 @@ try{
    assert.equal(after.nativeZoomCss,null,'CSS zoom is not native zoom');
    assert.ok(after.scrollWidth<=width+3);
    assert.ok(atFailure.rect.height>0&&atFailure.role==='alert');
-   const item={width,zoom,keyboard,tabOrder,atFailure,atTop,topSummary,
+   const item={width,zoom,keyboard,tabOrder,atFailure,overlap,atTop,topSummary,
       firstViewportVisibleAtScroll0:topSummary.visible,
       warningVisibleImmediatelyAfterEnter:atFailure.visible,
       firstViewportStatus:topSummary.visible?'PASS_TOP_SUMMARY':'FAIL_TOP_SUMMARY',
