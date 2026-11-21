@@ -37,7 +37,7 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
       - name: Verify new top warning at 320 390 native200 and unchanged ACK/family boundary
-        run: node tests/wrong-ack-top-warning-native200-320390.mjs
+        run: xvfb-run -a node tests/wrong-ack-top-warning-native200-320390.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

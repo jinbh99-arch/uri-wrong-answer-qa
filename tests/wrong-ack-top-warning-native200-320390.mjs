@@ -20,7 +20,7 @@ const report={contract:'WRONG_ACK_TOP_SUMMARY_UI_DELTA_NATIVE200_AUTH_STILL_BLOC
  browserContextIsolation:'TESTED_NOT_EQUIVALENT_TO_FAMILY_AUTH',
  actualPhone:'N/T',actualOperatingDB:'NOT_USED',safeToRestore:false,
  screenshotOrigin:'PLAYWRIGHT_PLUS_CDP',cases:[],screenshots:[],errors:[],
- externalRequests:[],jsErrors:[],nativeZoom:'chrome.tabs.setZoom/getZoom'};
+ externalRequests:[],jsErrors:[],captureQuality:[],nativeZoom:'chrome.tabs.setZoom/getZoom'};
 const img=(buf)=>({sha256:createHash('sha256').update(buf).digest('hex'),
  width:buf.readUInt32BE(16),height:buf.readUInt32BE(20)});
 function save(name,bytes){
@@ -50,38 +50,42 @@ async function pixelSummary(page,bytes){
  },bytes.toString('base64'));
 }
 async function screen(page,label,ctx){
+ // Capture the same rendered ACK state independently through Playwright and CDP.
+ // Do not substitute a CDP picture if Playwright's pixels are blank.
  await page.bringToFront();
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>
    requestAnimationFrame(resolve))));
- let buffer=await page.screenshot({fullPage:false,scale:'css',animations:'disabled'});
- let stats=await pixelSummary(page,buffer);
- let playback='css';
- if(stats.distinctSampledColors<8){
-  // Native 200% tab zoom sometimes yields a blank CSS-scale capture.
-  // Retry using Playwright's DEVICE scale, never substitute a CDP frame.
-  await page.waitForTimeout(150);
-  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
-  buffer=await page.screenshot({fullPage:false,scale:'device',animations:'disabled'});
-  stats=await pixelSummary(page,buffer);
-  playback='device-fallback';
- }
- const playwright=save(label+'-playwright',buffer);
- playwright.pixelSummary=stats;playwright.playwrightScale=playback;
- if(stats.distinctSampledColors<8)
-  throw Error('PLAYWRIGHT_BLANK_PIXELS_'+label+'_DISTINCT_'+stats.distinctSampledColors);
- const session=await ctx.newCDPSession(page);
+ const data={label,playwright:null,cdp:null,playwrightColors:null,cdpColors:null,
+   playwrightValid:false,cdpValid:false,errors:[]};
+ let playwright=null,cdp=null;
  try{
+  const bytes=await page.screenshot({fullPage:false,scale:'css',animations:'disabled'});
+  playwright=save(label+'-playwright',bytes);
+  const stats=await pixelSummary(page,bytes);
+  playwright.pixelSummary=stats;
+  playwright.playwrightScale='css';
+  data.playwright=playwright.file;data.playwrightColors=stats.distinctSampledColors;
+  data.playwrightValid=stats.distinctSampledColors>=8;
+ }catch(e){data.errors.push('PLAYWRIGHT_'+String(e));}
+ let session;
+ try{
+  session=await ctx.newCDPSession(page);
   await session.send('Page.enable');
   const result=await session.send('Page.captureScreenshot',{
-   format:'png',fromSurface:true,captureBeyondViewport:false});
-  const cdpBuffer=Buffer.from(result.data,'base64');
-  const cdpStats=await pixelSummary(page,cdpBuffer);
-  const cdp=save(label+'-cdp',cdpBuffer);
-  cdp.pixelSummary=cdpStats;
-  if(cdpStats.distinctSampledColors<8)
-   throw Error('CDP_BLANK_PIXELS_'+label+'_DISTINCT_'+cdpStats.distinctSampledColors);
-  return {playwright,cdp,error:null};
- }finally{await session.detach();}
+   format:'png',fromSurface:false,captureBeyondViewport:false});
+  const bytes=Buffer.from(result.data,'base64');
+  cdp=save(label+'-cdp',bytes);
+  const stats=await pixelSummary(page,bytes);
+  cdp.pixelSummary=stats;
+  data.cdp=cdp.file;data.cdpColors=stats.distinctSampledColors;
+  data.cdpValid=stats.distinctSampledColors>=8;
+ }catch(e){data.errors.push('CDP_'+String(e));}
+ finally{if(session)await session.detach();}
+ data.bothValid=data.playwrightValid&&data.cdpValid;
+ report.captureQuality.push(data);
+ // A "valid CDP" does not mask an empty Playwright screenshot or create PASS.
+ return {playwright,cdp,error:data.errors.join(';')||null,
+   bothValid:data.bothValid,quality:data};
 }
 async function ledger(page){
  return page.evaluate(async()=>{
@@ -232,8 +236,8 @@ try{
   // Each viewport must use a fresh, separate synthetic browser profile;
   // never treat a previous width's persisted IndexedDB as this width's baseline.
   aContext=await chromium.launchPersistentContext(join(tempDir,'profile-A-'+width),{
-   channel:'chromium',headless:true,viewport:{width:640,height:920},
-   deviceScaleFactor:1,args:['--headless=new','--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
+   channel:'chromium',headless:false,viewport:{width:640,height:920},
+   deviceScaleFactor:1,args:['--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
    httpCredentials:credentials,acceptDownloads:false});
   const worker=aContext.serviceWorkers()[0]||
    await aContext.waitForEvent('serviceworker',{timeout:15000});
@@ -280,7 +284,10 @@ try{
        overlapArea:x*y,rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
     }).filter(x=>x.display!=='none'&&x.visibility!=='hidden'&&Number(x.opacity)>0&&x.overlapArea>0);
    });
-   assert.equal(overlap.length,0,'ACK_ALERT_TOAST_OCCLUSION_'+JSON.stringify(overlap));
+   const overlapAreaPx2=overlap.reduce((n,item)=>n+item.overlapArea,0);
+   report.overlapProbes??=[];
+   report.overlapProbes.push({width,overlapAreaPx2,overlap});
+   assert.equal(overlapAreaPx2,0,'ACK_ALERT_TOAST_OCCLUSION_'+JSON.stringify(overlap));
    const immediate=await screen(a,width+'-ack-immediate-native200',aContext);
    // The initial viewport means scrollY 0, independent of auto-scroll to save.
    await a.evaluate(()=>scrollTo(0,0));await a.waitForTimeout(100);
@@ -331,7 +338,7 @@ try{
    assert.equal(after.nativeZoomCss,null,'CSS zoom is not native zoom');
    assert.ok(after.scrollWidth<=width+3);
    assert.ok(atFailure.rect.height>0&&atFailure.role==='alert');
-   const item={width,zoom,keyboard,tabOrder,atFailure,overlap,atTop,topSummary,
+   const item={width,zoom,keyboard,tabOrder,atFailure,overlap,overlapAreaPx2,atTop,topSummary,
       firstViewportVisibleAtScroll0:topSummary.visible,
       warningVisibleImmediatelyAfterEnter:atFailure.visible,
       firstViewportStatus:topSummary.visible?'PASS_TOP_SUMMARY':'FAIL_TOP_SUMMARY',
@@ -348,7 +355,8 @@ try{
     immediateVisible:atFailure.visible,topVisible:topSummary.visible,originalFormErrorAtTop:atTop.visible,
     warningTopAtScroll0:atTop.rect.top,firstViewportHeight:atTop.innerHeight,
     A:aBefore.count,B:bAfter.count,freshB:bBefore.count,
-    sameBrowserProfileShowsA:sameProfileLedger.count,childMemo:false}));
+    sameBrowserProfileShowsA:sameProfileLedger.count,childMemo:false,
+     overlapAreaPx2,immediateScreenshotBothValid:immediate.bothValid}));
   }finally{
    await bContext.close();await a.close();await aContext.close();aContext=null;
   }
@@ -361,6 +369,12 @@ try{
  report.actualAuthentication='N/T';
  report.firstViewportAtScroll0Pass=report.cases.filter(x=>x.firstViewportVisibleAtScroll0).length;
  report.total=report.cases.length;
+  report.invalidCaptureLabels=report.captureQuality.filter(x=>!x.bothValid).map(x=>x.label);
+  if(report.invalidCaptureLabels.length){
+   report.status='SCREENSHOT_VALIDITY_FAIL_FAMILY_AUTH_BLOCK';
+   report.errors.push('PLAYWRIGHT_CDP_NOT_BOTH_VALID_'+report.invalidCaptureLabels.join(','));
+   process.exitCode=1;
+  }
 }catch(e){
  report.status='HARNESS_OR_CONTRACT_FAIL';report.errors.push(String(e?.stack||e));
  console.error('ACK_FOLLOWUP_FAILURE='+String(e?.stack||e));process.exitCode=1;
