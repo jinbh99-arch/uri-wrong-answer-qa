@@ -1,0 +1,34 @@
+name: Wrong P0 unknown ACK changed-draft HTTP proof
+on:
+  push:
+    branches:
+      - qa/wrong-p0-346-integrity-auth-ack-20261121
+    paths:
+      - 'scripts/qa-p0-ack-unknown-readback-gate.mjs'
+      - 'tests/wrong-p0-ack-unknown-changed-draft-server-readback.mjs'
+      - '.github/workflows/wrong-p0-ack-unknown-changed-draft-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  new-ack-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard untouched product and previously finished test
+        run: |
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- index.html
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- tests/qa34-put-ack-loss-cas-ledger.mjs
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- scripts/qa-family-gateway.mjs
+      - name: NEW changed draft after ACK unknown, local HTTP end-to-end
+        run: node tests/wrong-p0-ack-unknown-changed-draft-server-readback.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-p0-ack-unknown-new-http-proof
+          path: qa-proof/wrong-p0-ack-unknown-new-delta/result.json
+          if-no-files-found: error
+          retention-days: 7
