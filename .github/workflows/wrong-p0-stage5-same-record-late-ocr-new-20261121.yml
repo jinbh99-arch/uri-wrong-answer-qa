@@ -4,7 +4,7 @@ on:
     branches:
       - qa/wrong-p0-stage5-same-record-late-ocr-20261121
     paths:
-      - '.github/workflows/wrong-p0-stage5-same-record-late-ocr-new-20261121.yml'
+      - 'tests/wrong-p0-stage5-same-record-late-ocr-20261121.mjs'
 permissions:
   contents: read
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: |
           set -eu
           BASE=067a0e1ad2d682cd3439183c0656d84fb8087637
-          git diff --name-only "$BASE" HEAD | sort >/tmp/actual
+          git -c core.quotePath=false diff --name-only "$BASE" HEAD | sort >/tmp/actual
           printf '%s\n' \
             '.github/workflows/wrong-p0-stage5-same-record-late-ocr-new-20261121.yml' \
             'docs/qa/02_P0_5_동일기록OCR_지연응답_신규경계_QA준비_v1.0.md' \
