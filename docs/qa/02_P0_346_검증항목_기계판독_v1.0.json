@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "date": "2026-11-21",
+  "suite": "wrong-p0-integrity-auth-ack",
+  "branch": "qa/wrong-p0-346-integrity-auth-ack-20261121",
+  "devSha": "3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b",
+  "indexBlob": "250aff5b0a46490488b64f7b96a83c940d2d6c71",
+  "states": [
+    {
+      "step": 3,
+      "status": "IN_PROGRESS",
+      "gate": "06+08",
+      "must": [
+        "same record UUID stable",
+        "photo SHA exact",
+        "two tab CAS safe",
+        "restore rollback exact",
+        "family authorization enforced"
+      ],
+      "prior": [
+        "v20SaveMistakeGuarded",
+        "qa87 synthetic",
+        "qa34 CAS"
+      ]
+    },
+    {
+      "step": 4,
+      "status": "AUTH_GATE_BLOCK",
+      "gate": "06+08 REAL AUTH",
+      "must": [
+        "server-verified guardian",
+        "401/403/404 fail-closed",
+        "A/B request isolation",
+        "child response parent-only zero",
+        "session revocation"
+      ],
+      "prior": [
+        "qa41 localhost",
+        "qa44 staged Supabase",
+        "qa35 token synthetic"
+      ]
+    },
+    {
+      "step": 6,
+      "status": "IN_PROGRESS_VISUAL_FAIL",
+      "gate": "06+08",
+      "must": [
+        "success/unknown/failed/409 distinct",
+        "unknown lookup before retry",
+        "new POST zero during unknown",
+        "keyboard and PNG nonblank at 320/390 native200",
+        "server-backed receipt"
+      ],
+      "prior": [
+        "qa34 synthetic ACK loss",
+        "CI44875702927 immediate Playwright FAIL"
+      ]
+    },
+    {
+      "step": 5,
+      "status": "EXISTING_LIMITED_PASS_ONLY",
+      "gate": "new boundary only",
+      "must": [
+        "late OCR cannot overwrite manual edit",
+        "different OCR completion order safe",
+        "cross record/child DOM clear"
+      ],
+      "prior": [
+        "CI44883435344",
+        "06#7060240364"
+      ]
+    }
+  ],
+  "holdSteps": [
+    7,
+    8
+  ],
+  "holdUntil": "STAGES_3_4_6_ALL_06_AND_08_COMPLETE",
+  "noNewCI": true,
+  "noReruns": true,
+  "safeToRestore": false,
+  "productionChanged": false,
+  "pr80Draft": true,
+  "note": "Static contract preparation only; stages 3/4/6 are not complete, no new dynamic verification performed."
+}
