@@ -1,0 +1,47 @@
+name: WRONG ACK top warning native200 isolated delta
+on:
+  push:
+    branches: ['qa/wrong-ack-top-warning-native200-20261121']
+    paths:
+      - 'index.html'
+      - 'tests/wrong-ack-top-warning-native200-320390.mjs'
+      - '.github/workflows/wrong-ack-top-warning-native200-320390.yml'
+permissions:
+  contents: read
+jobs:
+  top-warning-isolated-delta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      WRONG_ACK_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Validate parent and inverse without product modification
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = a3d12711fa3a170645e01dd4c1b4e6e347f85132
+          test "$(git rev-parse d0497b0812dbc7f34903ecb9b022856706d0d1bd:index.html)" = 63e31915875a79a2ebcf21d7c722daa9f8deeb98
+          test "$(git rev-parse 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b:index.html)" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          git diff --check d0497b0812dbc7f34903ecb9b022856706d0d1bd HEAD -- index.html
+          node --check tests/wrong-ack-top-warning-native200-320390.mjs
+          node tests/wrong-ack-top-warning-exact-revert-check.mjs
+          T="$(mktemp -d)"
+          git show d0497b0812dbc7f34903ecb9b022856706d0d1bd:index.html > "$T/index.html"
+          (cd "$T"; node "$GITHUB_WORKSPACE/tests/wrong-ack-exact-patch-revert-check.mjs")
+          rm -rf "$T"
+      - name: Install synthetic Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify new top warning at 320 390 native200 and unchanged ACK/family boundary
+        run: node tests/wrong-ack-top-warning-native200-320390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-ack-top-warning-native200-320390-delta
+          path: qa-proof/ack-top-warning-native200-browser/**/*
+          if-no-files-found: warn
+          retention-days: 7
