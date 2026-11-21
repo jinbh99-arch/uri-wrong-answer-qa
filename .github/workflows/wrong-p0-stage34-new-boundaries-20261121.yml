@@ -1,0 +1,40 @@
+name: Wrong P0 stage 3-4 independent boundary proofs
+on:
+  push:
+    branches:
+      - qa/wrong-p0-346-integrity-auth-ack-20261121
+    paths:
+      - 'tests/wrong-p0-3-sameid-family-photo-integrity.mjs'
+      - 'tests/wrong-p0-4-stale-family-http-response.mjs'
+      - 'scripts/qa-p0-family-response-epoch-guard.mjs'
+      - '.github/workflows/wrong-p0-stage34-new-boundaries-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  stage34-new-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard product and historical tests remain untouched
+        run: |
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- index.html
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- scripts/qa-family-gateway.mjs
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- tests/qa35-cross-family-token-ledger.mjs
+          git diff --exit-code 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b HEAD -- tests/qa34-stale-async-family-response.mjs
+      - name: NEW stage3 same record ID and photo across two family HTTP ledgers
+        run: node tests/wrong-p0-3-sameid-family-photo-integrity.mjs
+      - name: NEW stage4 authorized delayed A HTTP response after B switch
+        run: node tests/wrong-p0-4-stale-family-http-response.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-p0-stage34-new-http-proofs
+          path: qa-proof/wrong-p0-34-collision-epoch/*.json
+          if-no-files-found: warn
+          retention-days: 7
