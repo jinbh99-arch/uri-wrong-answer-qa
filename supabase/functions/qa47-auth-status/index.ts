@@ -3,6 +3,9 @@
 import {createClient} from 'npm:@supabase/supabase-js@2';
 import {handleQa47AuthenticatedGuardianStatus} from './handler.js';
 Deno.serve(async req=>{
+ // Browser preflight has no user token. Validate the exact origin and reply before env/auth work.
+ // All non-OPTIONS requests still require a real Supabase Auth user in handler.js.
+ if(req.method==='OPTIONS')return handleQa47AuthenticatedGuardianStatus(req);
  const url=Deno.env.get('SUPABASE_URL');
  const key=Deno.env.get('SUPABASE_ANON_KEY');
  // Missing platform configuration MUST fail closed; do not log secrets.
