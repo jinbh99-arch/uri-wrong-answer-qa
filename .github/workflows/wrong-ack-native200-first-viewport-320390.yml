@@ -1,0 +1,44 @@
+name: WRONG ACK native200 warning viewport and browser A B 320390
+on:
+  push:
+    branches: ['qa/wrong-ack-unknown-duplicate-probe-20261121']
+    paths:
+      - 'tests/wrong-ack-native200-first-viewport-and-browser-family-320390.mjs'
+      - '.github/workflows/wrong-ack-native200-first-viewport-320390.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-ack-followup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      WRONG_ACK_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pin ACK QA source and exact inverse, prohibit product changes
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = 63e31915875a79a2ebcf21d7c722daa9f8deeb98
+          test "$(git rev-parse "$WRONG_ACK_DEV_SHA:index.html")" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          git diff --exit-code "$WRONG_ACK_DEV_SHA" HEAD -- scripts/qa66-wrong-loopback-preview.mjs
+          git diff --check "$WRONG_ACK_DEV_SHA" HEAD -- index.html
+          node --check tests/wrong-ack-native200-first-viewport-and-browser-family-320390.mjs
+          node tests/wrong-ack-exact-patch-revert-check.mjs
+      - name: Install synthetic Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Native browser tab zoom and ACK warning plus browser container boundaries
+        run: node tests/wrong-ack-native200-first-viewport-and-browser-family-320390.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-ack-native200-first-viewport-browserA-B-320390-proof
+          path: qa-proof/ack-followup-native200-family-browser/**/*
+          if-no-files-found: warn
+          retention-days: 7
