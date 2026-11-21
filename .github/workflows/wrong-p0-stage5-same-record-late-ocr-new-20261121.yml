@@ -1,0 +1,51 @@
+name: WRONG P0 stage5 same record late OCR NEW only
+on:
+  push:
+    branches:
+      - qa/wrong-p0-stage5-same-record-late-ocr-20261121
+    paths:
+      - '.github/workflows/wrong-p0-stage5-same-record-late-ocr-new-20261121.yml'
+permissions:
+  contents: read
+jobs:
+  stage5-new-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict new delta only and product baseline unchanged
+        run: |
+          set -eu
+          BASE=067a0e1ad2d682cd3439183c0656d84fb8087637
+          git diff --name-only "$BASE" HEAD | sort >/tmp/actual
+          printf '%s\n' \
+            '.github/workflows/wrong-p0-stage5-same-record-late-ocr-new-20261121.yml' \
+            'docs/qa/02_P0_5_동일기록OCR_지연응답_신규경계_QA준비_v1.0.md' \
+            'tests/wrong-p0-stage5-same-record-late-ocr-20261121.mjs' |sort >/tmp/expected
+          diff -u /tmp/expected /tmp/actual
+          git diff --exit-code "$BASE" HEAD -- index.html
+          git diff --exit-code "$BASE" HEAD -- scripts/qa66-wrong-loopback-preview.mjs
+          git diff --exit-code "$BASE" HEAD -- scripts/qa-family-gateway.mjs
+          node --check tests/wrong-p0-stage5-same-record-late-ocr-20261121.mjs
+          echo WRONG_STAGE5_NEW_ONLY_SOURCE_PASS
+      - name: Isolated Chromium install
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Only new same-record stale OCR synthetic browser cases
+        env:
+          WRONG_STAGE5_DEV_SHA: '3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b'
+        run: node tests/wrong-p0-stage5-same-record-late-ocr-20261121.mjs
+      - name: Preserve 320 and 390 synthetic screenshots + JSON even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrong-p0-stage5-same-record-late-ocr-new
+          path: qa-proof/wrong-p0-stage5-late-ocr/
+          if-no-files-found: warn
+          retention-days: 7
