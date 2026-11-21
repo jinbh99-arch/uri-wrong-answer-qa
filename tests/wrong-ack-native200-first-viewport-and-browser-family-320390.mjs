@@ -174,14 +174,16 @@ try{
   permissions:['tabs'],host_permissions:['http://127.0.0.1/*'],
   background:{service_worker:'background.js'}}));
  writeFileSync(join(tempDir,'background.js'),"chrome.runtime.onInstalled.addListener(()=>{}); chrome.tabs.onUpdated.addListener(()=>{});");
- aContext=await chromium.launchPersistentContext(join(tempDir,'profile-A'),{
-  channel:'chromium',headless:true,viewport:{width:640,height:920},
-  deviceScaleFactor:1,args:['--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
-  httpCredentials:credentials,acceptDownloads:false});
- const worker=aContext.serviceWorkers()[0]||
-  await aContext.waitForEvent('serviceworker',{timeout:15000});
  bBrowser=await chromium.launch({headless:true});
  for(const width of [320,390]){
+  // Each viewport must use a fresh, separate synthetic browser profile;
+  // never treat a previous width's persisted IndexedDB as this width's baseline.
+  aContext=await chromium.launchPersistentContext(join(tempDir,'profile-A-'+width),{
+   channel:'chromium',headless:true,viewport:{width:640,height:920},
+   deviceScaleFactor:1,args:['--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
+   httpCredentials:credentials,acceptDownloads:false});
+  const worker=aContext.serviceWorkers()[0]||
+   await aContext.waitForEvent('serviceworker',{timeout:15000});
   const a=await aContext.newPage();
   await a.setViewportSize({width:width*2,height:940});
   const bContext=await bBrowser.newContext({
@@ -272,7 +274,7 @@ try{
     A:aBefore.count,B:bAfter.count,freshB:bBefore.count,
     sameBrowserProfileShowsA:sameProfileLedger.count,childMemo:false}));
   }finally{
-   await bContext.close();await a.close();
+   await bContext.close();await a.close();await aContext.close();aContext=null;
   }
  }
  assert.equal(report.jsErrors.length,0,'JS errors detected');
