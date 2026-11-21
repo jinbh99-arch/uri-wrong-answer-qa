@@ -233,7 +233,7 @@ try{
   // never treat a previous width's persisted IndexedDB as this width's baseline.
   aContext=await chromium.launchPersistentContext(join(tempDir,'profile-A-'+width),{
    channel:'chromium',headless:true,viewport:{width:640,height:920},
-   deviceScaleFactor:1,args:['--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
+   deviceScaleFactor:1,args:['--headless=new','--disable-extensions-except='+tempDir,'--load-extension='+tempDir],
    httpCredentials:credentials,acceptDownloads:false});
   const worker=aContext.serviceWorkers()[0]||
    await aContext.waitForEvent('serviceworker',{timeout:15000});
