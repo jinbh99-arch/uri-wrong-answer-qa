@@ -1,4 +1,5 @@
 // Stage 5 NEW delta: same-record manual text and stale synthetic OCR, 320/390.
+// Approved corrected harness one run only: #82 #7062893616/#7062900528; prior CI44902695088 stopped before browser.
 // W03 and QA84 prior accepted tests must NOT be rerun. No real OCR/family data.
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
