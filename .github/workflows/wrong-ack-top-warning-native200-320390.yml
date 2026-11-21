@@ -22,7 +22,7 @@ jobs:
       - name: Validate parent and inverse without product modification
         run: |
           set -eu
-          test "$(git rev-parse HEAD:index.html)" = a3d12711fa3a170645e01dd4c1b4e6e347f85132
+          test "$(git rev-parse HEAD:index.html)" = 101e7ea5ee5ba34e107c77981daaf58101c97750
           test "$(git rev-parse d0497b0812dbc7f34903ecb9b022856706d0d1bd:index.html)" = 63e31915875a79a2ebcf21d7c722daa9f8deeb98
           test "$(git rev-parse 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b:index.html)" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
           git diff --check d0497b0812dbc7f34903ecb9b022856706d0d1bd HEAD -- index.html

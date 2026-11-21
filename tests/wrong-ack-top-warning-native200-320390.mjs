@@ -10,7 +10,7 @@ import {chromium} from 'playwright';
 import {startWrongQa66Preview} from '../scripts/qa66-wrong-loopback-preview.mjs';
 
 const DEV='3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b';
-const PATCHED='a3d12711fa3a170645e01dd4c1b4e6e347f85132';
+const PATCHED='101e7ea5ee5ba34e107c77981daaf58101c97750';
 assert.equal(process.env.WRONG_ACK_DEV_SHA,DEV);
 const OUT='qa-proof/ack-top-warning-native200-browser';
 mkdirSync(OUT,{recursive:true});
@@ -28,27 +28,60 @@ function save(name,bytes){
  writeFileSync(file,bytes);
  const item={name,file,...img(bytes)};report.screenshots.push(item);return item;
 }
+async function pixelSummary(page,bytes){
+ // Evaluate decoded PNG pixels independently of file byte count; blank may be large.
+ return page.evaluate(async b64=>{
+  const raw=Uint8Array.from(atob(b64),ch=>ch.charCodeAt(0));
+  const bmp=await createImageBitmap(new Blob([raw],{type:'image/png'}));
+  const canvas=document.createElement('canvas');
+  canvas.width=bmp.width;canvas.height=bmp.height;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(bmp,0,0);
+  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  const unique=new Set();
+  const stride=Math.max(1,Math.floor(canvas.width*canvas.height/4096));
+  for(let i=0;i<canvas.width*canvas.height;i+=stride){
+   const p=i*4;
+   unique.add((pixels[p]<<24)|(pixels[p+1]<<16)|(pixels[p+2]<<8)|pixels[p+3]);
+   if(unique.size>=128)break;
+  }
+  const result={width:canvas.width,height:canvas.height,distinctSampledColors:unique.size};
+  bmp.close();return result;
+ },bytes.toString('base64'));
+}
 async function screen(page,label,ctx){
- // Wait for two compositor frames after ACK DOM update; a blank frame is evidence,
- // never silently substitute the CDP image for Playwright.
+ await page.bringToFront();
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>
    requestAnimationFrame(resolve))));
- const playwright=save(label+'-playwright',await page.screenshot({
-  fullPage:false,scale:'css',animations:'disabled'}));
- const playwrightBytes=await page.screenshot({fullPage:false,scale:'css',animations:'disabled'});
- const blankSuspect=playwrightBytes.length<8000;
- if(blankSuspect)throw Error('PLAYWRIGHT_SCREENSHOT_BLANK_SUSPECT_'+label+
-   '_BYTES_'+playwrightBytes.length);
- let cdp=null,error=null;
+ let buffer=await page.screenshot({fullPage:false,scale:'css',animations:'disabled'});
+ let stats=await pixelSummary(page,buffer);
+ let playback='css';
+ if(stats.distinctSampledColors<8){
+  // Native 200% tab zoom sometimes yields a blank CSS-scale capture.
+  // Retry using Playwright's DEVICE scale, never substitute a CDP frame.
+  await page.waitForTimeout(150);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+  buffer=await page.screenshot({fullPage:false,scale:'device',animations:'disabled'});
+  stats=await pixelSummary(page,buffer);
+  playback='device-fallback';
+ }
+ const playwright=save(label+'-playwright',buffer);
+ playwright.pixelSummary=stats;playwright.playwrightScale=playback;
+ if(stats.distinctSampledColors<8)
+  throw Error('PLAYWRIGHT_BLANK_PIXELS_'+label+'_DISTINCT_'+stats.distinctSampledColors);
+ const session=await ctx.newCDPSession(page);
  try{
-  const session=await ctx.newCDPSession(page);
   await session.send('Page.enable');
-  const x=await session.send('Page.captureScreenshot',{
-    format:'png',fromSurface:true,captureBeyondViewport:false});
-  cdp=save(label+'-cdp',Buffer.from(x.data,'base64'));
-  await session.detach();
- }catch(e){error=String(e)}
- return {playwright,cdp,error};
+  const result=await session.send('Page.captureScreenshot',{
+   format:'png',fromSurface:true,captureBeyondViewport:false});
+  const cdpBuffer=Buffer.from(result.data,'base64');
+  const cdpStats=await pixelSummary(page,cdpBuffer);
+  const cdp=save(label+'-cdp',cdpBuffer);
+  cdp.pixelSummary=cdpStats;
+  if(cdpStats.distinctSampledColors<8)
+   throw Error('CDP_BLANK_PIXELS_'+label+'_DISTINCT_'+cdpStats.distinctSampledColors);
+  return {playwright,cdp,error:null};
+ }finally{await session.detach();}
 }
 async function ledger(page){
  return page.evaluate(async()=>{
