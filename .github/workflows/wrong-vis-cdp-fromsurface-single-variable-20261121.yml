@@ -1,0 +1,43 @@
+name: WRONG VIS CDP fromSurface 1 variable only
+on:
+  push:
+    branches: ['qa/wrong-ack-top-warning-native200-20261121']
+    paths:
+      - 'tests/wrong-vis-cdp-fromsurface-single-variable-20261121.mjs'
+permissions:
+  contents: read
+jobs:
+  vis-surface-delta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      WRONG_VIS_FROM_SURFACE_DEV_SHA: 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Verify new VIS only and exact product inverse
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD:index.html)" = 101e7ea5ee5ba34e107c77981daaf58101c97750
+          test "$(git rev-parse 3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b:index.html)" = 250aff5b0a46490488b64f7b96a83c940d2d6c71
+          node --check tests/wrong-vis-cdp-fromsurface-single-variable-20261121.mjs
+          node tests/wrong-ack-top-warning-exact-revert-check.mjs
+          T="$(mktemp -d)"
+          git show d0497b0812dbc7f34903ecb9b022856706d0d1bd:index.html > "$T/index.html"
+          (cd "$T"; node "$GITHUB_WORKSPACE/tests/wrong-ack-exact-patch-revert-check.mjs")
+          rm -rf "$T"
+      - name: Install isolated Chromium native zoom environment
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run single new CDP false true surface contrast
+        run: xvfb-run -a node tests/wrong-vis-cdp-fromsurface-single-variable-20261121.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wrong-vis-cdp-fromsurface-only
+          path: qa-proof/vis-cdp-fromsurface-single-variable/
+          if-no-files-found: warn
+          retention-days: 7
