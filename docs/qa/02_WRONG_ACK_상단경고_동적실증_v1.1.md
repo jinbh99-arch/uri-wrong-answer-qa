@@ -1,0 +1,14 @@
+# 02 WRONG · 상단 ACK 불명 경고 신규 A격리 실증 v1.1
+- 작업일: 2026-11-21 KST / 담당: 02 WRONG / **02 자체 합성 동적 PASS(상단 요약 범위), 전체 PARTIAL** / 06 독립 N/T / 00 기술수락 N/T
+- 이전 승계 원문: [START_HERE v1.8](https://github.com/jinbh99-arch/uri-homework-manager/blob/docs/handoff-pilot-20261116/docs/handoff/START_HERE.md), [#82 지시 #7051938322](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-7051938322), [#87 실행 커서 #7051940678](https://github.com/jinbh99-arch/uri-homework-manager/issues/87#issuecomment-7051940678)
+- 실제 제품 dev `3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b` (index blob `250aff5b0a46490488b64f7b96a83c940d2d6c71`) **불변**. 기존 ACK 4/4 한정 수락 QA 원본 blob `63e31915875a79a2ebcf21d7c722daa9f8deeb98` **불변**.
+- 신규 후보 시험 HEAD `56fe62708a8a7a7dc35b6c4f0ff41f302118916b` / index blob `a3d12711fa3a170645e01dd4c1b4e6e347f85132`; 기존 ACK 로직 대신 **시각적인 부모 전용 상단 안내만 추가**. 분리 브랜치 `qa/wrong-ack-top-warning-native200-20261121` (기존 수락 QA 브랜치 변경 없음).
+- [신규 CI](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44851222661) run `44851222661`, job `136682777714`, steps: blob pin·new→accepted ACK 역패치 **PASS**, accepted ACK→dev 역패치 **PASS**, 320/390 Chromium / 200%·Tab·Enter·사진/원장 경계 테스트 **SUCCESS**.
+- [원시 증거 ZIP #14685640806](https://github.com/jinbh99-arch/uri-wrong-answer-qa/actions/runs/44851222661/artifacts/14685640806), size `1,310,616` bytes, GitHub 업로드 SHA256 `088cc2b7006842ef1324bdf9fd0cee7b8212dcbacb425dc09ab4760254b27f88`. CI 업로드 단계 **13파일(PNG12·JSON1)**; 02 담당방이 ZIP을 별도 다운로드하여 바이트/CRC 독립 재계산한 것은 **N/T**.
+- Job 원시 로그: `ACK_FOLLOWUP_CASE width=320,390`: 브라우저 탭 native zoom 2.0, 하단 기존 `#form-error` **저장 직후 보임**, 최상단(스크롤0) **원래 #form-error 안 보임**, 새 `#wrong-ack-top-warning` **각 폭의 첫 viewport 보임(2/2)**. 경고의 원래 엘리먼트를 최상단으로 이동한 것은 아님.
+- 새 상단 안내는 비고정 문서 흐름에 들어가 헤더 비가림을 방지하며 자녀 모드에서는 CSS 숨김. 기존 역할 첫 Tab→skip→main, 사진 SHA/UUID, 저장 ACK 중복 차단 로직 변경 없음.
+- 별도 가상 브라우저 A/B는 A1/B1, 새 B 최초0, 동일 프로필 다른 탭은 A1 조회 가능. 아이 DOM 학부모 메모0, 외부요청/JS오류0, 보고상 PNG12, JSON 결과 `status=SYNTHETIC_TOP_WARNING_PASS_FAMILY_AUTH_BLOCK`, `firstViewportAtScroll0Pass=2`, `errors=[]`.
+- **판정:** A격리 상단 요약 새 동작 자체 PASS, 실제 가족별 인증은 **BLOCK_NOT_IMPLEMENTED**, 동일 프로필 접근 해결 안 됨. 실가족·실폰·운영 ACK·실보안·접근성 사용자 테스트 N/T. 첫 viewport 정의와 단일/중복 알림 UX는 00 기술판정 필요.
+- **06 요청:** ZIP SHA256·CRC·PNG12/JSON1·job 로그 독립 확인, original `#form-error` vs new summary의 두 위치, 상단 요약 정적 역할·Tab/Enter·200%·키보드, 화면 비가림·scrollY0·사진/원장 SHA·자녀 DOM·동일프로필 인증 BLOCK·신규 역패치 비교. 결과는 PASS/PARTIAL/FAIL/BLOCK/N/T 구분.
+- **00 요청:** 원래 하단 role=alert + 상단 role=note 복수 안내의 접근성·첫 viewport 수락 여부 결정. 가족 로그인/인가 및 같은 프로필 접근 통제는 **별도 기술·보안 계약 및 승인 전 BLOCK**, 제품 dev 승격 금지.
+- 제품 dev/main, PR80 Draft, `safeToRestore:false`, 실자료/실사진, 운영 DB·계정·유료 API, 공개·광고·기존 :35 예약 **변경 없음**. GitHub 인계는 실제 다른 ChatGPT방 수신 증거가 아님.
