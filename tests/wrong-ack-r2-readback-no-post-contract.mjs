@@ -63,7 +63,7 @@ class QaOnlyRevisionGate {
     if(!this.unknown)return {status:'NO_UNKNOWN'};
     const previous=this.unknown;
     const current=await this.ledger.read(this.id);
-    if(!current||current.revision!==previous.revision||current.requestId!==previous.requestId||current.photoSha256!==previous.photoSha256)
+    if(!current||current.revision!==previous.revision||current.requestId!==previous.requestId||current.photoSha256!==previous.photoSha256||current.problemText!==previous.problemText)
       return {status:'READBACK_MISMATCH_BLOCK',posts:this.ledger.posts};
     this.unknown=null;
     const ackState=this.onAck({code:200,id:previous.id,revision:previous.revision,requestId:previous.requestId});
@@ -138,6 +138,20 @@ test('readback mismatch is fail closed, does not re-POST ambiguous r1',async()=>
   assert.equal(ledger.posts,1);
   assert.deepEqual(ledger.events.map(x=>x.method),['POST','GET','GET']);
   tests.push('unknown-result mismatch blocks every new POST');
+});
+test('readback matching revision/request/photo but changed problem text blocks without re-POST',async()=>{
+  const ledger=new QaOnlyLedger(),gate=new QaOnlyRevisionGate(ledger);
+  gate.approve();
+  assert.equal((await gate.save({loseAck:true})).status,'ACK_UNKNOWN_READBACK_REQUIRED');
+  const original=ledger.rows.get(gate.id);
+  ledger.rows.set(gate.id,{...original,problemText:'SYNTHETIC_TAMPERED_PROBLEM_TEXT'});
+  const result=await gate.save();
+  assert.equal(result.status,'READBACK_MISMATCH_BLOCK');
+  assert.equal(gate.confirmedRevision,null);
+  assert.equal(ledger.posts,1);
+  assert.deepEqual(ledger.events.map(x=>x.method),['POST','GET']);
+  assert.equal(hash((await ledger.read(gate.id)).photoBytes),PHOTO_HASH);
+  tests.push('problem text mismatch fails closed; original photo preserved and no second POST');
 });
 test('wrong requestId or wrong revision ACK cannot confirm the current r2',async()=>{
   const ledger=new QaOnlyLedger(),gate=new QaOnlyRevisionGate(ledger);
