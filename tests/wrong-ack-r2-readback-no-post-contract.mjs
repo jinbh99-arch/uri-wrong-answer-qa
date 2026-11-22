@@ -51,8 +51,11 @@ class QaOnlyRevisionGate {
     // the user edited the local draft. It must be reconciled before any POST.
   }
   onAck(ack){
-    if(ack.id!==this.id||ack.revision!==this.revision||ack.requestId!==this.requestId||this.approvedRevision!==this.revision)
+    if(!ack||ack.id!==this.id||ack.revision!==this.revision||ack.requestId!==this.requestId||this.approvedRevision!==this.revision)
       return 'STALE_ACK_IGNORED';
+    // Identity agreement alone must never elevate HTTP 4xx/5xx to a saved ACK.
+    // This gate is a QA-only model; real product/transport remain unverified.
+    if(ack.code!==200||ack.ok===false)return 'ACK_FAILURE_NOT_CONFIRMED';
     this.confirmedRevision=ack.revision;
     return 'CURRENT_ACK_CONFIRMED';
   }
@@ -144,6 +147,30 @@ test('wrong requestId or wrong revision ACK cannot confirm the current r2',async
   assert.equal(gate.confirmedRevision,null);
   assert.equal(ledger.posts,0);
   tests.push('mismatched id/revision/requestId cannot acknowledge current content');
+});
+test('matching requestId/revision with 409 or 503 must not confirm saved ACK',async()=>{
+  const ledger=new QaOnlyLedger(),gate=new QaOnlyRevisionGate(ledger);
+  gate.parentEdit('new r2');const current=gate.approve();
+  for(const code of [409,503]){
+    const result=gate.onAck({code,id:gate.id,revision:2,requestId:current});
+    assert.equal(result,'ACK_FAILURE_NOT_CONFIRMED','wrongly confirmed failed '+code);
+    assert.equal(gate.confirmedRevision,null);
+  }
+  assert.equal(ledger.posts,0);
+  tests.push('HTTP 409/503 matching identity cannot confirm current revision');
+});
+test('explicit unsuccessful 200 or missing response code cannot confirm',async()=>{
+  const ledger=new QaOnlyLedger(),gate=new QaOnlyRevisionGate(ledger);
+  gate.parentEdit('new r2');const current=gate.approve();
+  const base={id:gate.id,revision:2,requestId:current};
+  for(const ack of [{...base,code:200,ok:false},{...base}]){
+    assert.equal(gate.onAck(ack),'ACK_FAILURE_NOT_CONFIRMED');
+    assert.equal(gate.confirmedRevision,null);
+  }
+  assert.equal(gate.onAck({...base,code:200,ok:true}),'CURRENT_ACK_CONFIRMED');
+  assert.equal(gate.confirmedRevision,2);
+  assert.equal(ledger.posts,0);
+  tests.push('explicit unsuccessful/missing HTTP success rejected; 200 confirmed');
 });
 // Node --test TAP output is the execution proof; this is only synthetic.
 process.on('exit',()=>{
