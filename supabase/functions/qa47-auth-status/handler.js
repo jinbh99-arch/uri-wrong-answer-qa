@@ -59,8 +59,11 @@ export async function handleQa47AuthenticatedGuardianStatus(req,services) {
    syncWritesEnabled:false,
    productionApproved:false
   });
- }catch{
+ }catch(err){
   // Never echo provider errors, token, identity, family IDs, or addresses.
+  // Identity rejection is 401; backend/RPC faults remain 503.
+  if(err instanceof Error && err.message==='AUTH_CHECK_FAILED')
+   return send(401,{error:'AUTH_REQUIRED'});
   return send(503,{error:'GUARDIAN_STATUS_UNAVAILABLE'});
  }
 }
