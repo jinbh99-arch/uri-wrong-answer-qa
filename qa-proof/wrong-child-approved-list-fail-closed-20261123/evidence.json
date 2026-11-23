@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "baselineDevSha": "3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b",
+  "candidateQaSha": "671fe59648dfefe909834d7d06e742505c5a65a5",
+  "realChromium": true,
+  "localHttp": true,
+  "syntheticTrustedContractOnly": true,
+  "realSupabaseJwt": false,
+  "remoteServerAck": false,
+  "productApprovedListEnabled": false,
+  "safeToRestore": false,
+  "cases": [
+    {
+      "width": 320,
+      "status": "PASS",
+      "localFlagsIgnored": true,
+      "childChoices": 0,
+      "privateDomMarkers": 0,
+      "recordsRouteBlocked": true,
+      "contractOnlyApprovedCounts": [
+        0,
+        1,
+        3
+      ],
+      "ackUnknownBlocked": true,
+      "familyBMismatchRows": 0,
+      "postEditStaleRows": 0,
+      "beforeRowsHash": "8d864ad4b1bd42357d8f1f8396f32b6f5f0e682daf4f1d9537b224fb692965d9",
+      "afterRowsHash": "87dc8d3e1038e47faf7f24656411e4cbde081d2bfa7834610e9e94ad55d411f0",
+      "photoHashBefore": "c00dd5514cd81a70f09595e6125e320dafb162d349270b5ae71ee662aee7451e",
+      "photoHashAfter": "c00dd5514cd81a70f09595e6125e320dafb162d349270b5ae71ee662aee7451e",
+      "photoInvariant": true,
+      "selectionBack": "NOT_TESTED_NO_TRUSTED_PROVIDER",
+      "scrollWidth": 320
+    },
+    {
+      "width": 390,
+      "status": "PASS",
+      "localFlagsIgnored": true,
+      "childChoices": 0,
+      "privateDomMarkers": 0,
+      "recordsRouteBlocked": true,
+      "contractOnlyApprovedCounts": [
+        0,
+        1,
+        3
+      ],
+      "ackUnknownBlocked": true,
+      "familyBMismatchRows": 0,
+      "postEditStaleRows": 0,
+      "beforeRowsHash": "200c3a9f281eeff7233be4eed70520bc86314ebfc5728a970ce65cf00e0a24cf",
+      "afterRowsHash": "89adc22f0c4c9702183d7f0d84d062a7b228db2199d6dcd21dbecda0435cc6ec",
+      "photoHashBefore": "c00dd5514cd81a70f09595e6125e320dafb162d349270b5ae71ee662aee7451e",
+      "photoHashAfter": "c00dd5514cd81a70f09595e6125e320dafb162d349270b5ae71ee662aee7451e",
+      "photoInvariant": true,
+      "selectionBack": "NOT_TESTED_NO_TRUSTED_PROVIDER",
+      "scrollWidth": 390
+    }
+  ]
+}
