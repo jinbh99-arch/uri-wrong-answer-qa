@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "executedAtKst": "2026-11-23T19:19:59+09:00",
+  "executedCommit": "879defa14d57fb0b44f55da90fbe7c94c14376c5",
+  "executedTree": "ce917d82926f3145a39fc8f05c181c078dc93fb8",
+  "executedIndexBlob": "43bd8ee3cdcab1379bd5c1d6b4f5b824c8d419dc",
+  "executedIndexSha256": "196dd27c52477646efcdc0ab47057cfa0746352bc60c442d2c9229137cf00bf0",
+  "command": "WRONG_FAIL_CLOSED_SHA=879defa14d57fb0b44f55da90fbe7c94c14376c5 node tests/wrong-child-approved-list-fail-closed-20261123.mjs",
+  "exitCode": 0,
+  "viewports": [320, 390],
+  "artifacts": {
+    "blocked-320.png": {
+      "sha256": "ed7e49b3b85bd94265269e0a25c84a7f29a8b3545f1277c5ecbbf6848ef1164e",
+      "gitBlob": "93c5da0d1e47914365506c6159e25b1f799e17d4"
+    },
+    "blocked-390.png": {
+      "sha256": "6a97222f326af7ceefeca33fbf55141ebd2e785baf3fdabe66e7e0e11591fa8d",
+      "gitBlob": "2f107ca21f444f521935fd7ffbcf5abaa2f94b29"
+    },
+    "evidence.json": {
+      "sha256": "04cebb89f6f15f4c32441828d05affd2d6176ee616a85fe4b7d8d894912648fb",
+      "gitBlob": "d6a12c62de08ae053bd4409ea40834116915eb7a"
+    },
+    "result.tap": {
+      "sha256": "42cf109787471d31ff76cf3e7c92f978ec93ee114b8dddc6881a9d635270406a",
+      "gitBlob": "c3adc1016c7774c1f41608d55fa05ba26cdb9648"
+    }
+  },
+  "sourceChangedDuringRun": false,
+  "realSupabaseJwt": false,
+  "remoteServerAck": false,
+  "safeToRestore": false
+}
