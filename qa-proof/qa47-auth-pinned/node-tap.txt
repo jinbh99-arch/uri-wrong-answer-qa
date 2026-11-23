@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: SDK semver pinned and runtime AuthApiError constructor passed to adapter
+ok 1 - SDK semver pinned and runtime AuthApiError constructor passed to adapter
+  ---
+  duration_ms: 1.000772
+  type: 'test'
+  ...
+# Subtest: pinned SDK AuthApiError bad JWT 401 -> trusted 401, no raw message
+ok 2 - pinned SDK AuthApiError bad JWT 401 -> trusted 401, no raw message
+  ---
+  duration_ms: 29.33274
+  type: 'test'
+  ...
+# Subtest: pinned SDK expired/revoked session 401/403 -> trusted 401
+ok 3 - pinned SDK expired/revoked session 401/403 -> trusted 401
+  ---
+  duration_ms: 1.220374
+  type: 'test'
+  ...
+# Subtest: API outage 500/503 and retryable fetch error -> 503
+ok 4 - API outage 500/503 and retryable fetch error -> 503
+  ---
+  duration_ms: 1.819189
+  type: 'test'
+  ...
+# Subtest: untrusted plain Error and lookalike with AuthApiError fields cannot forge 401
+ok 5 - untrusted plain Error and lookalike with AuthApiError fields cannot forge 401
+  ---
+  duration_ms: 2.446157
+  type: 'test'
+  ...
+# Subtest: invalid token/no anonymous user in handler is 401 without RPC
+ok 6 - invalid token/no anonymous user in handler is 401 without RPC
+  ---
+  duration_ms: 1.611645
+  type: 'test'
+  ...
+# Subtest: accepted synthetic guardian gets read-only 200 with zero family records
+ok 7 - accepted synthetic guardian gets read-only 200 with zero family records
+  ---
+  duration_ms: 2.17048
+  type: 'test'
+  ...
+# Subtest: rpc failure 503; origin/method/preflight unchanged
+ok 8 - rpc failure 503; origin/method/preflight unchanged
+  ---
+  duration_ms: 0.821422
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 151.07873
