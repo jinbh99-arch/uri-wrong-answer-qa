@@ -1,5 +1,6 @@
 // QA47 Supabase live Edge endpoint core, zero student-data exposure.
 // No Supabase SDK import here: allows local tests using synthetic verifiers.
+import {Qa47VerifiedAuthDenied} from './auth-verified-denial.js';
 const JSON_HEADERS={
  'content-type':'application/json; charset=utf-8',
  'cache-control':'no-store, max-age=0',
@@ -59,8 +60,9 @@ export async function handleQa47AuthenticatedGuardianStatus(req,services) {
    syncWritesEnabled:false,
    productionApproved:false
   });
- }catch{
-  // Never echo provider errors, token, identity, family IDs, or addresses.
+ }catch(err){
+  // No original SDK error, token, identity, family IDs or addresses in response.
+  if(err instanceof Qa47VerifiedAuthDenied)return send(401,{error:'AUTH_REQUIRED'});
   return send(503,{error:'GUARDIAN_STATUS_UNAVAILABLE'});
  }
 }
