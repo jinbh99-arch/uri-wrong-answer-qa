@@ -1,0 +1,25 @@
+{
+  "candidateQaSha": "920bc7c3c9cc64b088dd61f9d67010f445a5d9a7",
+  "realChromium": true,
+  "realIndexedDB": true,
+  "remoteAck": "NOT_TESTED",
+  "safeToRestore": false,
+  "cases": [
+    {
+      "width": 320,
+      "staleConfirmationsSuppressed": 3,
+      "readbackRetryChangedRows": 0,
+      "readbackRetryWriteTransactions": 0,
+      "photoSha256": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "externalRequests": 0
+    },
+    {
+      "width": 390,
+      "staleConfirmationsSuppressed": 3,
+      "readbackRetryChangedRows": 0,
+      "readbackRetryWriteTransactions": 0,
+      "photoSha256": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "externalRequests": 0
+    }
+  ]
+}

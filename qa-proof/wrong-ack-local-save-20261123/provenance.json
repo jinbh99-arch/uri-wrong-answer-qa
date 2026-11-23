@@ -1,0 +1,29 @@
+{
+  "candidateQaSha": "920bc7c3c9cc64b088dd61f9d67010f445a5d9a7",
+  "tree": "0e24ae4bdc13928683522ce223bf69fc849a28f7",
+  "indexBlob": "7bf024d0cad1d560c7270a538bfdf56fa1ca0423",
+  "testBlob": "be2cd9ab8098a4d08435c481f77861580987ca71",
+  "chromeVersion": "157.0.8103.79",
+  "playwrightCore": "1.65.1",
+  "baselineQaSha": "75a450eb7159067af9c8c86e0777bb08d07018b4",
+  "baselineResult": "RED: stale save confirmation not suppressed",
+  "result": "PASS",
+  "artifacts": {
+    "ack-local-320.png": {
+      "sha256": "5bb8f2555439ccfeeda45dc74dbbfaf0722041bc898d3b8210ae6bc16d0ce44b",
+      "gitBlob": "9835b173225f28852c84c86058db3fbf19461418"
+    },
+    "ack-local-390.png": {
+      "sha256": "ef1d0e982fb9749f77926e3e30c4ebc3f29adc8fdaf96edc7e72532909cb56df",
+      "gitBlob": "679b3ef53d9e1de5eb5e0a5ba4bd9d8e74a4050b"
+    },
+    "evidence.json": {
+      "sha256": "84e491aaedb4403622a82c5f2cb02fd12221c9b605730538d104974196676b7f",
+      "gitBlob": "db6cabf2c09895e473ed6be51f51d63d1f2b0d66"
+    },
+    "result.tap": {
+      "sha256": "84a9cadafb8e649ad58d2d382dad2692f49d03b28592a9d618033d206958db35",
+      "gitBlob": "ca4488de036ab97ea803154738e6ae33caf30a0d"
+    }
+  }
+}
