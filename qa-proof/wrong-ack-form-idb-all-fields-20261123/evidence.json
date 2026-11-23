@@ -1,0 +1,67 @@
+{
+  "status": "PASS",
+  "devSha": "3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b",
+  "baseQaSha": "c65c0e1554ad56d45a8dd6574c28b722ea858b28",
+  "candidateQaSha": "b3a72fc07b14e35cc80cafe9399228cc58fc7a8a",
+  "red": {
+    "legacyMissing": [
+      "student-answer",
+      "memo",
+      "wrong007-grade"
+    ]
+  },
+  "realChromium": true,
+  "localHttp": true,
+  "syntheticAckAdapter": true,
+  "realServerAck": false,
+  "realSupabaseJwt": false,
+  "safeToRestore": false,
+  "cases": [
+    {
+      "width": 320,
+      "status": "PASS",
+      "legacyMissing": [
+        "student-answer",
+        "memo",
+        "wrong007-grade"
+      ],
+      "invalidatedTargets": [
+        "student-answer",
+        "memo",
+        "wrong007-grade"
+      ],
+      "revisionTransitions": 3,
+      "staleAckIgnored": 3,
+      "getBeforeRetry": true,
+      "newPostDuringReadback": 0,
+      "photoSha256Before": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "photoSha256After": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "photoInvariant": true,
+      "realServerAck": "NOT_TESTED",
+      "realFamilyAuth": "BLOCK"
+    },
+    {
+      "width": 390,
+      "status": "PASS",
+      "legacyMissing": [
+        "student-answer",
+        "memo",
+        "wrong007-grade"
+      ],
+      "invalidatedTargets": [
+        "student-answer",
+        "memo",
+        "wrong007-grade"
+      ],
+      "revisionTransitions": 3,
+      "staleAckIgnored": 3,
+      "getBeforeRetry": true,
+      "newPostDuringReadback": 0,
+      "photoSha256Before": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "photoSha256After": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "photoInvariant": true,
+      "realServerAck": "NOT_TESTED",
+      "realFamilyAuth": "BLOCK"
+    }
+  ]
+}
