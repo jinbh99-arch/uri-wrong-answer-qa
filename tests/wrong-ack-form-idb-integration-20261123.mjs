@@ -31,14 +31,19 @@ async function readLedger(page){
 }
 
 function createAckGate(){
-  let approved=null,unknown=null,postCount=0,getCount=0;
+  let approved=null,unknown=null,postCount=0,getCount=0,invalidations=[];
   return {
     approve(row,photoBytes){
       approved={revision:row.updatedAt,requestId:randomBytes(12).toString('hex'),
         recordId:row.id,problemText:row.problemText,photoSha256:hash(Buffer.from(photoBytes))};
       unknown=null;return structuredClone(approved);
     },
-    invalidate(){approved=null;unknown=null},
+    invalidate(meta){
+      assert.equal(meta?.type,'input','approval invalidation must come from the product form input event');
+      assert.equal(meta?.target,'problem');
+      invalidations.push({type:meta.type,target:meta.target,value:meta.value});
+      approved=null;unknown=null;
+    },
     submit(){
       assert.ok(approved,'an explicit current approval is required');
       postCount++;unknown=structuredClone(approved);return structuredClone(unknown);
@@ -56,7 +61,8 @@ function createAckGate(){
         response.requestId===approved.requestId&&response.code===200&&response.ok!==false
         ?'CURRENT_ACK_CONFIRMED':'STALE_ACK_IGNORED';
     },
-    counts(){return {postCount,getCount}}
+    state(){return {postCount,getCount,approved:approved&&structuredClone(approved),
+      invalidations:structuredClone(invalidations)}}
   };
 }
 
@@ -83,13 +89,24 @@ try{
     assert.equal(r1.rows.length,1);assert.equal(r1.photos.length,1);
     const approval1=gate.approve(r1.rows[0],r1.photos[0].bytes);
     const pending1=gate.submit();
-    assert.deepEqual(gate.counts(),{postCount:1,getCount:0});
+    assert.deepEqual(gate.state(),{postCount:1,getCount:0,approved:approval1,invalidations:[]});
+
+    // The adapter observes the product's real edit control. There is no direct
+    // gate.invalidate() call in the test journey.
+    await page.exposeFunction('ackApprovalInputObserved',meta=>gate.invalidate(meta));
+    await page.evaluate(()=>document.querySelector('#problem').addEventListener('input',event=>{
+      window.ackApprovalInputObserved({type:event.type,target:event.target.id,value:event.target.value});
+    }));
 
     await page.locator('#nav-records').click();
     await page.locator('#records-list button[data-record]').first().click();
     await page.locator('#detail-edit').click();
     await page.locator('#problem').fill('ACK r2 보호자 수정 '+width);
-    gate.invalidate();
+    await page.waitForFunction(()=>true); // allow the exposed event callback to settle
+    const invalidated=gate.state();
+    assert.equal(invalidated.approved,null);
+    assert.deepEqual(invalidated.invalidations,[{type:'input',target:'problem',
+      value:'ACK r2 보호자 수정 '+width}]);
     await page.locator('#save-btn').click();
     await page.locator('#v09-save-confirm:not(.hide)').waitFor({timeout:16000});
     const r2=await readLedger(page);
@@ -105,9 +122,11 @@ try{
     assert.equal(gate.lateAck({...approval1,code:200,ok:true}),'STALE_ACK_IGNORED');
     assert.equal(gate.lateAck({...approval2,code:503,ok:false}),'STALE_ACK_IGNORED');
     assert.equal(gate.lateAck({...approval2,code:200,ok:true}),'CURRENT_ACK_CONFIRMED');
-    assert.deepEqual(gate.counts(),{postCount:2,getCount:1},'readback must not create another POST');
+    assert.deepEqual(gate.state().postCount,2,'readback must not create another POST');
+    assert.deepEqual(gate.state().getCount,1);
     console.log('ACK_FORM_IDB_CASE='+JSON.stringify({width,recordId:'SYNTHETIC_REDACTED',
       revisionChanged:approval1.revision!==approval2.revision,oldApprovalInvalidated:true,
+      invalidationSource:'product#problem:input',manualInvalidationCalls:0,
       getBeforeRetry:true,newPostDuringReadback:0,lateR1Ignored:true,photoBytesStable:true}));
     await context.close();
   }
