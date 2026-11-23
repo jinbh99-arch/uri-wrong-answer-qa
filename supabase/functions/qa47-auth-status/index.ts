@@ -5,6 +5,8 @@ import {createClient,AuthApiError} from 'npm:@supabase/supabase-js@2.118.0';
 import {handleQa47AuthenticatedGuardianStatus} from './handler.js';
 import {rejectSdkAuthError} from './auth-verified-denial.js';
 Deno.serve(async req=>{
+ // Preflight must not depend on env/SDK state; handler checks exact Origin.
+ if(req.method==='OPTIONS')return handleQa47AuthenticatedGuardianStatus(req);
  const url=Deno.env.get('SUPABASE_URL');
  const key=Deno.env.get('SUPABASE_ANON_KEY');
  // Missing platform configuration MUST fail closed; do not log secrets.

@@ -12,6 +12,7 @@ function once(source,needle,restore){
 }
 test('inverse QA index.ts exactly restores dev blob 849057381bcf',()=>{
  let s=readFileSync(new URL('index.ts',root),'utf8');
+ s=once(s," // Preflight must not depend on env/SDK state; handler checks exact Origin.\n if(req.method==='OPTIONS')return handleQa47AuthenticatedGuardianStatus(req);\n",'');
  s=once(s,'// A-isolated candidate only; pinned version and error constructor identity.\n','');
  s=once(s,"import {createClient,AuthApiError} from 'npm:@supabase/supabase-js@2.118.0';", "import {createClient} from 'npm:@supabase/supabase-js@2';");
  s=once(s,"import {rejectSdkAuthError} from './auth-verified-denial.js';\n",'');
