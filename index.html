@@ -873,7 +873,7 @@ document.addEventListener('qa34:family-locked',()=>{
  const file=document.getElementById('import-file');if(file)file.value='';
 });
 function populate(){for(const id of ['concept','filter-concept','concept-select'])for(const c of concepts){const o=make('option');o.value=c.concept_id;o.textContent=c.label_ko;$(id).append(o)}}
-function navigate(next){if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
+function navigate(next){if(route==='add'||next==='add')wrongLocalSaveRevision++;if($('v09-save-confirm'))$('v09-save-confirm').classList.add('hide');route=next;document.body.classList.toggle('v08-adding',next==='add');$('v08-sticky-save').classList.toggle('hide',next!=='add');if(next!=='add')resetImage();for(const x of document.querySelectorAll('[data-page]'))x.classList.toggle('hide',x.id!=='page-'+next);for(const x of document.querySelectorAll('nav button'))x.setAttribute('aria-current',x.dataset.route===next?'page':'false');if(next==='home')renderHome();if(next==='add')renderAdd();if(next==='records')renderRecords();if(next==='detail')renderDetail();if(next==='concepts')renderConcepts();if(next==='settings')renderSettings();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-route]');if(nav){if(nav.dataset.route==='add'&&route!=='add')editId=null;navigate(nav.dataset.route)}const r=e.target.closest('[data-record]');if(r){detailId=r.dataset.record;navigate('detail')}});
 function list(container,items,empty){const box=$(container);box.replaceChildren();if(!items.length){box.append(make('div','empty',empty));return}for(const r of items){const b=make('button','item');b.type='button';b.dataset.record=r.id;const title=make('strong',null,(r.problemText||'사진만 등록한 문제').slice(0,110));const foot=make('div','details',`${date(r.createdAt)} · ${wrong007SubjectName(r.subject)} · ${r.gradeAtEntry||'?'}학년 · ${r.subject==='math'?cname(r.conceptId):'개념 연결 미지원'} · ${r.hasPhoto?'📷 사진 있음':'텍스트'} · 학부모 확인 ${wrong008ObservedCheckCount(r)}회`);b.append(title,foot);
  if(container==='records-list'){
@@ -1293,7 +1293,46 @@ const cv=$('crop-canvas');function draw(){if(!image)return;const sc=Math.min(950
 function xy(e){const r=cv.getBoundingClientRect();return{x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}}
 cv.onpointerdown=e=>{if(!image)return;v18InvalidateOcrAfterCrop();drag=xy(e);crop=null;cv.setPointerCapture(e.pointerId);e.preventDefault()};cv.onpointermove=e=>{if(!drag)return;const p=xy(e);crop={x:Math.min(p.x,drag.x),y:Math.min(p.y,drag.y),w:Math.abs(p.x-drag.x),h:Math.abs(p.y-drag.y)};draw();e.preventDefault()};function dragend(){drag=null;if(crop&&(crop.w<.03||crop.h<.03))crop=null;draw()}cv.onpointerup=dragend;cv.onpointercancel=dragend;
 function photoBlob(){return new Promise(resolve=>{if(!image)return resolve(null);const box=crop&&crop.w>.03&&crop.h>.03?crop:{x:0,y:0,w:1,h:1};const sw=Math.max(1,Math.round(box.w*image.naturalWidth)),sh=Math.max(1,Math.round(box.h*image.naturalHeight));const out=document.createElement('canvas'),scale=Math.min(1,1200/sw,1200/sh);out.width=Math.max(1,Math.round(sw*scale));out.height=Math.max(1,Math.round(sh*scale));out.getContext('2d').drawImage(image,Math.round(box.x*image.naturalWidth),Math.round(box.y*image.naturalHeight),sw,sh,0,0,out.width,out.height);out.toBlob(b=>resolve(b),'image/jpeg',.78)})}
-$('mistake-form').onsubmit=async e=>{e.preventDefault();$('form-error').classList.add('hide');if(!storageOk){$('form-error').textContent='브라우저 저장소를 사용할 수 없습니다. 데이터를 보관할 수 없습니다.';$('form-error').classList.remove('hide');return}const old=editId?records.find(r=>r.id===editId):null;
+let wrongLocalSaveRevision=0;
+let wrongLocalSaveBusy=false;
+let wrongLocalSaveUnconfirmed=null;
+
+for(const event of ['input','change']){
+  $('mistake-form').addEventListener(event,()=>{wrongLocalSaveRevision++});
+}
+
+async function wrongVerifyLocalSave({rec,expectedPhoto,dropPhoto}){
+  const expected=JSON.stringify(rec);
+  if(JSON.stringify(await readOne('mistakes',rec.id))!==expected)throw Error('저장한 기록이 현재 기록과 다릅니다.');
+  if(rec.hasPhoto||dropPhoto){
+    const photo=await readOne('photos',rec.id);
+    if(rec.hasPhoto?!(await v21SamePhotoBytes(expectedPhoto,photo)):photo!==undefined){
+      throw Error('저장한 사진이 현재 사진과 다릅니다.');
+    }
+    // Check again after the asynchronous photo read in case another tab edited the record.
+    if(JSON.stringify(await readOne('mistakes',rec.id))!==expected)throw Error('저장 확인 중 기록이 변경되었습니다.');
+  }
+}
+
+function wrongLocalSaveMessage(message){
+  $('form-error').textContent=message;
+  $('form-error').classList.remove('hide');
+}
+
+async function wrongSubmitMistake(){
+  if(wrongLocalSaveUnconfirmed){
+    try{
+      await wrongVerifyLocalSave(wrongLocalSaveUnconfirmed);
+      await restoreState();
+      wrongLocalSaveUnconfirmed=null;
+      wrongLocalSaveMessage('이전 저장 기록을 확인했습니다. 최신 기록을 다시 열어 수정해 주세요.');
+    }catch{
+      wrongLocalSaveMessage('이전 저장을 확인할 수 없습니다. 중복 저장을 막기 위해 오답 목록의 최신 기록을 확인해 주세요.');
+    }
+    return;
+  }
+  const submissionRevision=wrongLocalSaveRevision,editSnapshot=v20EditSnapshot;
+  $('form-error').classList.add('hide');if(!storageOk){$('form-error').textContent='브라우저 저장소를 사용할 수 없습니다. 데이터를 보관할 수 없습니다.';$('form-error').classList.remove('hide');return}const old=editId?records.find(r=>r.id===editId):null;
  const enteredGrade=Number($('wrong007-grade').value),enteredSubject=$('wrong007-subject').value;
  if(!wrong007AllowedSubject(enteredSubject)||!Number.isInteger(enteredGrade)||enteredGrade<1||enteredGrade>6){
   $('form-error').textContent='초등 학년(1~6)과 과목을 확인해주세요.';$('form-error').classList.remove('hide');return;
@@ -1322,21 +1361,19 @@ try{
       const err=new Error('기존 사진 파일이 없습니다.');err.code='WRONG003_PHOTO_MISSING';throw err;
     }
   }
-  await v20SaveMistakeGuarded(rec,blob,pendingRemove&&!blob,old?v20EditSnapshot:null);
+  if(submissionRevision!==wrongLocalSaveRevision)return;
+  const dropPhoto=pendingRemove&&!blob;
+  await v20SaveMistakeGuarded(rec,blob,dropPhoto,old?editSnapshot:null);
   transactionDone=true;
-  const verifiedRecord=await readOne('mistakes',id);
-  const verifiedPhoto=rec.hasPhoto?await readOne('photos',id):null;
-  if(!verifiedRecord||verifiedRecord.id!==id||(rec.hasPhoto&&(!(verifiedPhoto instanceof Blob)||verifiedPhoto.size<1))){
-    throw new Error('저장 후 읽기 확인 실패');
+  wrongLocalSaveUnconfirmed={rec,expectedPhoto:blob||wrong003PreservedPhoto,dropPhoto};
+  await wrongVerifyLocalSave(wrongLocalSaveUnconfirmed);
+  wrongLocalSaveUnconfirmed=null;
+  await restoreState();
+  if(submissionRevision!==wrongLocalSaveRevision){
+    if(route==='add')wrongLocalSaveMessage('이전 입력은 저장되었습니다. 최신 기록을 다시 열어 현재 수정 내용을 반영해 주세요.');
+    return;
   }
-  // v2.1: a new photo must match byte-for-byte after an independent read.
-  if(wrong003PreservedPhoto&&!(await v21SamePhotoBytes(wrong003PreservedPhoto,verifiedPhoto))){
-    throw new Error('기존 사진의 바이트가 저장 후 달라졌습니다. 기록을 다시 확인해 주세요.');
-  }
-  if(blob&&!(await v21SamePhotoBytes(blob,verifiedPhoto))){
-    throw new Error('저장된 사진의 바이트가 원본과 일치하지 않습니다.');
-  }
-  await restoreState();detailId=id;editId=null;resetImage();
+  detailId=id;editId=null;resetImage();
   navigate('detail');
   $('v09-save-confirm').textContent=rec.hasPhoto?'✅ 오답 내용과 사진을 브라우저 저장소에 기록하고 다시 읽어 확인했습니다. 사진은 이 기기의 해당 브라우저에만 보관됩니다.':'✅ 오답 내용을 브라우저 저장소에 기록하고 다시 읽어 확인했습니다. 사진은 첨부되지 않았습니다.';
   $('v09-save-confirm').classList.remove('hide');
@@ -1344,7 +1381,14 @@ try{
 }catch(e){
   $('form-error').textContent=transactionDone?'저장 동작은 실행됐으나 저장 후 확인에 실패했습니다. 중복 등록하지 말고 오답 목록에서 사진과 기록을 먼저 확인하세요.':(e?.code==='V220_CAPACITY'?'⛔ 오답 저장 한도 500건에 도달했습니다. 기존 기록을 자동 삭제하지 않았습니다. 안전하게 백업한 뒤 기록을 정리하세요.':e?.code==='V29_HISTORY'?'⛔ 기존 재풀이·복습 이력이 보존되지 않아 수정 저장을 차단했습니다. 기록을 새로 불러와 주세요.':e?.code==='WRONG003_PHOTO_MISSING'?'⛔ 기존 사진을 읽을 수 없어 수정하지 않았습니다. 백업·저장소를 확인하세요.':e?.code==='V20_STALE'?'⛔ 다른 탭 또는 화면에서 이 기록이 수정·삭제되었습니다. 작성 중인 내용을 보관한 뒤 최신 기록을 다시 불러오세요. 덮어쓰기를 차단했습니다.':'기록을 저장하지 못했습니다. 저장 공간·브라우저 사용 권한을 확인하세요.');
   $('form-error').classList.remove('hide');
-}};
+}}
+$('mistake-form').onsubmit=async e=>{
+  e.preventDefault();
+  if(wrongLocalSaveBusy)return;
+  wrongLocalSaveBusy=true;
+  try{await wrongSubmitMistake()}
+  finally{wrongLocalSaveBusy=false}
+};
 $('cancel-edit').onclick=()=>{editId=null;navigate('records')};
 async function renderDetail(){const token=++loadToken,r=records.find(x=>x.id===detailId),e=$('detail-card');
  // WRONG-RC: previous record's retry CTA and save form live OUTSIDE detail-card.
