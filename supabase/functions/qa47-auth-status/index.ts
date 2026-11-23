@@ -1,7 +1,9 @@
 // QA47 Supabase Edge Function. Actual deployment is via the Supabase connector.
 // No service_role/secret API key, SQL credentials or user data in source.
-import {createClient} from 'npm:@supabase/supabase-js@2';
+// A-isolated candidate only; pinned version and error constructor identity.
+import {createClient,AuthApiError} from 'npm:@supabase/supabase-js@2.118.0';
 import {handleQa47AuthenticatedGuardianStatus} from './handler.js';
+import {rejectSdkAuthError} from './auth-verified-denial.js';
 Deno.serve(async req=>{
  const url=Deno.env.get('SUPABASE_URL');
  const key=Deno.env.get('SUPABASE_ANON_KEY');
@@ -16,7 +18,7 @@ Deno.serve(async req=>{
     global:{headers:{Authorization:'Bearer '+token}}
    });
    const response=await client.auth.getUser(token);
-   if(response.error)throw new Error('AUTH_CHECK_FAILED');
+   if(response.error)rejectSdkAuthError(response.error,AuthApiError);
    verifiedClient=client;verifiedToken=token;
    return response.data?.user;
   },
