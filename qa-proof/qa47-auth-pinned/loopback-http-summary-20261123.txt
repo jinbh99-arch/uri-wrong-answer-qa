@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: loopback OPTIONS CORS succeeds without getUser or RPC
+ok 1 - loopback OPTIONS CORS succeeds without getUser or RPC
+# Subtest: loopback disallowed Origin and no bearer fail closed before SDK
+ok 2 - loopback disallowed Origin and no bearer fail closed before SDK
+# Subtest: loopback typed 401/403 auth denial maps to 401 without RPC or raw message
+ok 3 - loopback typed 401/403 auth denial maps to 401 without RPC or raw message
+# Subtest: loopback SDK-like 503 and unknown network error stay 503
+ok 4 - loopback SDK-like 503 and unknown network error stay 503
+# Subtest: loopback successful synthetic guardian returns read-only status and NO family data
+ok 5 - loopback successful synthetic guardian returns read-only status and NO family data
+# Subtest: loopback anonymous and RPC outage fail closed
+ok 6 - loopback anonymous and RPC outage fail closed
+# Subtest: loopback POST cannot mutate and always returns 405
+ok 7 - loopback POST cannot mutate and always returns 405
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
