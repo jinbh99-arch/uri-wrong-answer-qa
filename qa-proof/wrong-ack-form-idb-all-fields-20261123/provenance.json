@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "executedAtKst": "2026-11-23T20:52:49+09:00",
+  "executedCommit": "36d2d48dc91fbe65b96efe03679ab981a79e36de",
+  "executedTree": "d8b77704889d4dd93eef053aafadc6edcaee596a",
+  "executedIndexBlob": "250aff5b0a46490488b64f7b96a83c940d2d6c71",
+  "executedTestBlob": "cf629b5272f715a02ad38d5df0613cf16a84b65f",
+  "command": "WRONG_ACK_ALL_FIELDS_SHA=36d2d48dc91fbe65b96efe03679ab981a79e36de node tests/wrong-ack-form-idb-all-fields-20261123.mjs",
+  "exitCode": 0,
+  "viewports": [320, 390],
+  "artifacts": {
+    "ack-all-fields-320.png": {
+      "sha256": "7de988078477b1e3b20349d318c7eb6cf282dd10883faa4b0b486158f2378c69",
+      "gitBlob": "d9eb21d27c97cafefa7264ec4884e245b40910ad"
+    },
+    "ack-all-fields-390.png": {
+      "sha256": "7aa09726f3b644a940cadd4a2183940bdca5d7d4700afe7af70692b54d8ba10d",
+      "gitBlob": "3fce73a100f5b6b1d372871548e819473d752a0d"
+    },
+    "evidence.json": {
+      "sha256": "8dada11aecf8049a98a838ef040469ed31335fa8125e9e0a2d8d99771675da59",
+      "gitBlob": "41ea716e971b43cfc5dac737dea407020bfa2e13"
+    },
+    "result.tap": {
+      "sha256": "44a4a63f68dede0bc770856ee734da6969548209c0ed822df1c41898ddb640d2",
+      "gitBlob": "0aac3e9af6f658f70d8e7e86884b18a4c1c5a856"
+    }
+  },
+  "sourceChangedDuringRun": false,
+  "realServerAck": false,
+  "realSupabaseJwt": false,
+  "safeToRestore": false
+}

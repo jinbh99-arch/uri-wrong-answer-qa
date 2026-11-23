@@ -7,5 +7,6 @@
 - 시험: 실제 제품 폼·IndexedDB·사진 blob, 로컬 Chromium 320/390px. 세 필드를 순차 수정·저장할 때마다 revision 변경, 이전 ACK 무시, 사진 SHA 불변을 확인한다.
 - ACK 원장 GET/POST와 승인 상태는 합성 어댑터이며 실제 서버·Supabase/JWT·가족 A/B 검증이 아니다.
 - 산출물: `ack-all-fields-320.png`, `ack-all-fields-390.png`, `evidence.json`, `result.tap`.
+- 실행핀: 원격 후보 `36d2d48dc91fbe65b96efe03679ab981a79e36de`를 정확히 checkout해 재실행했으며 commit/tree/index/test blob과 재생성 산출물 해시는 `provenance.json`에 기록한다. 후속 증거전용 커밋은 제품·시험 소스를 변경하지 않는다.
 - 정확 역패치: 후보 checkout에서 `git diff c65c0e1554ad56d45a8dd6574c28b722ea858b28..<candidate-sha> | git apply -R`.
 - `ACK/AUTH/VIS BLOCK`, `safeToRestore:false`; dev/main·PR80·DB/Edge·배포·실자료·예약 변경 없음.

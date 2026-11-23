@@ -2,7 +2,7 @@
   "status": "PASS",
   "devSha": "3eac1ec8fbf9a38b75ca317c4088dd9c759ac39b",
   "baseQaSha": "c65c0e1554ad56d45a8dd6574c28b722ea858b28",
-  "candidateQaSha": "b3a72fc07b14e35cc80cafe9399228cc58fc7a8a",
+  "candidateQaSha": "36d2d48dc91fbe65b96efe03679ab981a79e36de",
   "red": {
     "legacyMissing": [
       "student-answer",
