@@ -1,0 +1,34 @@
+{
+  "source": "75d2dd7bb4398b7adead370056df92dfe68764ac",
+  "browser": "157.0.8103.79",
+  "remoteAck": "NOT_TESTED",
+  "safeToRestore": false,
+  "cases": [
+    {
+      "width": 320,
+      "initialWrites": 1,
+      "retryWrites": 0,
+      "rowsAfterRetry": 1,
+      "photoSha256": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "storedIds": [
+        "me656190f-639f-43a5-9f13-b8dc184b6d18"
+      ],
+      "restoreFailures": 2,
+      "posts": 0,
+      "successfulReadOnlyRetry": true
+    },
+    {
+      "width": 390,
+      "initialWrites": 1,
+      "retryWrites": 0,
+      "rowsAfterRetry": 1,
+      "photoSha256": "9871ecf2f1ac74e30bc79d2477df43f72ae19d871aa43dbc7ee9cec059a2ad28",
+      "storedIds": [
+        "m5ba2c14b-7bb4-480f-ae2a-da6e55efb50f"
+      ],
+      "restoreFailures": 2,
+      "posts": 0,
+      "successfulReadOnlyRetry": true
+    }
+  ]
+}

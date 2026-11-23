@@ -1367,8 +1367,8 @@ try{
   transactionDone=true;
   wrongLocalSaveUnconfirmed={rec,expectedPhoto:blob||wrong003PreservedPhoto,dropPhoto};
   await wrongVerifyLocalSave(wrongLocalSaveUnconfirmed);
-  wrongLocalSaveUnconfirmed=null;
   await restoreState();
+  wrongLocalSaveUnconfirmed=null;
   if(submissionRevision!==wrongLocalSaveRevision){
     if(route==='add')wrongLocalSaveMessage('이전 입력은 저장되었습니다. 최신 기록을 다시 열어 현재 수정 내용을 반영해 주세요.');
     return;

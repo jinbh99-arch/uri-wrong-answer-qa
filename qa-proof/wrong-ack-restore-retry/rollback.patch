@@ -1,0 +1,14 @@
+diff --git b/index.html a/index.html
+index 75d2dd7..7bf024d 100644
+--- b/index.html
++++ a/index.html
+@@ -1367,8 +1367,8 @@ try{
+   transactionDone=true;
+   wrongLocalSaveUnconfirmed={rec,expectedPhoto:blob||wrong003PreservedPhoto,dropPhoto};
+   await wrongVerifyLocalSave(wrongLocalSaveUnconfirmed);
+-  await restoreState();
+   wrongLocalSaveUnconfirmed=null;
++  await restoreState();
+   if(submissionRevision!==wrongLocalSaveRevision){
+     if(route==='add')wrongLocalSaveMessage('이전 입력은 저장되었습니다. 최신 기록을 다시 열어 현재 수정 내용을 반영해 주세요.');
+     return;

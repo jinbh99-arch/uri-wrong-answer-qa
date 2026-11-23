@@ -1,0 +1,4 @@
+TAP version 13
+ok 1 - 320px read-only recovery
+ok 2 - 390px read-only recovery
+1..2
