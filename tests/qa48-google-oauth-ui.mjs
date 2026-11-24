@@ -48,6 +48,11 @@ try{
      functions:{
       async invoke(name,opts){
        globalThis.__QA48_TEST_CALLS__.push({type:'edge',name,opts});
+       if(name==='qa51-session-revoke'){
+        if(sessionStorage.getItem('qa51-test-revoke-fail')==='yes')
+         return {error:new Error('Synthetic uncertain revoke'),data:null};
+        return {error:null,data:{serverRevocationCommitted:true}};
+       }
        if(sessionStorage.getItem('qa48-test-edge-fail')==='yes')
         return {error:new Error('Synthetic fake auth failure'),data:null};
        return {error:null,data:{
@@ -96,10 +101,13 @@ try{
    assert.ok(calls.some(x=>x.type==='edge'&&x.name==='qa47-auth-status'&&x.opts.method==='GET'));
    pass(width+'px OAuth callback exchanges session, verifies getUser/RLS/Edge, scrubs code and blocks student data');
    await p.locator('#logout').click();
-   await p.getByText('로그아웃했습니다.',{exact:false}).waitFor();
+   await p.getByText('서버 로그아웃이 확정됐습니다.',{exact:false}).waitFor();
    assert.equal(await p.locator('#google-login').isEnabled(),true);
    assert.equal(await p.evaluate(()=>sessionStorage.getItem('qa48-test-session')),null);
-   pass(width+'px user-triggered logout ends in-tab auth session');
+   calls=await p.evaluate(()=>globalThis.__QA48_TEST_CALLS__);
+   assert.ok(calls.some(x=>x.type==='edge'&&x.name==='qa51-session-revoke'&&
+    x.opts?.body?.scope==='local'));
+   pass(width+'px server revocation ACK precedes local provider sign-out');
    await p.evaluate(()=>{
     sessionStorage.setItem('qa48-test-session','active');
     sessionStorage.setItem('uri-qa48-owner-google-test-session','synthetic-session-marker');
