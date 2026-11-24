@@ -12,8 +12,9 @@ const login=$('google-login'),check=$('verify'),logout=$('logout'),status=$('sta
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const callbackKeys=['code','state','error','error_description','access_token','refresh_token','token_type'];
 const callbackHasParams=callbackKeys.some(k=>new URL(location.href).searchParams.has(k));
-let client=null,busy=false,active=false;
+let client=null,busy=false,active=false,revocationPending=false;
 const sessionKey='uri-qa48-owner-google-test-session';
+const revokeOperationKey='uri-qa51-revoke-operation';
 function say(message,state='neutral'){
  status.textContent=message;
  status.dataset.state=state;
@@ -21,7 +22,7 @@ function say(message,state='neutral'){
 function controls(){
  login.disabled=!allowed||busy||active;
  check.disabled=!allowed||busy||!active;
- logout.disabled=!allowed||busy||!active;
+ logout.disabled=!allowed||busy||(!active&&!revocationPending);
 }
 function stripCallbackUrl(){
  if(!callbackHasParams)return;
@@ -100,6 +101,7 @@ function publicErrorMessage(e){
  if(code==='ACTUAL_USER_NOT_VERIFIED')return 'Google 로그인 사용자 확인에 실패했습니다. 로그인된 사용자 데이터는 열지 않았습니다.';
  if(code==='FAMILY_RLS_UNVERIFIED'||code==='EDGE_JWT_UNVERIFIED')return 'Google 인증 이후 보호자 접근권한 확인에 실패했습니다. 학생 기록은 열지 않았습니다.';
  if(code==='GOOGLE_OAUTH_START_FAILED')return 'Google 로그인 시작에 실패했습니다. Google 테스트 사용자와 계정 권한을 확인해 주세요.';
+ if(code==='REVOCATION_NOT_CONFIRMED')return '서버 로그아웃이 아직 확정되지 않았습니다. 개인정보 화면은 잠갔습니다. 같은 버튼으로 다시 확인해 주세요.';
  return '로그인 연결 확인에 실패했습니다. 계정 비밀번호나 비밀키는 보내지 마세요. 문제가 계속되면 이 화면을 보여주세요.';
 }
 async function safely(task){
@@ -108,7 +110,8 @@ async function safely(task){
  try{await task()}
  catch(e){
   active=false;
-  if(client)try{await client.auth.signOut()}catch{}
+  if(String(e?.message||'')!=='REVOCATION_NOT_CONFIRMED'&&client)
+   try{await client.auth.signOut()}catch{}
   say(publicErrorMessage(e),'error');
  }finally{
   busy=false;stripCallbackUrl();controls();
@@ -131,10 +134,25 @@ login.addEventListener('click',()=>safely(async()=>{
 check.addEventListener('click',()=>safely(verify));
 logout.addEventListener('click',()=>safely(async()=>{
  const c=await supabaseClient();
- const result=await c.auth.signOut();
+ // Hide all private controls before any network wait. Keep the current session
+ // only for an idempotent retry until the server ledger confirms revocation.
+ active=false;revocationPending=true;controls();
+ say('개인정보 화면을 잠갔습니다. 서버 로그아웃을 확인하고 있습니다.');
+ let operationId=sessionStorage.getItem(revokeOperationKey);
+ if(!UUID.test(String(operationId||''))){
+  operationId=crypto.randomUUID();
+  sessionStorage.setItem(revokeOperationKey,operationId);
+ }
+ const revoked=await c.functions.invoke('qa51-session-revoke',{
+  method:'POST',body:{operationId,scope:'local'}
+ });
+ if(revoked.error||revoked.data?.serverRevocationCommitted!==true)
+  throw Error('REVOCATION_NOT_CONFIRMED');
+ const result=await c.auth.signOut({scope:'local'});
  if(result.error)throw Error('SIGNOUT_FAILED');
- active=false;
- say('로그아웃했습니다. 이 탭의 시험용 로그인 세션을 종료했습니다.','success');
+ sessionStorage.removeItem(revokeOperationKey);
+ revocationPending=false;
+ say('서버 로그아웃이 확정됐습니다. 이 탭의 시험용 로그인 세션을 종료했습니다.','success');
 }));
 controls();
 if(!allowed){
