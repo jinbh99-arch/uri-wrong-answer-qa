@@ -15,14 +15,17 @@ const callbackHasParams=callbackKeys.some(k=>new URL(location.href).searchParams
 let client=null,busy=false,active=false,revocationPending=false;
 const sessionKey='uri-qa48-owner-google-test-session';
 const revokeOperationKey='uri-qa51-revoke-operation';
+let storageUnavailable=false;
+try {revocationPending=sessionStorage.getItem(revokeOperationKey)!==null;}
+catch {storageUnavailable=true;revocationPending=true;}
 function say(message,state='neutral'){
  status.textContent=message;
  status.dataset.state=state;
 }
 function controls(){
- login.disabled=!allowed||busy||active;
- check.disabled=!allowed||busy||!active;
- logout.disabled=!allowed||busy||(!active&&!revocationPending);
+ login.disabled=!allowed||busy||active||revocationPending||storageUnavailable;
+ check.disabled=!allowed||busy||!active||revocationPending||storageUnavailable;
+ logout.disabled=!allowed||busy||storageUnavailable||(!active&&!revocationPending);
 }
 function stripCallbackUrl(){
  if(!callbackHasParams)return;
@@ -62,6 +65,7 @@ async function supabaseClient(){
  client=candidate;return client;
 }
 async function verify(){
+ if(revocationPending||storageUnavailable)throw Error('REVOCATION_NOT_CONFIRMED');
  const c=await supabaseClient();
  const session=await c.auth.getSession();
  // The session is ONLY a bearer token; server-side auth.getUser and RLS
@@ -110,7 +114,7 @@ async function safely(task){
  try{await task()}
  catch(e){
   active=false;
-  if(String(e?.message||'')!=='REVOCATION_NOT_CONFIRMED'&&client)
+  if(!revocationPending&&!storageUnavailable&&String(e?.message||'')!=='REVOCATION_NOT_CONFIRMED'&&client)
    try{await client.auth.signOut()}catch{}
   say(publicErrorMessage(e),'error');
  }finally{
@@ -133,7 +137,6 @@ login.addEventListener('click',()=>safely(async()=>{
 }));
 check.addEventListener('click',()=>safely(verify));
 logout.addEventListener('click',()=>safely(async()=>{
- const c=await supabaseClient();
  // Hide all private controls before any network wait. Keep the current session
  // only for an idempotent retry until the server ledger confirms revocation.
  active=false;revocationPending=true;controls();
@@ -143,6 +146,7 @@ logout.addEventListener('click',()=>safely(async()=>{
   operationId=crypto.randomUUID();
   sessionStorage.setItem(revokeOperationKey,operationId);
  }
+ const c=await supabaseClient();
  const revoked=await c.functions.invoke('qa51-session-revoke',{
   method:'POST',body:{operationId,scope:'local'}
  });
@@ -165,6 +169,8 @@ if(!allowed){
  let hasStoredSession=false;
  try{hasStoredSession=Boolean(window.sessionStorage.getItem(sessionKey))}
  catch { /* Some in-app browsers block sessionStorage; login click reports it. */ }
- if(callbackHasParams||hasStoredSession)safely(verify);
+ if(storageUnavailable)say('세션 저장소를 확인할 수 없어 접근을 차단했습니다.','error');
+ else if(revocationPending)say('서버 로그아웃 미확정 상태입니다. 로그아웃 버튼으로 같은 요청을 다시 확인해 주세요.','error');
+ else if(callbackHasParams||hasStoredSession)safely(verify);
  else say('준비됐습니다. 파란색 Google 로그인 버튼을 눌러 본인의 시험 계정을 선택하세요.');
 }
