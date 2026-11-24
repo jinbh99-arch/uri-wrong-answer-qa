@@ -31,3 +31,15 @@ D. 아동 데이터 직접 테이블/RPC 접근을 차단하고 단일 Edge 인�
 
 ## 금지/미검증
 실 DB/Auth/Edge/RPC/RLS 수정, 세션 강제철회, 배포, PR 병합, 실제 아동 데이터 시험 금지. 격리 합성 Node 테스트만 신규 12/12; 실 Chromium/원시 네트워크 및 06/08의 이 신규 SHA 독립 검증 N/T. 이 문서는 P0 설계 후보이지 PASS가 아니다.
+
+
+## 2026-11-24 QA50 신규 증분 — 잔존 세션 행에서도 fail-closed 설계 (합성, 실제품 N/T)
+
+- 최신 00 기술 기준: 현재기기 로그아웃 후 구 JWT로 RPC·RLS/SELECT·Edge·Storage/사진·ACK 접근 불가, global 로그아웃 후 사용자 전체 구세션 차단. **단순 `auth.sessions` 행 존재검사만은 행이 남는 반례에서 미수용**. Jin 보안정책 최종승인 아님. [00 지시 #7129215040](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-7129215040), [08 단일지시 #7126906766](https://github.com/jinbh99-arch/uri-homework-manager/issues/82#issuecomment-7126906766).
+- **코드:** [`tests/qa50_logout_revocation_ledger_isolated_20261124.test.mjs`](../../tests/qa50_logout_revocation_ledger_isolated_20261124.test.mjs) Git blob `ba69244cbb834b84a46e67ed378b4019bad05be8`; 동일 소스 git hash-object 실제 일치; source SHA256 `56ccb44900c48b6e694496147f8b873f110bc233b8b2463d7b62b25b2e839199`.
+- **실행:** Node.js `v22.16.0`에서 해당 SHA 동일 소스 `node --test` 실제 **15/15 PASS, exit 0**. TAP SHA256 `1fc66acfa8d852f4fceee7259434c85fd770d1352ca886d178123f0fd572fb2e`. `revoked`·`globalEpoch` 검사만 제거한 **로컬 임시 변형**(GitHub에 업로드하지 않음)은 **9 PASS / 6 FAIL, exit 1**, TAP SHA256 `a191b9b53b20d62bdadb679efee02d27130d361797550977f9179f8a1a610926` — 실패는 구 JWT RPC/Edge·로컬/전체 로그아웃·신세션 분리·중복 로그아웃. 옛 12/12 검증을 재실행한 것이 아닌 새 QA50 계약이다.
+- **새 설계 C+:** 독립적인 **서버 소유·내구성 있는 철회 집합**(`revoked_session_id`)과 **사용자별 global 철회 세대**를 현재 세션·보호자 소유/동의 조건과 **모두** 교차검사. 직접 RPC/SELECT/RLS·Storage·사진·ACK에서 동일한 검증을 강제. `authenticated`에게 `auth.sessions` SELECT를 그대로 부여하지 말 것. 실제로는 서버측으로 신원·`session_id`를 검증하고 비노출 최소권한 내부 헬퍼(권한·`search_path`·RLS 재귀·성능·관측성 별도 검토)만 이용해야 한다. **누락 경로·오류는 deny**.
+- **새 설계 D+:** 직접 가족 RPC `EXECUTE`, 테이블 SELECT/RLS 및 Storage/사진 URL/ACK 경로의 권한을 **실제로 모두 차단**하고, 검증된 단일 Edge 경로에서 상기 철회 집합·global 세대·가족 동의 검사를 통과해야만 허용. Edge만 수정하고 기존 직접 RPC를 남기면 미수용. 기존에 발행한 **signed photo URL·브라우저 캐시**는 별도의 수명·회수/비노출 대응이 필수다.
+- **서버 로그아웃 ACK 계약:** 철회 기록이 **서버에서 확인된 이후**만 '이전 JWT 즉시 차단' 성공을 안내한다. 철회 쓰기 장애는 성공으로 표시하면 안 되고, 그 사이 미철회 JWT가 여전히 사용 가능한 반례를 QA에 보존했다. UI 로그아웃이나 Supabase refresh 철회만으로는 해당 보안 보장을 주장하지 않는다. 다중기기 global logout의 세대 증가와 신규 정상 세션 등록은 원자성·경합/시간순서·위조등록 공격에 대한 08 보안 검증이 필요하다.
+- **한계:** 위 C+/D+는 테스트 파일의 *가상 데이터 구조*일 뿐 실제 서버 철회 장부가 없다. 원본 Supabase PostgreSQL/RLS/Auth·실 `signOut` 뒤 `auth.sessions` 보존/삭제·JWT 재생·Storage signed URL·실 원격 401/403/503·실브라우저·06/08 신규 독립 **모두 N/T**. 테스트의 path별 boolean은 실제 직접 쿼리·사진 접근 차단 증명이 아니다.
+- **다음:** 08이 신규 Git SHA·자체 격리 실행/신뢰경계, 06이 실제 화면 Back/cache의 신규 차분만 독립 확인. 제품/실 DB/Auth/RPC/RLS/Edge·Storage/PR/배포/CI/예약은 **0건 변경**, `AUTH/VIS/ACK BLOCK`·`safeToRestore:false`·PR80 Draft·PUBLIC_HOLD 유지.
