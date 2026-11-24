@@ -5,6 +5,19 @@
 import {createClient} from 'npm:@supabase/supabase-js@2';
 const origins=new Set(['http://127.0.0.1:4173','https://jinbh99-arch.github.io']);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+async function readLimited(req:Request,max:number){
+ const reader=req.body?.getReader(); if(!reader)return '';
+ const chunks:Uint8Array[]=[]; let size=0;
+ try{
+  while(true){const {done,value}=await reader.read(); if(done)break;
+   size+=value.byteLength; if(size>max){await reader.cancel();return null;}
+   chunks.push(value);
+  }
+ } finally {reader.releaseLock();}
+ const out=new Uint8Array(size); let offset=0;
+ for(const chunk of chunks){out.set(chunk,offset);offset+=chunk.byteLength;}
+ return new TextDecoder().decode(out);
+}
 Deno.serve(async req=>{
  const origin=req.headers.get('origin')||'';
  const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store',
@@ -22,8 +35,8 @@ Deno.serve(async req=>{
  if(!url||!key)return reply(503,{error:'REVOCATION_UNAVAILABLE'});
  let body;
  try {
-  const raw=await req.text();
-  if(raw.length>1024)return reply(400,{error:'INVALID_REQUEST'});
+  const raw=await readLimited(req,1024);
+  if(raw===null)return reply(400,{error:'INVALID_REQUEST'});
   body=JSON.parse(raw);
  } catch {return reply(400,{error:'INVALID_REQUEST'});}
  if(!body||typeof body!=='object'||!uuid.test(String(body.operationId||''))||
