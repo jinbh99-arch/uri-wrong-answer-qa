@@ -22,12 +22,17 @@ REVOKE ALL ON qa44.logout_user_epoch,qa44.logout_session_tombstone,qa44.logout_o
 -- SECURITY DEFINER is necessary for auth.sessions/private ledger reads.
 -- No client supplied user/session identity, no dynamic SQL, no row disclosure.
 CREATE FUNCTION qa44.session_allowed() RETURNS boolean
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $
 DECLARE u uuid := auth.uid(); s uuid;
 BEGIN
  IF u IS NULL OR coalesce(auth.jwt()->>'is_anonymous','false') <> 'false' THEN RETURN false; END IF;
  s := (auth.jwt()->>'session_id')::uuid;
  IF s IS NULL THEN RETURN false; END IF;
+ -- Every private-path transaction holds a shared per-user gate until commit.
+ -- A revocation takes the exclusive gate, drains earlier holders, and blocks
+ -- concurrent callers fail-closed instead of allowing work behind its ACK.
+ IF NOT pg_catalog.pg_try_advisory_xact_lock_shared(pg_catalog.hashtextextended(u::text,0))
+ THEN RETURN false; END IF;
  RETURN EXISTS (
   SELECT 1 FROM auth.sessions a
   WHERE a.id=s AND a.user_id=u
