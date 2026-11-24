@@ -22,7 +22,7 @@ REVOKE ALL ON qa44.logout_user_epoch,qa44.logout_session_tombstone,qa44.logout_o
 -- SECURITY DEFINER is necessary for auth.sessions/private ledger reads.
 -- No client supplied user/session identity, no dynamic SQL, no row disclosure.
 CREATE FUNCTION qa44.session_allowed() RETURNS boolean
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $$
 DECLARE u uuid := auth.uid(); s uuid;
 BEGIN
  IF u IS NULL OR coalesce(auth.jwt()->>'is_anonymous','false') <> 'false' THEN RETURN false; END IF;
