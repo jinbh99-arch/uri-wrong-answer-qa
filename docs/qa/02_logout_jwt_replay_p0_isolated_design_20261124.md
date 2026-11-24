@@ -20,5 +20,14 @@ D. 아동 데이터 직접 테이블/RPC 접근을 차단하고 단일 Edge 인�
 6. 원장 snapshot·사진·오답·메모 불변, 민감 로그0, 정확 역패치 증거.
 7. 06/08 독립 판정 전 AUTH/VIS/ACK 차단 유지.
 
+
+## 2026-11-24 차분 — 실 DB 메타 읽기전용 + 새 A격리 실행
+
+- **실 DB 메타 SELECT (쓰기 0):** `public.qa47_my_verified_family_ids()`는 `SECURITY INVOKER`; 보호자 UID·externally_verified·동의·미철회만 검사하며 **JWT session_id/현재 세션 생존 조건 없음**. `qa44.guardian_memberships`와 `qa44.family_snapshots`의 SELECT RLS에도 활성 세션 검사 없음. `authenticated`의 `auth.sessions` SELECT 권한은 **false**, `public.qa47_my_verified_family_ids()` 실행 권한은 **true**. `auth.sessions.id` 열은 존재하며 행 수 **5건(집계만)**. 이 숫자로 특정 JWT 로그아웃 후 세션 행 삭제 여부는 알 수 없음.
+- **A격리 검증 코드:** [`tests/qa49_logout_session_gate_isolated_20261124.test.mjs`](../../tests/qa49_logout_session_gate_isolated_20261124.test.mjs) Git blob `c3c2a1b456c42fe760c4cc0d1a82d811284ba47b` / SHA-256 `75c2548d868bf3df467bcf68f534e66c3877b2b9c65a4f8039e3cce3aa7ddabe`. `node --test tests/qa49_logout_session_gate_isolated_20261124.test.mjs` 실제 Node v22.16.0 **합성 12/12 PASS, exit0** (TAP SHA256 `11eea0a3ce8d10e1784af55c0471144eb9b5cf3304f8b1c4d853919ef201ca19`). 세션 검증만 의도적으로 제거한 변이 시험은 **7 PASS/5 FAIL, exit1** (원시 SHA256 `83f2478d06dbe5bd4fc84a7312f440b1b5a0f0a31d23614cec05c896f59f8476`). 변이 파일은 제출 QA 후보가 아님.
+- **검증 범위 엄격 제한:** 테스트는 **합성 권한 모델의 계약 테스트**이며 SQL 엔진, Supabase SDK, 실제 `auth.sessions`, 실제 Google JWT, signOut, HTTP, IndexedDB 또는 아동자료 테스트가 **아님**. `auth.sessions` 실제 행 삭제를 가정하면 C/D 모델은 구 JWT 접근을 거부하지만, **행이 남아 있으면 접근이 계속된다는 위험 시험도 포함**. 12/12을 실제품·보안 PASS로 승격 금지.
+- **실행 판단:** C는 모든 직접 RPC·SELECT·Storage·사진·ACK 경로에서 **서버측 신뢰 가능한 활성 session_id**를 확인해야 하며, `authenticated`에 `auth.sessions` SELECT를 넓게 부여하는 방식은 사용하지 않음. 필요 시 비노출 내부 스키마의 최소권한 검증 함수/실정책·search_path·EXECUTE·성능·로그아웃 시 세션행 소멸 여부를 08 승인 전제 아래 별도 설계. D는 직접 RPC `EXECUTE` 및 테이블·Storage 접근 차단을 **함께** 적용해야 Edge 전용 경로로 우회가 사라지며, 역시 Edge 내부 세션 폐기 검사가 필요함. 둘 다 실제 적용/권한변경/배포 **0**.
+- **다음 독립검증:** 06/08이 이 신규 파일 원본 hash·합성 TAP·변이 시험부터 차분 판정한 뒤, Jin·00 요구 및 별도 인가 시 **실 공급자의 signOut → 동일 구 JWT RPC/RLS/Edge/Storage 재사용 여부**를 무해한 빈원장으로 독립 증명. 그전 `AUTH/VIS/ACK BLOCK`, `safeToRestore:false`, PR80 Draft, PUBLIC_HOLD 유지.
+
 ## 금지/미검증
-실 DB/Auth/Edge/RPC/RLS 수정, 세션 강제철회, 배포, PR 병합, 실제 아동 데이터 시험 금지. 현 시점 테스트 코드/Chromium/원시 네트워크 및 06/08 독립 검증 N/T. 이 문서는 P0 설계 후보이지 PASS가 아니다.
+실 DB/Auth/Edge/RPC/RLS 수정, 세션 강제철회, 배포, PR 병합, 실제 아동 데이터 시험 금지. 격리 합성 Node 테스트만 신규 12/12; 실 Chromium/원시 네트워크 및 06/08의 이 신규 SHA 독립 검증 N/T. 이 문서는 P0 설계 후보이지 PASS가 아니다.
