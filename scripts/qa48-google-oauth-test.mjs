@@ -49,7 +49,10 @@ async function supabaseClient(){
  let create;
  if(typeof factory==='function')create=factory;
  else try {
-  create=(await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
+  // Isolated QA51 never imports a floating CDN SDK. A reviewed, bundled
+  // ESM artifact must be present in the isolated installation.
+  create=(configured?await import('./vendor/qa51-supabase.bundle.mjs'):
+   await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
  }catch {throw Error('SDK_IMPORT_FAILED')}
  if(typeof create!=='function')throw Error('SDK_IMPORT_FAILED');
  const candidate=await create(cfg.projectUrl,cfg.publishableKey,{
