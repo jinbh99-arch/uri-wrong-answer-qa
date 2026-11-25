@@ -25,6 +25,10 @@ function onlyQuery(u,allowed){
  const keys=[...u.searchParams.keys()];
  return keys.every(k=>allowed.includes(k))&&new Set(keys).size===keys.length;
 }
+function exclusiveCallbackResult(u){
+ return (u.searchParams.has('code')&&!u.searchParams.has('error')&&!!u.searchParams.get('code'))||
+  (u.searchParams.has('error')&&!u.searchParams.has('code')&&!!u.searchParams.get('error'));
+}
 function appBearer(headers){
  const auth=headers.authorization||'';
  if(!auth.startsWith('Bearer '))return false;
@@ -49,7 +53,7 @@ function networkAllowed(u,method,source,navigation,phase,headers={},previous=nul
   if(u.pathname==='/auth/v1/callback'){
    return phase==='provider'&&source==='https://accounts.google.com'&&navigation&&method==='GET'&&!credential&&
     onlyQuery(u,['code','state','scope','authuser','prompt','hd','error','error_description','error_uri'])&&
-    !!u.searchParams.get('state')&&!!(u.searchParams.get('code')||u.searchParams.get('error'));
+    !!u.searchParams.get('state')&&exclusiveCallbackResult(u);
   }
   if(!app||navigation||!apiMethods.has(u.pathname))return false;
   if(u.pathname==='/auth/v1/token'){
@@ -155,7 +159,7 @@ try{
    if(navigation&&u.pathname===pageURL.pathname){
     if(u.search){
      if(phase!=='provider'||previous?.origin!==api.origin||previous.pathname!=='/auth/v1/callback'||
-      !onlyQuery(u,['code','error','error_code','error_description'])||!(u.searchParams.get('code')||u.searchParams.get('error')))return route.abort('blockedbyclient');
+      !onlyQuery(u,['code','error','error_code','error_description'])||!exclusiveCallbackResult(u))return route.abort('blockedbyclient');
      phase='callback';
     }else if(phase!=='login'&&source!==pageURL.origin)return route.abort('blockedbyclient');
    }else if(source!==pageURL.origin)return route.abort('blockedbyclient');
