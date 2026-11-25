@@ -74,8 +74,9 @@ try{
  catch{log('N/T: headed Chromium unavailable');process.exitCode=2;}
  if(browser){
   context=await browser.newContext({viewport:{width:390,height:800},serviceWorkers:'block'});
-  // Intercept exact app assets before execution and fulfill only with
-  // verified bytes. Block unexpected same-origin scripts/documents.
+  // Verify the actual browser responses before allowing execution; retain
+  // original response headers (including CSP) and reject redirects.
+  // Block unexpected same-origin scripts/documents.
   const loaded=new Set();
   await context.route('**/*',async route=>{
    const request=route.request(),u=new URL(request.url());
@@ -83,7 +84,14 @@ try{
    const normalized=u.href.split('#')[0];
    const asset=u.pathname===pageURL.pathname&&request.isNavigationRequest()?pageURL.href:normalized;
    const bytes=verifiedBytes.get(asset);
-   if(bytes){loaded.add(asset);return route.fulfill({status:200,body:bytes,contentType:asset===pageURL.href?'text/html; charset=utf-8':'text/javascript; charset=utf-8',headers:{'cache-control':'no-store'}});}
+   if(bytes){
+    try{
+     const response=await route.fetch({maxRedirects:0,timeout:15000});
+     const actual=await response.body();
+     if(response.status()!==200||sha(actual)!==sha(bytes))return route.abort('blockedbyclient');
+     loaded.add(asset);return route.fulfill({response,body:actual});
+    }catch{return route.abort('blockedbyclient');}
+   }
    return route.abort('blockedbyclient');
   });
   const page=await context.newPage();
