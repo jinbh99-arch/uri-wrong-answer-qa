@@ -10,6 +10,7 @@ Deno.serve(async req=>{
   {status:503,headers:{'content-type':'application/json','cache-control':'no-store'}});
  let verifiedClient=null,verifiedToken=null;
  const services={
+  isolatedOrigin:Deno.env.get('QA51_ISOLATED_ORIGIN'),
   async getUser(token){
    const client=createClient(url,key,{
     auth:{persistSession:false,autoRefreshToken:false},
