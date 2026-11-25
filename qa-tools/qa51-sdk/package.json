@@ -1,0 +1,16 @@
+{
+  "name": "qa51-isolated-sdk-candidate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "QA51 candidate only; resolve and review lock before any install/build",
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
