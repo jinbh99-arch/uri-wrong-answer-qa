@@ -1,4 +1,4 @@
-# QA51 실제 세션 Revoke E2E 검증 가이드 v1.2
+# QA51 실제 세션 Revoke E2E 검증 가이드 v1.3
 
 기존 00Q-02-AUTH / #96 #7152473939 후속. PR83 시험 전용, 미병합.
 ## 선행 조건
@@ -9,13 +9,14 @@
 ## 격리 설치 설정 (기본 비활성, 아직 설치하지 않음)
 - 승인된 별도 HTTPS 시험 URL을 `qa47PublicStage.qa51IsolatedCallback`에 정확히 설정하고 같은 시험 프로젝트의 projectUrl/publishableKey를 지정한다. 기본 null은 기존 공개 QA 동선을 유지하지만 E2E 실행은 거부한다.
 - 양쪽 Edge Function에 `QA51_ISOLATED_ORIGIN`을 동일한 HTTPS origin으로 설정한다. 설정이 있는 경우 기존 공개 origin/localhost를 허용하지 않는다. Supabase OAuth redirect allowlist와 HTML CSP connect-src도 정확한 시험 환경에 맞춰 검토·설치해야 한다. 현재 실제 승인 URL/설치 버전은 미확인, 운영변경 금지.
-- 실행 전 해시 검증된 config의 projectUrl/key/callback을 환경 변수와 정확히 대조한다. 브라우저 실제 HTML/UI/config 응답 바이트도 실행 전에 해시 검증하고 원래 응답 헤더를 유지한다. JWT issuer 및 Edge ACK의 bearer 동일성도 검사한다. 외부 SDK 공급망과 실제 서버 버전은 별도 검증 범위다.
+- 실행 전 해시 검증된 config의 projectUrl/key/callback을 환경 변수와 정확히 대조한다. 브라우저 실제 HTML/UI/config 응답 바이트도 실행 전에 해시 검증하고 원래 응답 헤더를 유지한다. JWT issuer 및 Edge ACK의 bearer 동일성도 검사한다. 격리 UI는 CDN 대신 같은 origin의 `scripts/vendor/qa51-supabase.bundle.mjs`만 로드한다. 해당 파일은 별도 검토된 정확 버전·lockfile 기반 단일 ESM 번들로 준비하고 SHA-256을 고정해야 한다. 현재 번들 실물은 미확보이며, 임의 파일로 대체하지 않는다.
+- 격리 HTML의 CSP meta는 기존 공개 페이지를 수정하지 않고 설치본에서 `default-src 'none'; script-src 'self'; connect-src <승인 Supabase origin>; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; upgrade-insecure-requests`로 지정한다. 서버 CSP 헤더도 독립 대조한다. 브라우저 하네스는 승인 API의 지정 method/path, 정확히 허용된 Google 로그인 origin 및 해시 고정된 4개 앱 자산 외 요청을 차단하도록 구성했다. 공급자 redirect 및 실제 네트워크 적용은 N/T이고, 브라우저 route만으로 완전한 네트워크 격리를 보증하지 않는다.
 
 ## 실행 계약
 환경 변수(승인된 시험값만 로컬에 설정):
 - QA51_E2E_APPROVED=isolated-adult-fixture-only (실제 승인 확인 후 설정; 자체적으로 승인을 부여하는 값 아님)
 - QA51_E2E_PAGE_URL, QA51_E2E_SUPABASE_URL, QA51_E2E_SUPABASE_PUBLISHABLE_KEY
-- QA51_E2E_HTML_SHA256, QA51_E2E_UI_SHA256, QA51_E2E_CONFIG_SHA256: 검토된 배포 파일의 SHA-256
+- QA51_E2E_HTML_SHA256, QA51_E2E_UI_SHA256, QA51_E2E_CONFIG_SHA256, QA51_E2E_SDK_SHA256: 검토된 배포 파일의 SHA-256
 - QA51_E2E_DB_VERSION, QA51_E2E_EDGE_VERSION: 독립 대조 완료한 설치 버전 식별자(하네스는 원격 버전 자체를 증명하지 못함).
 실행: node tests/qa51-real-session-revoke-e2e.mjs
 
