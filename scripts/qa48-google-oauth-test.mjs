@@ -1,8 +1,15 @@
 // QA48 · actual Google OAuth/PKCE test against the user's real Supabase project.
 // Public GitHub Pages QA test route only; NEVER used for production or child records.
 import {qa47PublicStage as cfg} from './qa47-public-stage-config.mjs';
-const callback='https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html';
-const exactPublicTest=location.href.split(/[?#]/,1)[0]===callback;
+const legacyCallback='https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html';
+function isolatedCallback(value){
+ try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.origin!==new URL(legacyCallback).origin&&u.pathname.endsWith('/oauth-test.html')?u.href:null;}
+ catch{return null;}
+}
+const configured=isolatedCallback(cfg.qa51IsolatedCallback);
+const callback=cfg.qa51IsolatedCallback==null?legacyCallback:configured;
+
+const exactPublicTest=!!callback&&location.href.split(/[?#]/,1)[0]===callback;
 const isInjectedCi=location.origin==='http://127.0.0.1:4173' &&
   location.pathname==='/oauth-test.html' &&
   typeof globalThis.__QA48_TEST_CLIENT_FACTORY__==='function';
