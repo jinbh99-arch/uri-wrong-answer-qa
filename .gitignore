@@ -1,0 +1,4 @@
+# Real authenticated Playwright session captures for QA51 E2E testing.
+# These contain live session tokens (not passwords) and must never be committed.
+*.storageState.json
+qa51.e2e.storageState.json
