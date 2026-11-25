@@ -1,0 +1,51 @@
+name: QA51 isolated SDK lock resolution only
+on:
+  push:
+    branches: ['advisor/qa51-real-e2e-harness-20261125']
+    paths:
+      - '.github/workflows/qa51-sdk-lock-candidate.yml'
+      - 'qa-tools/qa51-sdk/package.json'
+permissions:
+  contents: read
+jobs:
+  resolve-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Resolve dependency lock without package code execution
+        working-directory: qa-tools/qa51-sdk
+        run: |
+          set -eu
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/
+          node -e 'const p=require("./package-lock.json");if(p.lockfileVersion!==3)process.exit(1);for(const [name,v] of Object.entries(p.packages)){if(name&&(!v.integrity||!v.resolved||!v.resolved.startsWith("https://registry.npmjs.org/")))process.exit(1)}'
+          mkdir -p /tmp/qa51-lock-proof
+          cp package.json package-lock.json /tmp/qa51-lock-proof/
+          node --version > /tmp/qa51-lock-proof/node-version.txt
+          npm --version > /tmp/qa51-lock-proof/npm-version.txt
+          git rev-parse HEAD > /tmp/qa51-lock-proof/source-sha.txt
+          cd /tmp/qa51-lock-proof
+          sha256sum package.json package-lock.json > SHA256SUMS
+      - name: Obtain dependency audit for independent review
+        working-directory: qa-tools/qa51-sdk
+        run: |
+          set +e
+          npm audit --package-lock-only --ignore-scripts --json --registry=https://registry.npmjs.org/ > /tmp/qa51-lock-proof/npm-audit.json
+          code=$?
+          printf '%s\n' "$code" > /tmp/qa51-lock-proof/audit-exit-code.txt
+          exit "$code"
+      - name: Retain dependency metadata only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qa51-sdk-lock-review-${{ github.sha }}
+          path: /tmp/qa51-lock-proof/
+          if-no-files-found: error
+          retention-days: 7
+# No install of dependency code, no build, no authentication, no deployment.
+# The lock and audit require 08 review before a subsequent bundle build.
