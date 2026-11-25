@@ -14,13 +14,9 @@ let browser,context,releaseLogout=()=>{},stage='CONFIG';
 const SESSION_KEY='uri-qa48-owner-google-test-session';
 function requireOk(value,code){if(!value)throw new Error(code);}
 const sha=b=>createHash('sha256').update(b).digest('hex');
-const pageURL=new URL(env.QA51_E2E_PAGE_URL), api=new URL(env.QA51_E2E_SUPABASE_URL);
+let pageURL,api,pins;
 const key=env.QA51_E2E_SUPABASE_PUBLISHABLE_KEY;
-const pins=[
- [pageURL.href,env.QA51_E2E_HTML_SHA256],
- [new URL('./scripts/qa48-google-oauth-test.mjs?v=49',pageURL).href,env.QA51_E2E_UI_SHA256],
- [new URL('./scripts/qa47-public-stage-config.mjs',pageURL).href,env.QA51_E2E_CONFIG_SHA256]
-];
+
 async function checkPins(){
  for(const [url,pin] of pins){
   requireOk(/^[a-f0-9]{64}$/.test(pin),'PIN_INVALID');
@@ -41,6 +37,10 @@ async function rpc(token){
  return {status:response.status,data}; // Never log data, family IDs, or errors.
 }
 try{
+ pageURL=new URL(env.QA51_E2E_PAGE_URL);api=new URL(env.QA51_E2E_SUPABASE_URL);
+ pins=[[pageURL.href,env.QA51_E2E_HTML_SHA256],
+ [new URL('./scripts/qa48-google-oauth-test.mjs?v=49',pageURL).href,env.QA51_E2E_UI_SHA256],
+ [new URL('./scripts/qa47-public-stage-config.mjs',pageURL).href,env.QA51_E2E_CONFIG_SHA256]];
  requireOk(pageURL.protocol==='https:'&&api.protocol==='https:'&&
   !pageURL.username&&!pageURL.password&&!pageURL.search&&!pageURL.hash&&
   api.pathname==='/'&&!api.username&&!api.password&&!api.search&&!api.hash&&
@@ -73,10 +73,11 @@ try{
   log('PASS: verified guardian RPC positive control');
   // Hold only provider logout, allowing real ledger commit and direct replay
   // BEFORE provider session deletion can account for denial. Always release.
-  let held=false;
+  let signalHeld;
+  const providerHeld=new Promise(resolve=>{signalHeld=resolve;});
   const gate=new Promise(resolve=>{releaseLogout=resolve;});
   await page.route(u=>u.origin===api.origin&&u.pathname==='/auth/v1/logout',async route=>{
-   held=true;await gate;await route.continue();
+   signalHeld(true);await gate;await route.continue();
   });
   stage='REVOCATION_ACK';
   const ackWait=page.waitForResponse(res=>{
@@ -87,8 +88,9 @@ try{
   const ack=await ackWait;
   requireOk(ack.status()===200&&(await ack.json())?.serverRevocationCommitted===true,'ACK_MISSING');
   requireOk(await page.locator('#verify').isDisabled()&&await page.locator('#google-login').isDisabled(),'UI_NOT_LOCKED');
-  await page.waitForTimeout(100);
-  requireOk(held,'PROVIDER_LOGOUT_NOT_HELD');
+  let holdTimer;
+  const held=await Promise.race([providerHeld,new Promise(resolve=>{holdTimer=setTimeout(()=>resolve(false),5000);})]);
+  clearTimeout(holdTimer);requireOk(held,'PROVIDER_LOGOUT_NOT_HELD');
   stage='REPLAY_BEFORE_PROVIDER_LOGOUT';
   requireOk(expires(old)>Date.now()/1000+30,'JWT_EXPIRY_AMBIGUOUS');
   const after=await rpc(old);
