@@ -19,12 +19,57 @@ const verifiedBytes=new Map();
 // Google login is interactive; only exact identity-provider origins are
 // permitted during the off-app navigation, never from the app document.
 const googleOrigins=new Set(['https://accounts.google.com','https://ssl.gstatic.com','https://www.gstatic.com','https://fonts.gstatic.com','https://fonts.googleapis.com','https://lh3.googleusercontent.com']);
-const apiPaths=new Map([['/auth/v1/authorize',['GET']],['/auth/v1/callback',['GET','POST']],['/auth/v1/token',['POST']],['/auth/v1/user',['GET']],['/auth/v1/logout',['POST']],['/rest/v1/rpc/qa47_my_verified_family_ids',['POST']],['/functions/v1/qa47-auth-status',['GET']],['/functions/v1/qa51-session-revoke',['POST']]]);
-function networkAllowed(u,method,source,navigation,providerPhase){
- if(u.origin===api.origin)return (apiPaths.get(u.pathname)||[]).includes(method)||method==='OPTIONS'&&apiPaths.has(u.pathname);
- if(!providerPhase||!googleOrigins.has(u.origin))return false;
- if(navigation&&u.origin==='https://accounts.google.com'&&source===api.origin)return true;
- return googleOrigins.has(source)&&['GET','POST','OPTIONS'].includes(method);
+const googleStatic=new Set([...googleOrigins].filter(x=>x!=='https://accounts.google.com'));
+const apiMethods=new Map([['/auth/v1/token','POST'],['/auth/v1/user','GET'],['/auth/v1/logout','POST'],['/rest/v1/rpc/qa47_my_verified_family_ids','POST'],['/functions/v1/qa47-auth-status','GET'],['/functions/v1/qa51-session-revoke','POST']]);
+function onlyQuery(u,allowed){
+ const keys=[...u.searchParams.keys()];
+ return keys.every(k=>allowed.includes(k))&&new Set(keys).size===keys.length;
+}
+function appBearer(headers){
+ const auth=headers.authorization||'';
+ if(!auth.startsWith('Bearer '))return false;
+ try{return claims(auth.slice(7)).iss===api.origin+'/auth/v1';}catch{return false;}
+}
+// Outbound guard only: issuer inspection is NOT authentication. Server still
+// validates signatures/expiry/session. Deny unknown initiator/phase/query.
+function networkAllowed(u,method,source,navigation,phase,headers={},previous=null){
+ if(u.protocol!=='https:'||u.username||u.password||u.hash)return false;
+ const credential=!!(headers.authorization||headers.apikey);
+ const app=source===pageURL.origin;
+ if(u.origin===api.origin){
+  if(u.pathname==='/auth/v1/authorize'){
+   return phase==='login'&&app&&navigation&&method==='GET'&&!credential&&
+    onlyQuery(u,['provider','redirect_to','scopes','code_challenge','code_challenge_method','prompt','skip_http_redirect'])&&
+    u.searchParams.get('provider')==='google'&&u.searchParams.get('redirect_to')===pageURL.href&&
+    u.searchParams.get('code_challenge_method')==='s256'&&
+    /^[A-Za-z0-9_-]{43,128}$/.test(u.searchParams.get('code_challenge')||'')&&
+    u.searchParams.get('scopes')==='openid email profile'&&u.searchParams.get('prompt')==='select_account'&&
+    !u.searchParams.has('skip_http_redirect');
+  }
+  if(u.pathname==='/auth/v1/callback'){
+   return phase==='provider'&&source==='https://accounts.google.com'&&navigation&&method==='GET'&&!credential&&
+    onlyQuery(u,['code','state','scope','authuser','prompt','hd','error','error_description','error_uri'])&&
+    !!u.searchParams.get('state')&&!!(u.searchParams.get('code')||u.searchParams.get('error'));
+  }
+  if(!app||navigation||!apiMethods.has(u.pathname))return false;
+  if(u.pathname==='/auth/v1/token'){
+   if(phase!=='callback'||!onlyQuery(u,['grant_type'])||u.searchParams.get('grant_type')!=='pkce')return false;
+  }else if(u.pathname==='/auth/v1/logout'){
+   if(phase!=='verified'||!onlyQuery(u,['scope'])||u.searchParams.get('scope')!=='local')return false;
+  }else if(u.pathname==='/functions/v1/qa51-session-revoke'){
+   if(phase!=='verified'||u.search)return false;
+  }else if(!['callback','verified'].includes(phase)||u.search)return false;
+  if(method==='OPTIONS')return !credential&&headers.origin===pageURL.origin&&
+   headers['access-control-request-method']===apiMethods.get(u.pathname);
+  if(method!==apiMethods.get(u.pathname)||headers.apikey!==key)return false;
+  return u.pathname==='/auth/v1/token'?(!headers.authorization||headers.authorization==='Bearer '+key):appBearer(headers);
+ }
+ if(credential||phase!=='provider'||!googleOrigins.has(u.origin))return false;
+ if(u.origin==='https://accounts.google.com'){
+  if(navigation&&method==='GET'&&previous?.origin===api.origin&&previous.pathname==='/auth/v1/authorize')return true;
+  return source==='https://accounts.google.com'&&['GET','POST'].includes(method);
+ }
+ return googleStatic.has(u.origin)&&source==='https://accounts.google.com'&&!navigation&&method==='GET';
 }
 const key=env.QA51_E2E_SUPABASE_PUBLISHABLE_KEY;
 
@@ -91,19 +136,29 @@ try{
   // Verify the actual browser responses before allowing execution; retain
   // original response headers (including CSP) and reject redirects.
   // Block unexpected same-origin scripts/documents.
-  const loaded=new Set();let providerPhase=true;
+  const loaded=new Set();let phase='login';
   await context.route('**/*',async route=>{
    const request=route.request(),u=new URL(request.url());
+   let source='',previous=null;
+   try{source=new URL(request.frame().url()).origin;}catch{}
+   try{if(request.redirectedFrom())previous=new URL(request.redirectedFrom().url());}catch{}
+   const headers=await request.allHeaders();
+   const navigation=request.isNavigationRequest();
    if(u.origin!==pageURL.origin){
-    let source='';try{source=new URL(request.frame().url()).origin;}catch{}
-    // The provider redirect may retain the initiating app frame URL; permit
-    // only its top-level accounts.google.com navigation, without bearer headers.
-    if(providerPhase&&request.isNavigationRequest()&&u.origin==='https://accounts.google.com'&&request.redirectedFrom()){
-     const prev=new URL(request.redirectedFrom().url());
-     if(prev.origin===api.origin&&prev.pathname==='/auth/v1/authorize'&&!(await request.allHeaders()).authorization)return route.continue();
-    }
-    return networkAllowed(u,request.method(),source,request.isNavigationRequest(),providerPhase)?route.continue():route.abort('blockedbyclient');
+    if(!networkAllowed(u,request.method(),source,navigation,phase,headers,previous))return route.abort('blockedbyclient');
+    if(u.origin===api.origin&&u.pathname==='/auth/v1/authorize')phase='provider';
+    return route.continue();
    }
+   // Exact OAuth callback only; reject arbitrary query, cross-frame
+   // navigation and credential-bearing requests to static app assets.
+   if(headers.authorization||headers.apikey||request.method()!=='GET')return route.abort('blockedbyclient');
+   if(navigation&&u.pathname===pageURL.pathname){
+    if(u.search){
+     if(phase!=='provider'||previous?.origin!==api.origin||previous.pathname!=='/auth/v1/callback'||
+      !onlyQuery(u,['code','error','error_code','error_description'])||!(u.searchParams.get('code')||u.searchParams.get('error')))return route.abort('blockedbyclient');
+     phase='callback';
+    }else if(phase!=='login'&&source!==pageURL.origin)return route.abort('blockedbyclient');
+   }else if(source!==pageURL.origin)return route.abort('blockedbyclient');
    const normalized=u.href.split('#')[0];
    const asset=u.pathname===pageURL.pathname&&request.isNavigationRequest()?pageURL.href:normalized;
    const bytes=verifiedBytes.get(asset);
@@ -124,7 +179,8 @@ try{
   await page.waitForFunction(()=>document.querySelector('#status')?.dataset.state==='success'&&
    !document.querySelector('#verify')?.disabled,undefined,{timeout:300000});
   requireOk(page.url().split(/[?#]/)[0]===pageURL.href,'CALLBACK_MISMATCH');
-  providerPhase=false;
+  requireOk(phase==='callback','CALLBACK_PHASE_NOT_PROVEN');
+  phase='verified';
   requireOk(pins.every(([url])=>loaded.has(url)),'BROWSER_ASSETS_NOT_VERIFIED');
   await checkPins();
   const old=await page.evaluate(k=>{
@@ -142,6 +198,9 @@ try{
   const providerHeld=new Promise(resolve=>{signalHeld=resolve;});
   const gate=new Promise(resolve=>{releaseLogout=resolve;});
   await page.route(u=>u.origin===api.origin&&u.pathname==='/auth/v1/logout',async route=>{
+   const request=route.request(),u=new URL(request.url());
+   let source='';try{source=new URL(request.frame().url()).origin;}catch{}
+   if(!networkAllowed(u,request.method(),source,request.isNavigationRequest(),phase,await request.allHeaders()))return route.abort('blockedbyclient');
    signalHeld(true);await gate;await route.continue();
   });
   stage='REVOCATION_ACK';
