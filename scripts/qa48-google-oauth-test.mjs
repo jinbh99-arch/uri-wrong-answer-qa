@@ -1,8 +1,15 @@
 // QA48 · actual Google OAuth/PKCE test against the user's real Supabase project.
 // Public GitHub Pages QA test route only; NEVER used for production or child records.
 import {qa47PublicStage as cfg} from './qa47-public-stage-config.mjs';
-const callback='https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html';
-const exactPublicTest=location.href.split(/[?#]/,1)[0]===callback;
+const legacyCallback='https://jinbh99-arch.github.io/uri-wrong-answer-qa/oauth-test.html';
+function isolatedCallback(value){
+ try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.origin!==new URL(legacyCallback).origin&&u.pathname.endsWith('/oauth-test.html')?u.href:null;}
+ catch{return null;}
+}
+const configured=isolatedCallback(cfg.qa51IsolatedCallback);
+const callback=cfg.qa51IsolatedCallback==null?legacyCallback:configured;
+
+const exactPublicTest=!!callback&&location.href.split(/[?#]/,1)[0]===callback;
 const isInjectedCi=location.origin==='http://127.0.0.1:4173' &&
   location.pathname==='/oauth-test.html' &&
   typeof globalThis.__QA48_TEST_CLIENT_FACTORY__==='function';
@@ -42,7 +49,10 @@ async function supabaseClient(){
  let create;
  if(typeof factory==='function')create=factory;
  else try {
-  create=(await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
+  // Isolated QA51 never imports a floating CDN SDK. A reviewed, bundled
+  // ESM artifact must be present in the isolated installation.
+  create=(configured?await import('./vendor/qa51-supabase.bundle.mjs'):
+   await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
  }catch {throw Error('SDK_IMPORT_FAILED')}
  if(typeof create!=='function')throw Error('SDK_IMPORT_FAILED');
  const candidate=await create(cfg.projectUrl,cfg.publishableKey,{

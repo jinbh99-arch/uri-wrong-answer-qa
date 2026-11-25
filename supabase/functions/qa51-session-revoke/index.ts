@@ -4,6 +4,11 @@
 // The same signed, unexpired JWT may retrieve only its own prior operation receipt.
 import {createClient} from 'npm:@supabase/supabase-js@2';
 const origins=new Set(['http://127.0.0.1:4173','https://jinbh99-arch.github.io']);
+const isolatedOrigin=Deno.env.get('QA51_ISOLATED_ORIGIN');
+if(isolatedOrigin!==undefined){
+ origins.clear();
+ try{const u=new URL(isolatedOrigin);if(u.protocol==='https:'&&u.origin===isolatedOrigin&&u.origin!=='https://jinbh99-arch.github.io')origins.add(u.origin);}catch{}
+}
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 async function readLimited(req:Request,max:number){
  const reader=req.body?.getReader(); if(!reader)return '';

@@ -5,6 +5,8 @@ export const qa47PublicStage=Object.freeze({
  projectUrl:'https://hnpbwxgpwpellgeusjim.supabase.co',
  publishableKey:"sb_publishable_MxRDT4iLkykSApfRHukUhA_H9KOcRJb",
  edgeFunction:'qa47-auth-status',
+ // Set only in a separately approved isolated QA51 installation.
+ qa51IsolatedCallback:null,
  localOrigin:'http://127.0.0.1:4173',
  realEmailSignInEnabled:true,
  googleOAuthVerified:false,

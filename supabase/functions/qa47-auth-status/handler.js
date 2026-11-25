@@ -20,7 +20,13 @@ export async function handleQa47AuthenticatedGuardianStatus(req,services) {
  // Only exact loopback or isolated GitHub Pages QA origin may call the read-only diagnostic.
  // Even if non-browser clients forge Origin, JWT verification and DB RLS apply.
  const origin=req.headers.get('origin');
- if(!ALLOWED_ORIGINS.has(origin))return new Response(null,{status:403,headers:JSON_HEADERS});
+ const isolated=services?.isolatedOrigin;
+ let allowed=ALLOWED_ORIGINS.has(origin);
+ if(isolated!==undefined){
+  allowed=false;
+  try{const u=new URL(isolated);allowed=u.protocol==='https:'&&u.origin===isolated&&u.origin!=='https://jinbh99-arch.github.io'&&origin===u.origin;}catch{}
+ }
+ if(!allowed)return new Response(null,{status:403,headers:JSON_HEADERS});
  const send=(status,body)=>respond(status,body,origin);
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{
    'access-control-allow-origin':origin,
