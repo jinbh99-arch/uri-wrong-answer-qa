@@ -5,7 +5,7 @@
 import {createHash} from 'node:crypto';
 const env=process.env;
 const required=['QA51_E2E_PAGE_URL','QA51_E2E_SUPABASE_URL','QA51_E2E_SUPABASE_PUBLISHABLE_KEY',
- 'QA51_E2E_HTML_SHA256','QA51_E2E_UI_SHA256','QA51_E2E_CONFIG_SHA256','QA51_E2E_DB_VERSION','QA51_E2E_EDGE_VERSION'];
+ 'QA51_E2E_HTML_SHA256','QA51_E2E_UI_SHA256','QA51_E2E_CONFIG_SHA256','QA51_E2E_SDK_SHA256','QA51_E2E_DB_VERSION','QA51_E2E_EDGE_VERSION'];
 const log=(label)=>console.log('QA51-E2E '+label);
 if(env.QA51_E2E_APPROVED!=='isolated-adult-fixture-only'||required.some(k=>!env[k])){
  log('N/T: approved isolated target and version pins required');process.exit(2);
@@ -16,6 +16,16 @@ function requireOk(value,code){if(!value)throw new Error(code);}
 const sha=b=>createHash('sha256').update(b).digest('hex');
 let pageURL,api,pins;
 const verifiedBytes=new Map();
+// Google login is interactive; only exact identity-provider origins are
+// permitted during the off-app navigation, never from the app document.
+const googleOrigins=new Set(['https://accounts.google.com','https://ssl.gstatic.com','https://www.gstatic.com','https://fonts.gstatic.com','https://fonts.googleapis.com','https://lh3.googleusercontent.com']);
+const apiPaths=new Map([['/auth/v1/authorize',['GET']],['/auth/v1/callback',['GET','POST']],['/auth/v1/token',['POST']],['/auth/v1/user',['GET']],['/auth/v1/logout',['POST']],['/rest/v1/rpc/qa47_my_verified_family_ids',['POST']],['/functions/v1/qa47-auth-status',['GET']],['/functions/v1/qa51-session-revoke',['POST']]]);
+function networkAllowed(u,method,source,navigation,providerPhase){
+ if(u.origin===api.origin)return (apiPaths.get(u.pathname)||[]).includes(method)||method==='OPTIONS'&&apiPaths.has(u.pathname);
+ if(!providerPhase||!googleOrigins.has(u.origin))return false;
+ if(navigation&&u.origin==='https://accounts.google.com'&&source===api.origin)return true;
+ return googleOrigins.has(source)&&['GET','POST','OPTIONS'].includes(method);
+}
 const key=env.QA51_E2E_SUPABASE_PUBLISHABLE_KEY;
 
 async function checkPins(){
@@ -45,7 +55,8 @@ try{
  pageURL=new URL(env.QA51_E2E_PAGE_URL);api=new URL(env.QA51_E2E_SUPABASE_URL);
  pins=[[pageURL.href,env.QA51_E2E_HTML_SHA256],
  [new URL('./scripts/qa48-google-oauth-test.mjs?v=49',pageURL).href,env.QA51_E2E_UI_SHA256],
- [new URL('./scripts/qa47-public-stage-config.mjs',pageURL).href,env.QA51_E2E_CONFIG_SHA256]];
+ [new URL('./scripts/qa47-public-stage-config.mjs',pageURL).href,env.QA51_E2E_CONFIG_SHA256],
+ [new URL('./scripts/vendor/qa51-supabase.bundle.mjs',pageURL).href,env.QA51_E2E_SDK_SHA256]];
  requireOk(pageURL.protocol==='https:'&&api.protocol==='https:'&&
   !pageURL.username&&!pageURL.password&&!pageURL.search&&!pageURL.hash&&
   api.pathname==='/'&&!api.username&&!api.password&&!api.search&&!api.hash&&
@@ -68,6 +79,9 @@ try{
  }
  requireOk(fields.projectUrl===api.origin&&fields.publishableKey===key&&
   fields.qa51IsolatedCallback===pageURL.href&&fields.allowStudentData==='false'&&fields.allowProduction==='false','APP_TARGET_MISMATCH');
+ const html=verifiedBytes.get(pageURL.href).toString('utf8');
+ const csp="default-src 'none'; script-src 'self'; connect-src "+api.origin+"; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
+ requireOk(html.includes('http-equiv="Content-Security-Policy" content="'+csp+'"'),'ISOLATED_CSP_MISMATCH');
  stage='BROWSER';
  let chromium;
  try{({chromium}=await import('playwright'));browser=await chromium.launch({headless:false});}
@@ -77,10 +91,19 @@ try{
   // Verify the actual browser responses before allowing execution; retain
   // original response headers (including CSP) and reject redirects.
   // Block unexpected same-origin scripts/documents.
-  const loaded=new Set();
+  const loaded=new Set();let providerPhase=true;
   await context.route('**/*',async route=>{
    const request=route.request(),u=new URL(request.url());
-   if(u.origin!==pageURL.origin)return route.continue();
+   if(u.origin!==pageURL.origin){
+    let source='';try{source=new URL(request.frame().url()).origin;}catch{}
+    // The provider redirect may retain the initiating app frame URL; permit
+    // only its top-level accounts.google.com navigation, without bearer headers.
+    if(providerPhase&&request.isNavigationRequest()&&u.origin==='https://accounts.google.com'&&request.redirectedFrom()){
+     const prev=new URL(request.redirectedFrom().url());
+     if(prev.origin===api.origin&&prev.pathname==='/auth/v1/authorize'&&!(await request.allHeaders()).authorization)return route.continue();
+    }
+    return networkAllowed(u,request.method(),source,request.isNavigationRequest(),providerPhase)?route.continue():route.abort('blockedbyclient');
+   }
    const normalized=u.href.split('#')[0];
    const asset=u.pathname===pageURL.pathname&&request.isNavigationRequest()?pageURL.href:normalized;
    const bytes=verifiedBytes.get(asset);
@@ -101,6 +124,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#status')?.dataset.state==='success'&&
    !document.querySelector('#verify')?.disabled,undefined,{timeout:300000});
   requireOk(page.url().split(/[?#]/)[0]===pageURL.href,'CALLBACK_MISMATCH');
+  providerPhase=false;
   requireOk(pins.every(([url])=>loaded.has(url)),'BROWSER_ASSETS_NOT_VERIFIED');
   await checkPins();
   const old=await page.evaluate(k=>{
